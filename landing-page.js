@@ -22,8 +22,7 @@ let isDragging = false;
 let scrollFadeTimeout;
 let initialOrder = []; // Var to store order of Categories in the selection bank
 
-// Page Redirects
-const pageRedirects = {
+const pageRedirects = { //Redirections to different sections for categorySelect
     "Engineer": "projects.html#engineering-page",
     "Designer": "projects.html#design-page",
     "Photographer": "projects.html#photography-page",
@@ -31,9 +30,10 @@ const pageRedirects = {
 };
 
 
+
 // === Core Functions ===
 function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise(resolve => setTimeout(resolve, ms)); // Delay for each char
 }
 
 // Helper function to reset text element of typewriter animated sentence
@@ -46,29 +46,26 @@ function clearTypewriterText() {
 }
 
 async function typewriterAnimation(textToType) {
-    if (isTyping || !typewriterElement) return; //Prevent Typing while existing animation is playing or if <typewriterElement> is not found
+    if (isTyping || !typewriterElement) return; // Prevent Typing while existing animation is playing or if <typewriterElement> is not found
 
     isTyping = true;
-    try {
-        clearTypewriterText();
+    clearTypewriterText();
 
-        for (const char of textToType) {
-            typewriterElement.textContent += char;
-            let delay = typingSpeed;
+    for (const char of textToType) {
+        typewriterElement.textContent += char;
+        let delay = typingSpeed;
 
-            if (char === ' ') {
-                delay += wordDelay;
-            }
-            await sleep(delay);
+        if (char === ' ') {
+            delay += wordDelay;
         }
-
-        triggerPageAnimations();
-    } finally {
-        isTyping = false; // Typing animation is finished
+        await sleep(delay);
     }
+
+    triggerPageAnimations();
+    isTyping = false;
 }
 
-//Only run on DOMContentLoaded initalization to reset intro animation (Title, GIF, and Scroll Down Text)
+// Only run on DOMContentLoaded initalization to reset intro animation (Title, GIF, and Scroll Down Text)
 function setInitialState() {
     if (titleElement) {
         titleElement.style.transform = 'translateY(200px)';
@@ -114,10 +111,9 @@ function triggerPageAnimations() {
 }
 
 
-// === Event Listeners ===
+// =============== Event Listeners ===============
 
 window.addEventListener("DOMContentLoaded", (event) => { //Inital Conditions for Landing Page
-    // Initialize elements
     typewriterElement = document.querySelector(".typewriter-animation");
     titleElement = document.getElementById('scroll-title');
     bottomGifElement = document.querySelector('.bottom-gif');
@@ -135,7 +131,7 @@ window.addEventListener("DOMContentLoaded", (event) => { //Inital Conditions for
         window.scrollTo(0, 0);
         animationsStarted = true;
         typewriterAnimation(initialText);
-    }, 250); //Initial Delay for Landing Page Animations (ms)
+    }, 250);
 
     // Initialize dragover and drop listeners for category selections and drop zones
     if (categoryDropZoneElement) {
@@ -144,7 +140,6 @@ window.addEventListener("DOMContentLoaded", (event) => { //Inital Conditions for
     }
 
     if (categorySelectElement) {
-        // Find all draggable items and add listeners to them
         draggableItems.forEach(item => {
             item.addEventListener('dragstart', handleDragStart);
             item.addEventListener('dragend', handleDragEnd);
@@ -153,8 +148,6 @@ window.addEventListener("DOMContentLoaded", (event) => { //Inital Conditions for
 
         categorySelectElement.addEventListener('dragover', handleDragOver);
         categorySelectElement.addEventListener('drop', handleReturnDrop);
-
-        // Add these two for visual feedback
         categorySelectElement.addEventListener('dragenter', () => categorySelectElement.classList.add('drag-over'));
         categorySelectElement.addEventListener('dragleave', () => categorySelectElement.classList.remove('drag-over'));
     }
@@ -178,7 +171,8 @@ window.addEventListener('scroll', () => {
                 }
             }
             scrollableElements.forEach(el => el?.classList.add('scrolled'));
-        } else {
+        }
+        else {
             if (typewriterElement) {
                 typewriterElement.textContent = initialText;
                 typewriterElement.classList.remove('scrolled', 'shift-left');
@@ -189,7 +183,7 @@ window.addEventListener('scroll', () => {
                 const selectedCategory = categoryDropZoneElement.querySelector('span[draggable="true"]');
                 if (selectedCategory && categorySelectElement) {
                     handleReturnDrop({
-                        preventDefault: () => {},
+                        preventDefault: () => { },
                         currentTarget: categorySelectElement,
                         dataTransfer: {
                             getData: () => selectedCategory.id
@@ -226,8 +220,6 @@ window.addEventListener('scroll', () => {
 
 // === Helper function for Drag & Drop Text ===
 function updateTypewriterArticle(text) {
-    if (!typewriterElement || !text || !typewriterElement.classList.contains('scrolled')) return;
-
     const article = vowelRegex.test(text.charAt(0)) ? " an" : " a";
     typewriterElement.textContent = initialText + article;
 }
@@ -245,7 +237,6 @@ function handleDragStart(event) {
 }
 
 function handleDragEnd(event) {
-    // Clear the placeholder text when the drag finishes
     if (placeholderElement) {
         placeholderElement.textContent = "";
         event.currentTarget.style.opacity = '1';
@@ -268,7 +259,7 @@ function handleDrop(event) {
     if (existingItem) {
         const originalContainer = document.querySelector('.categorySelect');
         handleReturnDrop({
-            preventDefault: () => {},
+            preventDefault: () => { },
             currentTarget: originalContainer,
             dataTransfer: {
                 getData: () => existingItem.id
@@ -277,21 +268,16 @@ function handleDrop(event) {
     }
 
     // Add the new item to the drop zone and update the typewriter text.
-    if (draggedElement) {
-        dropZone.appendChild(draggedElement);
-        updateTypewriterArticle(draggedElement.id);
 
-        // Check if there's a redirect link for the dropped item.
-        const redirectUrl = pageRedirects[draggedItemId];
-        if (redirectUrl) {
-            // Add a class to the body to trigger the fade-out animation.
-            document.body.classList.add('fade-out');
+    dropZone.appendChild(draggedElement);
+    updateTypewriterArticle(draggedElement.id);
 
-            // Wait for the animation to finish before changing the page.
-            setTimeout(() => {
-                window.location.href = redirectUrl;
-            }, 500);
-        }
+    const redirectUrl = pageRedirects[draggedItemId];
+    if (redirectUrl) {
+        document.body.classList.add('fade-out');
+        setTimeout(() => {
+            window.location.href = redirectUrl;
+        }, 500);
     }
 }
 
@@ -300,7 +286,7 @@ function handleDragEnter(event) {
 }
 
 function handleDragLeave(event) {
-    // When the item leaves the drop zone, reset the text to default
+    // Reset the text to default
     if (typewriterElement && typewriterElement.classList.contains('scrolled')) {
         typewriterElement.textContent = initialText + " a";
     }
@@ -310,25 +296,23 @@ function handleReturnDrop(event) {
     event.preventDefault();
     const draggedItemId = event.dataTransfer.getData("text/plain");
     const draggedElement = document.getElementById(draggedItemId);
-    const returnZone = event.currentTarget; // This is .categorySelect
+    const returnZone = event.currentTarget;
 
     if (draggedElement) {
-        // Find the correct position to insert the element
         const droppedIndex = initialOrder.indexOf(draggedElement.id);
         let nextSibling = null;
 
         // Iterate through the original order to find the first element
-        // that should come after the dropped element and is currently in the list.
+        // that should come after the dropped element and is currently in the list
         for (let i = droppedIndex + 1; i < initialOrder.length; i++) {
             const siblingId = initialOrder[i];
             const siblingElement = returnZone.querySelector('#' + siblingId);
             if (siblingElement) {
                 nextSibling = siblingElement;
-                break; // Found the next sibling, stop looking
+                break;
             }
         }
 
-        // Insert before the next sibling, or append if it belongs at the end
         if (nextSibling) {
             returnZone.insertBefore(draggedElement, nextSibling);
         } else {

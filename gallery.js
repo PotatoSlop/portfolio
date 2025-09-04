@@ -36,6 +36,24 @@ export const photos = [
         imageURL: 'Assets/Photography/Sample Horz (6).jpg',
         orientation: 'landscape'
     },
+     {
+        title: "Zipline Temple",
+        location: "Jiufen, Taiwan",
+        imageURL: 'Assets/Photography/Sample Horz (7).jpg',
+        orientation: 'landscape'
+    },
+     {
+        title: "Siesta",
+        location: "Jiufen, Taiwan",
+        imageURL: 'Assets/Photography/Sample Horz (8).jpg',
+        orientation: 'landscape'
+    },
+     {
+        title: "Seeking V formation",
+        location: "Boston, Massachusetts",
+        imageURL: 'Assets/Photography/Sample Horz (9).jpg',
+        orientation: 'landscape'
+    },
     {
         title: "Heat Lamp",
         location: "Manhattan, New York",
@@ -100,6 +118,18 @@ export const photos = [
         title: "Capacity",
         location: "Marina Square, Singapore",
         imageURL: 'Assets/Photography/Sample Vert (11).jpg',
+        orientation: 'portrait'
+    },
+     {
+        title: "Shoulder Surfing",
+        location: "Seattle, Washington",
+        imageURL: 'Assets/Photography/Sample Vert (12).jpg',
+        orientation: 'portrait'
+    },
+     {
+        title: "Still Steel",
+        location: "Brooklyn, New York",
+        imageURL: 'Assets/Photography/Sample Vert (13).jpg',
         orientation: 'portrait'
     },
 ]

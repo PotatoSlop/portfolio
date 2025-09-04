@@ -11,7 +11,7 @@
   --color-border: #1e1e14;
   --color-primary: #F5A045;
   --color-primary-dark: #e8913d;
-  --color-white: #fff;
+  --color-white: #ffffff;
 
 
   --color-success-bg: #F5A045;
@@ -810,7 +810,7 @@ nav ul {
 
 .page-header h1 {
   font-size: clamp(2.5rem, 8vw, 5rem);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-dark);
   margin-bottom: 0.5rem;
 }
@@ -1091,7 +1091,7 @@ nav ul {
 /* #region =================================== CONTACT PAGE =================================== */
 .container h1 {
   font-size: clamp(2rem, 6vw, 3rem);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-dark);
   text-align: center;
   margin-bottom: 1rem;
@@ -1954,7 +1954,7 @@ nav ul {
   color: var(--color-text-dark);
   font-weight: 800;
   font-family: var(--font-secondary);
-  font-size: clamp(2rem, 1rem + 8vw, 8rem);
+  font-size: clamp(4rem, 1rem + 8vw, 8rem);
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -2427,7 +2427,7 @@ nav ul {
 /* #region =================================== CONTACT PAGE =================================== */
 .container h1 {
   font-size: clamp(2rem, 6vw, 3rem);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-dark);
   text-align: center;
   margin-bottom: 1rem;
@@ -3070,6 +3070,17 @@ form textarea {
 
   .about-container {
     flex-direction: column;
+  }
+
+  .scroll-down-text {
+    position: fixed;
+    top: calc(50vh + 4rem); /* Position below the title */
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    text-align: center;
+    width: auto;
+    justify-content: center;
   }
 }
 

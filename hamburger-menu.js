@@ -18,17 +18,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Click overlay to close sidebar
+    // Hide sidebar
     overlay.addEventListener('click', hideSidebar);
-    
-    // Close sidebar with Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && sidebar.classList.contains('active')) {
             hideSidebar();
         }
     });
-    
-    // Auto-close sidebar when screen size changes to desktop
     window.addEventListener('resize', function() {
         const isDesktop = window.innerWidth > 768;
         if (isDesktop && sidebar.classList.contains('active')) {
