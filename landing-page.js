@@ -22,7 +22,7 @@ let isDragging = false;
 let scrollFadeTimeout;
 let initialOrder = []; // Var to store order of Categories in the selection bank
 
-const pageRedirects = {
+const pageRedirects = { //Redirections to different sections for categorySelect
     "Engineer": "projects.html#engineering-page",
     "Designer": "projects.html#design-page",
     "Photographer": "projects.html#photography-page",
@@ -31,7 +31,7 @@ const pageRedirects = {
 
 
 function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise(resolve => setTimeout(resolve, ms)); // Delay for each char
 }
 
 // Helper function to reset text element of typewriter animated sentence
@@ -47,23 +47,20 @@ async function typewriterAnimation(textToType) {
     if (isTyping || !typewriterElement) return; // Prevent Typing while existing animation is playing or if <typewriterElement> is not found
 
     isTyping = true;
-    try {
-        clearTypewriterText();
+    clearTypewriterText();
 
-        for (const char of textToType) {
-            typewriterElement.textContent += char;
-            let delay = typingSpeed;
+    for (const char of textToType) {
+        typewriterElement.textContent += char;
+        let delay = typingSpeed;
 
-            if (char === ' ') {
-                delay += wordDelay;
-            }
-            await sleep(delay);
+        if (char === ' ') {
+            delay += wordDelay;
         }
-
-        triggerPageAnimations();
-    } finally {
-        isTyping = false; // Typing animation is finished
+        await sleep(delay);
     }
+
+    triggerPageAnimations();
+    isTyping = false;
 }
 
 // Only run on DOMContentLoaded initalization to reset intro animation (Title, GIF, and Scroll Down Text)
@@ -172,7 +169,8 @@ window.addEventListener('scroll', () => {
                 }
             }
             scrollableElements.forEach(el => el?.classList.add('scrolled'));
-        } else {
+        }
+        else {
             if (typewriterElement) {
                 typewriterElement.textContent = initialText;
                 typewriterElement.classList.remove('scrolled', 'shift-left');
@@ -183,7 +181,7 @@ window.addEventListener('scroll', () => {
                 const selectedCategory = categoryDropZoneElement.querySelector('span[draggable="true"]');
                 if (selectedCategory && categorySelectElement) {
                     handleReturnDrop({
-                        preventDefault: () => {},
+                        preventDefault: () => { },
                         currentTarget: categorySelectElement,
                         dataTransfer: {
                             getData: () => selectedCategory.id
@@ -220,8 +218,6 @@ window.addEventListener('scroll', () => {
 
 // === Helper function for Drag & Drop Text ===
 function updateTypewriterArticle(text) {
-    if (!typewriterElement || !text || !typewriterElement.classList.contains('scrolled')) return;
-
     const article = vowelRegex.test(text.charAt(0)) ? " an" : " a";
     typewriterElement.textContent = initialText + article;
 }
@@ -261,7 +257,7 @@ function handleDrop(event) {
     if (existingItem) {
         const originalContainer = document.querySelector('.categorySelect');
         handleReturnDrop({
-            preventDefault: () => {},
+            preventDefault: () => { },
             currentTarget: originalContainer,
             dataTransfer: {
                 getData: () => existingItem.id
@@ -270,18 +266,16 @@ function handleDrop(event) {
     }
 
     // Add the new item to the drop zone and update the typewriter text.
-    if (draggedElement) {
-        dropZone.appendChild(draggedElement);
-        updateTypewriterArticle(draggedElement.id);
 
-        // Check if there's a redirect link for the dropped item.
-        const redirectUrl = pageRedirects[draggedItemId];
-        if (redirectUrl) {
-            document.body.classList.add('fade-out');
-            setTimeout(() => {
-                window.location.href = redirectUrl;
-            }, 500);
-        }
+    dropZone.appendChild(draggedElement);
+    updateTypewriterArticle(draggedElement.id);
+
+    const redirectUrl = pageRedirects[draggedItemId];
+    if (redirectUrl) {
+        document.body.classList.add('fade-out');
+        setTimeout(() => {
+            window.location.href = redirectUrl;
+        }, 500);
     }
 }
 
@@ -316,7 +310,7 @@ function handleReturnDrop(event) {
                 break;
             }
         }
-        
+
         if (nextSibling) {
             returnZone.insertBefore(draggedElement, nextSibling);
         } else {
