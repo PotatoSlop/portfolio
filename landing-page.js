@@ -30,6 +30,8 @@ const pageRedirects = { //Redirections to different sections for categorySelect
 };
 
 
+
+// === Core Functions ===
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms)); // Delay for each char
 }
