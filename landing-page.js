@@ -22,7 +22,6 @@ let isDragging = false;
 let scrollFadeTimeout;
 let initialOrder = []; // Var to store order of Categories in the selection bank
 
-// Page Redirects
 const pageRedirects = {
     "Engineer": "projects.html#engineering-page",
     "Designer": "projects.html#design-page",
@@ -31,7 +30,6 @@ const pageRedirects = {
 };
 
 
-// === Core Functions ===
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -46,7 +44,7 @@ function clearTypewriterText() {
 }
 
 async function typewriterAnimation(textToType) {
-    if (isTyping || !typewriterElement) return; //Prevent Typing while existing animation is playing or if <typewriterElement> is not found
+    if (isTyping || !typewriterElement) return; // Prevent Typing while existing animation is playing or if <typewriterElement> is not found
 
     isTyping = true;
     try {
@@ -68,7 +66,7 @@ async function typewriterAnimation(textToType) {
     }
 }
 
-//Only run on DOMContentLoaded initalization to reset intro animation (Title, GIF, and Scroll Down Text)
+// Only run on DOMContentLoaded initalization to reset intro animation (Title, GIF, and Scroll Down Text)
 function setInitialState() {
     if (titleElement) {
         titleElement.style.transform = 'translateY(200px)';
@@ -114,10 +112,9 @@ function triggerPageAnimations() {
 }
 
 
-// === Event Listeners ===
+// =============== Event Listeners ===============
 
 window.addEventListener("DOMContentLoaded", (event) => { //Inital Conditions for Landing Page
-    // Initialize elements
     typewriterElement = document.querySelector(".typewriter-animation");
     titleElement = document.getElementById('scroll-title');
     bottomGifElement = document.querySelector('.bottom-gif');
@@ -135,7 +132,7 @@ window.addEventListener("DOMContentLoaded", (event) => { //Inital Conditions for
         window.scrollTo(0, 0);
         animationsStarted = true;
         typewriterAnimation(initialText);
-    }, 250); //Initial Delay for Landing Page Animations (ms)
+    }, 250);
 
     // Initialize dragover and drop listeners for category selections and drop zones
     if (categoryDropZoneElement) {
@@ -303,14 +300,14 @@ function handleReturnDrop(event) {
     event.preventDefault();
     const draggedItemId = event.dataTransfer.getData("text/plain");
     const draggedElement = document.getElementById(draggedItemId);
-    const returnZone = event.currentTarget; // This is .categorySelect
+    const returnZone = event.currentTarget;
 
     if (draggedElement) {
         const droppedIndex = initialOrder.indexOf(draggedElement.id);
         let nextSibling = null;
 
         // Iterate through the original order to find the first element
-        // that should come after the dropped element and is currently in the list.
+        // that should come after the dropped element and is currently in the list
         for (let i = droppedIndex + 1; i < initialOrder.length; i++) {
             const siblingId = initialOrder[i];
             const siblingElement = returnZone.querySelector('#' + siblingId);

@@ -12,8 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const rect = aboutContainer.getBoundingClientRect();
     const windowHeight = window.innerHeight;
-
-
     const animationDistance = aboutContainer.offsetHeight - windowHeight;
 
     if (animationDistance <= 0) return 0;
@@ -28,36 +26,23 @@ document.addEventListener('DOMContentLoaded', () => {
     textBlocks.forEach((block, i) => {
       if (i === index) {
         block.classList.add('is-visible');
-      } else {
+      } 
+      else {
         block.classList.remove('is-visible');
       }
     });
   }
 
-  function flipPortrait(shouldFlip) {
-    if (headshot) {
-      if (shouldFlip) {
-        headshot.classList.add('flipped');
-      } else {
-        headshot.classList.remove('flipped');
-      }
-    }
-  }
-
   function handleScroll() {
     const scrollProgress = calculateScrollProgress();
 
-    if (scrollProgress > 0.3) {
-      showTextBlock(0);
-    } else {
-      showTextBlock(1);
-    }
-
-
     if (scrollProgress >= 0.3) {
-      flipPortrait(true);
-    } else {
-      flipPortrait(false);
+      headshot.classList.add('flipped');
+      showTextBlock(0);
+    } 
+    else {
+      headshot.classList.remove('flipped');
+      showTextBlock(1);
     }
   }
 

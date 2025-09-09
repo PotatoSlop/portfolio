@@ -1,6 +1,3 @@
-let messageCounter;
-
-// EmailJS integration for contact form
 function sendEmail(event) {
   event.preventDefault();
   
@@ -19,7 +16,8 @@ function sendEmail(event) {
   if (!name) {
     hasErrors = true;
     showError('name', 'Full name is required');
-  } else if (name.length < 2) {
+  } 
+  else if (name.length < 2) {
     hasErrors = true;
     showError('name', 'Name must be at least 2 characters long');
   }
@@ -27,7 +25,8 @@ function sendEmail(event) {
   if (!email) {
     hasErrors = true;
     showError('email', 'Email address is required');
-  } else if (!isValidEmail(email)) {
+  } 
+  else if (!isValidEmail(email)) {
     hasErrors = true;
     showError('email', 'Please enter a valid email address');
   }
@@ -41,10 +40,12 @@ function sendEmail(event) {
   if (!message) {
     hasErrors = true;
     showError('message', 'Message is required');
-  } else if (message.length < 50) {
+  } 
+  else if (message.length < 50) {
     hasErrors = true;
     showError('message', `Message must be at least 50 characters long. ${50 - message.length} characters remaining.`);
-  } else if (message.length > 2000) {
+  } 
+  else if (message.length > 2000) {
     hasErrors = true;
     showError('message', `Message is too long. Please reduce by ${message.length - 2000} characters.`);
   }
@@ -57,6 +58,7 @@ function sendEmail(event) {
   
   // #endregion 
 
+  //Formatting
   var fromField = document.getElementById('from_field');
   fromField.value = name + ' <' + email + '>';
 
@@ -70,7 +72,8 @@ function sendEmail(event) {
       clearErrorMessages();
       updateMessageCounter();
       resetFieldStates();
-    }, function(error) {
+    }, 
+    function(error) {
       console.error('EmailJS Error:', error);
       showFormMessage('Sorry, there was a problem sending your message. Please try again or contact me directly.', 'error');
     })
