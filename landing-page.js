@@ -29,8 +29,6 @@ const pageRedirects = { //Redirections to different sections for categorySelect
     "Programmer": "projects.html#programming-page"
 };
 
-
-
 // === Core Functions ===
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms)); // Delay for each char
@@ -312,7 +310,6 @@ function handleReturnDrop(event) {
                 break;
             }
         }
-
         if (nextSibling) {
             returnZone.insertBefore(draggedElement, nextSibling);
         } else {
