@@ -9,34 +9,33 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap"
-    rel="stylesheet">
-  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/nnb5nol.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-
   <nav>
-    <ul class="sidebar"> <!-- Sidebar Navigation -->
-      <li><a id="close-sidebar" href="#" aria-label="Close navigation menu"><svg xmlns="http://www.w3.org/2000/svg"
-            height="24px" viewBox="0 -960 960 960" width="24px">
+    <ul class="sidebar">
+      <li><a id="close-sidebar" href="#"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
+            width="24px">
             <path
               d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
           </svg></a></li>
+      <li><a href="index.html">Home</a></li>
       <li><a href="projects.html">Projects</a></li>
       <li><a href="about.html">About</a></li>
       <li><a href="contact.html">Contact</a></li>
     </ul>
-    <ul> <!-- Main Navbar  -->
-      <li>
-        <a href="index.html" aria-label="Dylan Chen Portfolio Home">
-          <img src="Assets/boilingName.gif" alt="Dylan Chen Logo" class="logo-img" />
+    <ul>
+      <li class="logo">
+        <a href="index.html">
+          <img src="Assets/boilingName.gif" alt="Dylan Chen Portfolio Home" class="logo-img" />
         </a>
       </li>
-      <li class="hideOnMobile"><a href="projects.html">Projects</a></li>
-      <li class="hideOnMobile"><a href="about.html">About</a></li>
-      <li class="hideOnMobile"><a href="contact.html">Contact</a></li>
+      <li class="hideOnMobile nav-link"><a href="projects.html">Projects</a></li>
+      <li class="hideOnMobile nav-link"><a href="about.html">About</a></li>
+      <li class="hideOnMobile nav-link"><a href="contact.html">Contact</a></li>
       <li class="menu-button"><a id="hamburger-menu" href="#"><svg xmlns="http://www.w3.org/2000/svg" height="24px"
             viewBox="0 -960 960 960" width="24px">
             <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z" />
@@ -49,12 +48,12 @@
 
       <div class="job-role-container">
         <h2 class="typewriter-animation"></h2>
-        <div id="category-drop-zone" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
-          <span class="placeholder-text">Test</span>
+        <div id="category-drop-zone">
+          <span class="placeholder-text">[Drop Here]</span>
         </div>
       </div>
 
-      <h1 id="scroll-title">DYLAN CHEN</h1>
+      <h1 id="scroll-title">DYLAN</h1>
     </section>
 
     <aside class="bottom-gif" aria-hidden="true">
@@ -76,29 +75,49 @@
   </div>
 
   <div class="categorySelect" role="group" aria-label="Drag and drop job roles" id="role-instructions">
-    <span id="Programmer" draggable="true" ondragstart="handleDragStart(event)">
-      <span class="bracket" aria-hidden="true">[</span>Programmer<span class="bracket" aria-hidden="true">]</span>
-    </span>
-    <span id="Engineer" draggable="true" ondragstart="handleDragStart(event)">
+    <span id="Engineer" class="draggable-item" draggable="true">
       <span class="bracket" aria-hidden="true">[</span>Engineer<span class="bracket" aria-hidden="true">]</span>
     </span>
-    <span id="Designer" draggable="true" ondragstart="handleDragStart(event)">
+    <span id="Designer" class="draggable-item" draggable="true">
       <span class="bracket" aria-hidden="true">[</span>Designer<span class="bracket" aria-hidden="true">]</span>
     </span>
-    <span id="Photographer" draggable="true" ondragstart="handleDragStart(event)">
+    <span id="Photographer" class="draggable-item" draggable="true">
       <span class="bracket" aria-hidden="true">[</span>Photographer<span class="bracket" aria-hidden="true">]</span>
+    </span>
+    <span id="Programmer" class="draggable-item" draggable="true">
+      <span class="bracket" aria-hidden="true">[</span>Programmer<span class="bracket" aria-hidden="true">]</span>
     </span>
   </div>
 
   <section class="temp-section">
-    <h2 class="navigation-title"></h2>
   </section>
+
+  <footer class="contact-footer">
+    <div class="footer-content-wrapper">
+      <h2 class="footer-title">Let's Build Cool Stuff!</h2>
+      <a href="contact.html" class="footer-cta-button">Get in Touch</a>
+
+      <div class="footer-links">
+        <a href="mailto:dylanchen4306@gmail.com" class="footer-link">Email</a>
+        <span class="link-separator" aria-hidden="true">|</span>
+        <a href="https://www.linkedin.com/in/4306-dylanchen/" target="_blank" rel="noopener noreferrer"
+          class="footer-link">LinkedIn</a>
+        <span class="link-separator" aria-hidden="true">|</span>
+        <a href="https://github.com/PotatoSlop" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a>
+      </div>
+    </div>
+
+    <div class="footer-bottom-bar">
+      <p>&copy; 2025 DYLAN CHEN</p>
+    </div>
+    <div class="cursor-effects"></div>
+  </footer>
 
   <div class="sidebar-overlay"></div>
 
   <script type="module" src="./landing-page.js"></script>
   <script type="module" src="./hamburger-menu.js"></script>
-  <script> </script>
+  <script type="module" src="./page-effects.js"></script>
 </body>
 
 </html>

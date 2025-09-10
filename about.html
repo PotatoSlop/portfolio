@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>About - My Portfolio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;700&family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/nnb5nol.css">
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
   <nav>
-    <ul class="sidebar"> <!-- Sidebar Navigation -->
+    <ul class="sidebar">
       <li><a id="close-sidebar" href="#"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
             width="24px">
             <path
@@ -20,17 +22,18 @@
           </svg></a></li>
       <li><a href="index.html">Home</a></li>
       <li><a href="projects.html">Projects</a></li>
+      <li><a href="about.html">About</a></li>
       <li><a href="contact.html">Contact</a></li>
     </ul>
-    <ul> <!-- Main Navbar  -->
-      <li>
+    <ul>
+      <li class="logo">
         <a href="index.html">
-          <img src="Assets/boilingName.gif" alt="Logo" class="logo-img" />
+          <img src="Assets/boilingName.gif" alt="Dylan Chen Portfolio Home" class="logo-img" />
         </a>
       </li>
-      <li class="hideOnMobile"><a href="index.html">Home</a></li>
-      <li class="hideOnMobile"><a href="projects.html">Projects</a></li>
-      <li class="hideOnMobile"><a href="contact.html">Contact</a></li>
+      <li class="hideOnMobile nav-link"><a href="projects.html">Projects</a></li>
+      <li class="hideOnMobile nav-link"><a href="about.html">About</a></li>
+      <li class="hideOnMobile nav-link"><a href="contact.html">Contact</a></li>
       <li class="menu-button"><a id="hamburger-menu" href="#"><svg xmlns="http://www.w3.org/2000/svg" height="24px"
             viewBox="0 -960 960 960" width="24px">
             <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z" />
@@ -38,11 +41,62 @@
     </ul>
   </nav>
 
-  <main class="container">
-    <h1>About Me</h1>
-    <p>This is the about page. Add your bio and background here.</p>
-  </main>
+  <main class="container about-page-main">
+    <div class="scroll-animation-container">
+      <div class="sticky-wrapper">
 
-  <div class="custom-cursor"></div>
+        <div class="about-image-stack">
+          <div class="headshot">
+            <img class="headshot-face doodle-image" src="Assets/wavingDude.gif" alt="Doodle of Dylan Chen" />
+            <img class="headshot-face real-photo" src="Assets/irlHeadshot.jpg" alt="Dylan Chen Headshot" />
+          </div>
+        </div>
+
+        <div class="about-text-stack">
+          <div class="text-block" id="intro-text">
+            <h1>About Me</h1>
+            <p class="block-text">I'm Dylan, a 2nd-year computer science and engineering student at Northeastern
+              University. You can usually find me hopping between Boston and New York City, wandering around capturing
+              urban experiences on my camera or absorbing inspiration for my new development or engineering project. If
+              there's too much coffee in your office, I'm always willing to help out!</p>
+            <a href="Assets\Dylan Chen Resume - 9_8_25.pdf" download="Dylan Chen Resume 2025"
+              class="resume-btn">Download
+              Resume</a>
+          </div>
+
+          <div class="text-block" id="philosophy-text">
+            <h1>It Starts with a Sketch</h1>
+            <p class="block-text">Napkins, printer paper, sketchbooks or just my mind, my projects start from a simple
+              idea that is brought to reality. If you need a creative developer, a technical designer, or anything in
+              between, I can bring a new perspective to your vision.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer class="contact-footer">
+    <div class="footer-content-wrapper">
+      <h2 class="footer-title">Let's Build Cool Stuff!</h2>
+      <a href="contact.html" class="footer-cta-button">Get in Touch</a>
+      <div class="footer-links">
+        <a href="mailto:dylanchen4306@gmail.com" class="footer-link">Email</a>
+        <span class="link-separator" aria-hidden="true">|</span>
+        <a href="https://www.linkedin.com/in/4306-dylanchen/" target="_blank" rel="noopener noreferrer"
+          class="footer-link">LinkedIn</a>
+        <span class="link-separator" aria-hidden="true">|</span>
+        <a href="https://github.com/PotatoSlop" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a>
+      </div>
+    </div>
+    <div class="footer-bottom-bar">
+      <p>&copy; 2025 DYLAN CHEN</p>
+    </div>
+    <div class="cursor-effects"></div>
+  </footer>
+
+  <div class="sidebar-overlay"></div>
+  <script type="module" src="./hamburger-menu.js"></script>
+  <script type="module" src="./about.js"></script>
+  <script type="module" src="./page-effects.js"></script>
 </body>
+
 </html>

@@ -1,7 +1,3 @@
-// Enhanced Contact Form with Improved Accessibility
-let messageCounter;
-
-// EmailJS integration for contact form
 function sendEmail(event) {
   event.preventDefault();
   
@@ -20,7 +16,8 @@ function sendEmail(event) {
   if (!name) {
     hasErrors = true;
     showError('name', 'Full name is required');
-  } else if (name.length < 2) {
+  } 
+  else if (name.length < 2) {
     hasErrors = true;
     showError('name', 'Name must be at least 2 characters long');
   }
@@ -28,12 +25,13 @@ function sendEmail(event) {
   if (!email) {
     hasErrors = true;
     showError('email', 'Email address is required');
-  } else if (!isValidEmail(email)) {
+  } 
+  else if (!isValidEmail(email)) {
     hasErrors = true;
     showError('email', 'Please enter a valid email address');
   }
 
-  // Phone is optional, but if provided, validate format
+  // Phone validate format
   if (phone && !isValidPhone(phone)) {
     hasErrors = true;
     showError('phone', 'Please enter a valid phone number in format: (555) 123-4567');
@@ -42,16 +40,17 @@ function sendEmail(event) {
   if (!message) {
     hasErrors = true;
     showError('message', 'Message is required');
-  } else if (message.length < 50) {
+  } 
+  else if (message.length < 50) {
     hasErrors = true;
     showError('message', `Message must be at least 50 characters long. ${50 - message.length} characters remaining.`);
-  } else if (message.length > 2000) {
+  } 
+  else if (message.length > 2000) {
     hasErrors = true;
     showError('message', `Message is too long. Please reduce by ${message.length - 2000} characters.`);
   }
 
   if (hasErrors) {
-    // Focus on first error field for accessibility
     focusFirstErrorField();
     showFormMessage('Please correct the errors below and try again.', 'error');
     return;
@@ -59,6 +58,7 @@ function sendEmail(event) {
   
   // #endregion 
 
+  //Formatting
   var fromField = document.getElementById('from_field');
   fromField.value = name + ' <' + email + '>';
 
@@ -70,10 +70,10 @@ function sendEmail(event) {
       showFormMessage('Thank you! Your message has been sent successfully. I\'ll get back to you soon.', 'success');
       event.target.reset();
       clearErrorMessages();
-      updateMessageCounter(); // Reset counter
-      // Reset all field states
+      updateMessageCounter();
       resetFieldStates();
-    }, function(error) {
+    }, 
+    function(error) {
       console.error('EmailJS Error:', error);
       showFormMessage('Sorry, there was a problem sending your message. Please try again or contact me directly.', 'error');
     })
@@ -83,7 +83,6 @@ function sendEmail(event) {
 }
 
 // #region Helper Functions
-
 function isValidEmail(email) {
   var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailPattern.test(email);
@@ -106,7 +105,6 @@ function showError(fieldId, message) {
   field.classList.add('error-field');
   field.classList.remove('success-field');
   
-  // Set aria-invalid for screen readers
   field.setAttribute('aria-invalid', 'true');
 }
 
@@ -164,7 +162,6 @@ function showFormMessage(message, type) {
   messageDiv.className = 'form-messages ' + type;
   messageDiv.style.display = 'block';
   
-  // Scroll to message for better UX
   messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -283,7 +280,6 @@ function setupRealTimeValidation() {
   }
 }
 
-// Phone number formatting
 function setupPhoneFormatting() {
   var phoneInput = document.getElementById('phone');
   
@@ -305,7 +301,6 @@ function setupPhoneFormatting() {
   }
 }
 
-// Dynamic textarea height based on viewport
 function adjustTextareaHeight() {
   var textarea = document.getElementById('message');
   if (textarea) {
@@ -344,7 +339,6 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', sendEmail);
   }
 
-  // Initialize all functionality
   setupRealTimeValidation();
   setupPhoneFormatting();
   adjustTextareaHeight();
@@ -358,6 +352,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   
-  // Adjust textarea height on window resize
   window.addEventListener('resize', adjustTextareaHeight);
 });

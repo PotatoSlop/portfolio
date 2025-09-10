@@ -7,33 +7,33 @@
   <title>Projects - My Portfolio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Sora:wght@100..800&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/nnb5nol.css">
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
   <nav>
-    <ul class="sidebar"> <!-- Sidebar Navigation -->
+    <ul class="sidebar">
       <li><a id="close-sidebar" href="#"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
             width="24px">
             <path
               d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
           </svg></a></li>
       <li><a href="index.html">Home</a></li>
+      <li><a href="projects.html">Projects</a></li>
       <li><a href="about.html">About</a></li>
       <li><a href="contact.html">Contact</a></li>
     </ul>
-    <ul> <!-- Main Navbar  -->
-      <li>
+    <ul>
+      <li class="logo">
         <a href="index.html">
-          <img src="Assets/boilingName.gif" alt="Logo" class="logo-img" />
+          <img src="Assets/boilingName.gif" alt="Dylan Chen Portfolio Home" class="logo-img" />
         </a>
       </li>
-      <li class="hideOnMobile"><a href="index.html">Home</a></li>
-      <li class="hideOnMobile"><a href="about.html">About</a></li>
-      <li class="hideOnMobile"><a href="contact.html">Contact</a></li>
+      <li class="hideOnMobile nav-link"><a href="projects.html">Projects</a></li>
+      <li class="hideOnMobile nav-link"><a href="about.html">About</a></li>
+      <li class="hideOnMobile nav-link"><a href="contact.html">Contact</a></li>
       <li class="menu-button"><a id="hamburger-menu" href="#"><svg xmlns="http://www.w3.org/2000/svg" height="24px"
             viewBox="0 -960 960 960" width="24px">
             <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z" />
@@ -41,12 +41,157 @@
     </ul>
   </nav>
 
-  <main class="container">
+  <header class="page-header container">
     <h1>My Projects</h1>
-    <p>This is the projects page. Showcase your work here.</p>
-  </main>
+    <p class="subtitle">Dabbling in anything and everything I find interesting. Explore my vision!</p>
+  </header>
 
-  <div class="custom-cursor"></div>
+  <details id="engineering-page" class="project-section">
+    <summary class="section-title">Engineering</summary>
+    <ul class="project-list">
+      <li class="project-card">
+        <div class="project-image">
+          <img src="Assets/Engineering Poster.png" alt="Automated Pill Dispenser Project" />
+        </div>
+        <div class="project-info">
+          <h3>Automated Pill Dispenser</h3>
+          <p>Economic and modular pill dispenser designed for reliable timing and dosage using an automated dispensing
+            and easily refillable medicine storage chamber.</p>
+          <a href="https://github.com/PotatoSlop/Automated-Pill-Dispenser" class="project-link" target="_blank"
+            rel="noopener noreferrer">Read More</a>
+        </div>
+      </li>
+    </ul>
+  </details>
+
+  <details id="design-page" class="project-section">
+    <summary class="section-title">Design</summary>
+    <div class="container">
+      <ul class="project-list">
+        <li class="project-card">
+          <div class="project-image">
+            <img src="Assets\Boat.png" alt="Low Poly Boat Asset" />
+          </div>
+          <div class="project-info">
+            <h3>Low-Poly Boat Asset</h3>
+            <p>Low-poly steam boat model designed and published as a free 3D Unity Asset for users to download and use
+              in their projects.</p>
+            <a href="#" class="project-link view-3d-button" data-model-url="Assets\models\boat.glb" role="button">View
+              Model</a>
+          </div>
+        </li>
+        <li class="project-card">
+          <div class="project-image">
+            <img src="Assets\WIP Project.jpg" alt="Original Design Combative Robot 3D Model" />
+          </div>
+          <div class="project-info">
+            <h3>Peacemaker</h3>
+            <p>[WIP] Rigged Hard surface 3D model of Peacemaker, a custom mecha design original illustrated by me in 2D
+              using Procreate. Brought to life in Blender. </p>
+            <a href="#" class="project-link view-3d-button" data-model-url="Assets\models\WIPMecha.glb"
+              role="button">View Model</a>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </details>
+
+  <details id="photography-page" class="project-section">
+    <summary class="section-title">Photography</summary>
+    <div class="container">
+
+      <div class="gallery-section">
+        <div id="landscape-gallery" class="gallery-grid landscape-grid">
+        </div>
+      </div>
+      <div class="gallery-section">
+        <div id="portrait-gallery" class="gallery-grid portrait-grid">
+        </div>
+      </div>
+      <div class="gallery-section">
+        <div id="portrait-short-gallery" class="gallery-grid portrait-short-grid">
+        </div>
+      </div>
+
+    </div>
+  </details>
+
+  <details id="programming-page" class="project-section">
+    <summary class="section-title">Programming</summary>
+    <div class="container">
+      <ul class="project-list">
+        <li class="project-card">
+          <div class="project-image">
+            <img src="Assets\WebsiteLandingPageScreenshot.svg" alt="Portfolio Project" />
+          </div>
+          <div class="project-info">
+            <h3>Portfolioslop</h3>
+            <p>Personal portfolio website that showcases my various projects and interests (You're viewing this project
+              right now!)</p>
+            <a href="https://github.com/PotatoSlop/Portfolioslop" class="project-link" target="_blank"
+              rel="noopener noreferrer">Read More</a>
+          </div>
+        </li>
+        <li class="project-card">
+          <div class="project-image">
+            <img src="Assets\ColorMatch.svg" alt="Color Match Project" />
+          </div>
+          <div class="project-info">
+            <h3>Color Match [WIP]</h3>
+            <p>Color-Match is a free to play (FTP) indie card card battling game developed in Godot about matching
+              colors. Battle in 1v1 puzzles where you can mix and match your way into victory with color theory!</p>
+            <a href="https://github.com/PotatoSlop/color-match" class="project-link" target="_blank"
+              rel="noopener noreferrer">Read More</a>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </details>
+
+  <div id="modal-3d-viewer" class="modal-overlay">
+    <div class="modal-content">
+      <button id="modal-close-button" class="modal-close">&times;</button>
+      <div id="model-canvas-container"></div>
+      <p class="modal-instructions">Click and drag to rotate. Scroll to zoom.</p>
+    </div>
+  </div>
+
+  <footer class="contact-footer">
+    <div class="footer-content-wrapper">
+      <h2 class="footer-title">Let's Build Cool Stuff!</h2>
+      <a href="contact.html" class="footer-cta-button">Get in Touch</a>
+
+      <div class="footer-links">
+        <a href="mailto:dylanchen4306@gmail.com" class="footer-link">Email</a>
+        <span class="link-separator" aria-hidden="true">|</span>
+        <a href="https://www.linkedin.com/in/4306-dylanchen/" target="_blank" rel="noopener noreferrer"
+          class="footer-link">LinkedIn</a>
+        <span class="link-separator" aria-hidden="true">|</span>
+        <a href="https://github.com/PotatoSlop" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a>
+      </div>
+    </div>
+
+    <div class="footer-bottom-bar">
+      <p>&copy; 2025 DYLAN CHEN</p>
+    </div>
+    <div class="cursor-effects"></div>
+  </footer>
+
+  <div class="sidebar-overlay"></div>
+  <script type="module" src="./projects.js"></script>
+  <script type="module" src="./hamburger-menu.js"></script>
+
+  <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="./viewer3d.js"></script>
+  <script type="module" src="./page-effects.js"></script>
 </body>
 
 </html>

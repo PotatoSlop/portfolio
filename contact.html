@@ -1,68 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Contact - My Portfolio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;700&family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/nnb5nol.css">
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
   <script>
-    (function(){
+    (function () {
       emailjs.init('wkDWKazXq616KcvRf');
     })();
   </script>
   <script src="contact.js" defer></script>
 </head>
+
 <body>
   <nav>
-    <ul class="sidebar"> <!-- Sidebar Navigation -->
-      <li><a id="close-sidebar" href="#" aria-label="Close navigation menu"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
-            width="24px" aria-hidden="true">
+    <ul class="sidebar">
+      <li><a id="close-sidebar" href="#"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
+            width="24px">
             <path
               d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
           </svg></a></li>
       <li><a href="index.html">Home</a></li>
       <li><a href="projects.html">Projects</a></li>
       <li><a href="about.html">About</a></li>
+      <li><a href="contact.html">Contact</a></li>
     </ul>
-    <ul> <!-- Main Navbar  -->
-      <li>
+    <ul>
+      <li class="logo">
         <a href="index.html">
           <img src="Assets/boilingName.gif" alt="Dylan Chen Portfolio Home" class="logo-img" />
         </a>
       </li>
-      <li class="hideOnMobile"><a href="index.html">Home</a></li>
-      <li class="hideOnMobile"><a href="projects.html">Projects</a></li>
-      <li class="hideOnMobile"><a href="about.html">About</a></li>
-      <li class="menu-button"><a id="hamburger-menu" href="#" aria-label="Open navigation menu"><svg xmlns="http://www.w3.org/2000/svg" height="24px"
-            viewBox="0 -960 960 960" width="24px" aria-hidden="true">
+      <li class="hideOnMobile nav-link"><a href="projects.html">Projects</a></li>
+      <li class="hideOnMobile nav-link"><a href="about.html">About</a></li>
+      <li class="hideOnMobile nav-link"><a href="contact.html">Contact</a></li>
+      <li class="menu-button"><a id="hamburger-menu" href="#"><svg xmlns="http://www.w3.org/2000/svg" height="24px"
+            viewBox="0 -960 960 960" width="24px">
             <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z" />
           </svg></a></li>
     </ul>
   </nav>
 
+  <header class="page-header container">
+    <h1>Let's Connect!</h1>
+  </header>
+
   <main class="container">
-    <h1>Contact</h1>
-    
     <!-- Success/Error Messages -->
     <div id="form-messages" class="form-messages" role="alert" aria-live="polite" aria-atomic="true"></div>
-    
+
     <form id="contact-form" novalidate>
       <div class="form-group">
         <label for="name">
           Full Name <span class="required" aria-label="required">*</span>
         </label>
-        <input 
-          type="text" 
-          id="name" 
-          name="name" 
-          required 
-          aria-describedby="name-hint name-error"
-          autocomplete="name"
-        />
+        <input type="text" id="name" name="name" required aria-describedby="name-hint name-error" autocomplete="name" />
         <div id="name-hint" class="field-hint">Enter your first and last name</div>
         <div id="name-error" class="error-message" role="alert" aria-live="polite"></div>
       </div>
@@ -71,15 +70,9 @@
         <label for="email">
           Email Address <span class="required" aria-label="required">*</span>
         </label>
-        <input 
-          type="email" 
-          id="email" 
-          name="email" 
-          required 
-          aria-describedby="email-hint email-error"
-          autocomplete="email"
-        />
-        <div id="email-hint" class="field-hint">We'll use this to respond to your message</div>
+        <input type="email" id="email" name="email" required aria-describedby="email-hint email-error"
+          autocomplete="email" />
+        <div id="email-hint" class="field-hint">I'll use this to respond to your message</div>
         <div id="email-error" class="error-message" role="alert" aria-live="polite"></div>
       </div>
 
@@ -89,15 +82,9 @@
         <label for="phone">
           Phone Number <span class="optional">(optional)</span>
         </label>
-        <input 
-          type="tel" 
-          id="phone" 
-          name="phone" 
-          pattern="\(\d{3}\) \d{3}-\d{4}" 
-          aria-describedby="phone-hint phone-error"
-          autocomplete="tel"
-        />
-        <div id="phone-hint" class="field-hint">Format: (XXX) XXX-XXXX</div>
+        <input type="tel" id="phone" name="phone" pattern="\(\d{3}\) \d{3}-\d{4}"
+          aria-describedby="phone-hint phone-error" autocomplete="tel" />
+        <div id="phone-hint" class="field-hint">Format: (123) 456-7890</div>
         <div id="phone-error" class="error-message" role="alert" aria-live="polite"></div>
       </div>
 
@@ -105,15 +92,10 @@
         <label for="message">
           Message <span class="required" aria-label="required">*</span>
         </label>
-        <textarea 
-          id="message" 
-          name="message" 
-          required 
-          aria-describedby="message-hint message-error message-counter"
-          placeholder="Tell me about your project, question, or how I can help..."
-        ></textarea>
+        <textarea id="message" name="message" required aria-describedby="message-hint message-error message-counter"
+          placeholder="Give me your best project ideas!"></textarea>
         <div class="message-footer">
-          <div id="message-hint" class="field-hint">Minimum 50 characters required</div>
+          <div id="message-hint" class="field-hint">Drop your message here</div>
           <div id="message-counter" class="character-counter" aria-live="polite">0/50</div>
         </div>
         <div id="message-error" class="error-message" role="alert" aria-live="polite"></div>
@@ -126,7 +108,10 @@
     </form>
   </main>
 
-  <div class="custom-cursor"></div>
+  <div class="sidebar-overlay"></div>
+  <script type="module" src="./hamburger-menu.js"></script>
   <script type="module" src="./contact.js"></script>
+  <script type="module" src="./page-effects.js"></script>
 </body>
+
 </html>
