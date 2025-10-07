@@ -2,20 +2,15 @@
 :root {
   /* ===== COLORS ===== */
 
-  --color-text-dark: #1e1e14;
   --color-text-light: #555666;
   --color-text-error: #dc3545;
   --color-text-error-dark: #721c24;
-  --color-text-success: #F5A045;
 
-  --color-border: #1e1e14;
+  --color-black: #1e1e14;
   --color-primary: #F5A045;
   --color-primary-dark: #e8913d;
   --color-white: #ffffff;
 
-
-  --color-success-bg: #F5A045;
-  --color-success-border: #e8913d;
   --color-error-bg: #f87680;
   --color-error-border: #f5c6cb;
   --color-success-validation: rgb(69, 201, 80);
@@ -24,7 +19,7 @@
   --color-shadow-light: rgba(0, 0, 0, 0.1);
   --color-shadow-dark: rgba(0, 0, 0, 0.5);
   --color-overlay-dark: rgba(0, 0, 0, 0.15);
-  --color-text-dark-transparent: rgba(30, 30, 20, 0.5);
+  --color-black-transparent: rgba(30, 30, 20, 0.5);
   --color-primary-transparent: rgba(245, 160, 69, 0.5);
   --color-error-transparent: rgba(220, 53, 69, 0.5);
   --color-success-transparent: rgba(134, 245, 143, 0.5);
@@ -43,8 +38,7 @@
   --duration-fast: 0.25s;
   --duration-medium: 0.3s;
   --duration-smooth: 0.35s;
-  --duration-long: 0.5s;
-  --duration-slow: 0.6s;
+  --duration-slow: 0.5s;
   --duration-xslow: 1s;
 
   --ease-default: ease;
@@ -54,52 +48,33 @@
   --ease-smooth: cubic-bezier(.4, 1, .6, 1);
   --ease-aggressive: cubic-bezier(.4, 2, .6, 1);
   --ease-logo-hover: cubic-bezier(0.075, 0.82, 0.165, 1);
+  --wave-delay-base: 0.25s;
 
   /* ===== BORDERS & RADII ===== */
   --radius-small: 4px;
   --radius-medium: 8px;
-  --radius-large: 12px;
   --radius-pill: 999px;
   --border-width-medium: 2px;
   --border-width-thick: 3px;
 
 
   /* ===== SHADOWS ===== */
-  --shadow-sidebar: -10px 0 10px var(--color-shadow-light);
-  --shadow-footer-dark: drop-shadow(0 12px 30px var(--color-shadow-dark));
   --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.05);
   --shadow-card-hover: 0 10px 20px var(--color-shadow-light);
-  --shadow-focus-primary: 0 0 0 3px var(--color-primary-transparent);
-  --shadow-focus-error: 0 0 0 3px var(--color-error-transparent);
-  --shadow-focus-success: 0 0 0 3px var(--color-success-transparent);
 
   /* ===== Z-INDEXES ===== */
   --z-base: 1;
   --z-content: 2;
-  --z-visual-effect: 5;
   --z-interactive: 10;
   --z-footer: 100;
   --z-nav: 1000;
   --z-overlay: 101;
-  --z-sidebar: 1003;
+  --z-sidebar: 1001;
 
   /* ===== TRANSFORMS ===== */
   --transform-scale-hover: scale(1.1);
   --transform-scale-hover-small: scale(1.05);
   --transform-translate-up-small: translateY(-3px);
-  --transform-translate-up-medium: translateY(-8px);
-
-
-  /* ===== NAVBAR THEME (Dynamic) ===== */
-  --nav-link-bg: var(--color-white);
-  --nav-link-border: var(--color-text-dark);
-  --nav-link-text: var(--color-text-dark);
-  --nav-hover-fill: var(--color-primary);
-  --nav-hover-text: var(--color-text-dark);
-  --hamburger-hover-bg: var(--color-primary);
-
-  /* ===== ANIMATION DELAYS ===== */
-  --wave-delay-base: 0.25s;
 }
 
 /*  #endregion */
@@ -123,7 +98,7 @@ body {
   min-height: 100dvh;
   font-family: var(--font-primary);
   font-size: 1rem;
-  color: var(--color-text-dark);
+  color: var(--color-black);
 }
 
 body.no-scroll {
@@ -134,7 +109,7 @@ body.no-scroll {
 
 body.fade-out {
   opacity: 0;
-  transition: opacity var(--duration-long) var(--ease-in-out);
+  transition: opacity var(--duration-slow) var(--ease-in-out);
 }
 
 .container {
@@ -153,7 +128,7 @@ h4,
 h5,
 h6 {
   font-family: var(--font-secondary);
-  color: var(--color-text-dark);
+  color: var(--color-black);
 }
 
 p {
@@ -199,9 +174,6 @@ nav ul {
   gap: var(--gap-medium);
 }
 
-/*  #endregion */
-
-/* #region ======= Logo ======= */
 .logo {
   position: absolute;
   left: clamp(0.5rem, 1vw, 2vw);
@@ -218,12 +190,9 @@ nav ul {
   transform: var(--transform-scale-hover);
 }
 
-/*  #endregion */
-
-/* #region ======= Nav Links ======= */
 .nav-link {
-  border: var(--border-width-medium) solid var(--nav-link-border);
-  background-color: var(--nav-link-bg);
+  border: var(--border-width-medium) solid var(--color-black);
+  background-color: var(--color-white);
   border-radius: var(--radius-pill);
   padding: 0.3em 1.2em;
   position: relative;
@@ -238,7 +207,7 @@ nav ul {
 .nav-link a {
   font-weight: 500;
   font-family: var(--font-secondary);
-  color: var(--nav-link-text);
+  color: var(--color-black);
   position: relative;
   z-index: var(--z-content);
   transition: color var(--duration-medium);
@@ -248,7 +217,7 @@ nav ul {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--nav-hover-fill);
+  background: var(--color-primary);
   border-radius: var(--radius-pill);
   z-index: var(--z-base);
   transform: scaleX(0);
@@ -261,7 +230,7 @@ nav ul {
 }
 
 .nav-link:hover a {
-  color: var(--nav-hover-text);
+  color: var(--color-black);
 }
 
 /*  #endregion */
@@ -289,7 +258,7 @@ nav ul {
 }
 
 .menu-button a:hover {
-  background-color: var(--hamburger-hover-bg);
+  background-color: var(--color-primary);
 }
 
 /*  #endregion */
@@ -303,7 +272,7 @@ nav ul {
   width: 250px;
   z-index: var(--z-sidebar);
   background-color: var(--color-white);
-  box-shadow: var(--shadow-sidebar);
+  box-shadow: -10px 0 10px var(--color-shadow-light);
   display: flex;
   flex-direction: column;
   padding: 6rem 1rem 2rem 1rem;
@@ -367,7 +336,7 @@ nav ul {
 .sidebar li:not(:first-child) {
   width: 100%;
   list-style: none;
-  border: var(--border-width-medium) solid var(--color-text-dark);
+  border: var(--border-width-medium) solid var(--color-black);
   background-color: var(--color-white);
   border-radius: var(--radius-pill);
   padding: 0.3em 1.2em;
@@ -401,7 +370,7 @@ nav ul {
   width: 100%;
   padding: 0.5rem 0;
   text-decoration: none;
-  color: var(--color-text-dark);
+  color: var(--color-black);
   font-family: var(--font-primary);
   font-weight: 300;
   position: relative;
@@ -414,7 +383,7 @@ nav ul {
 }
 
 .sidebar li:hover a {
-  color: var(--color-text-dark);
+  color: var(--color-black);
 }
 
 /*  #endregion */
@@ -450,7 +419,7 @@ nav ul {
   border-radius: 50% / 10%;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
-  filter: var(--shadow-footer-dark);
+  filter: drop-shadow(0 12px 30px var(--color-shadow-dark));
   overflow: hidden;
   z-index: var(--z-footer);
 }
@@ -477,7 +446,7 @@ nav ul {
 
 .footer-subtitle {
   font-size: clamp(1rem, 2.5vw, 1.25rem);
-  color: var(--color-text-dark);
+  color: var(--color-black);
   max-width: 550px;
   line-height: 1.6;
   margin: 0 auto 1.5rem;
@@ -487,16 +456,16 @@ nav ul {
   display: inline-block;
   font-weight: 600;
   color: var(--color-white);
-  background-color: var(--color-text-dark);
+  background-color: var(--color-black);
   padding: 0.8em 2.5em;
   border-radius: var(--radius-pill);
-  transition: transform var(--duration-medium) var(--ease-default), background-color var(--duration-medium) var(--ease-default);
+  transition: transform var(--duration-fast) var(--ease-bouncy), background-color var(--duration-fast) var(--ease-default);
 }
 
 .footer-cta-button:hover {
   background-color: var(--color-white);
-  color: var(--color-text-dark);
-  transform: var(--transform-translate-up-small);
+  color: var(--color-black);
+  transform: var(--transform-scale-hover-small);
 }
 
 .footer-links {
@@ -510,7 +479,7 @@ nav ul {
 
 .footer-link {
   font-weight: 500;
-  color: var(--color-text-dark);
+  color: var(--color-black);
   position: relative;
 }
 
@@ -521,7 +490,7 @@ nav ul {
   height: 2px;
   bottom: -4px;
   left: 0;
-  background-color: var(--color-text-dark);
+  background-color: var(--color-black);
   transform: scaleX(0);
   transform-origin: bottom right;
   transition: transform var(--duration-fast) var(--ease-out);
@@ -533,7 +502,7 @@ nav ul {
 }
 
 .link-separator {
-  color: var(--color-text-dark-transparent);
+  color: var(--color-black-transparent);
   user-select: none;
 }
 
@@ -584,11 +553,11 @@ nav ul {
   font-size: clamp(1rem, 1.1rem + 3vw, 4rem);
   font-weight: 300;
   letter-spacing: 0.106em;
-  color: var(--color-text-dark);
+  color: var(--color-black);
   display: inline-block;
   white-space: nowrap;
   overflow: hidden;
-  border-right: 4px solid var(--color-text-dark);
+  border-right: 4px solid var(--color-black);
   animation: blinkingCursor 650ms steps(50) infinite normal;
   width: auto;
   opacity: 1;
@@ -600,7 +569,7 @@ nav ul {
 
 @keyframes blinkingCursor {
   from {
-    border-right-color: var(--color-text-dark);
+    border-right-color: var(--color-black);
   }
 
   to {
@@ -615,7 +584,7 @@ nav ul {
   top: calc(45vh - 7rem);
   left: 0;
   transform: none;
-  color: var(--color-text-dark);
+  color: var(--color-black);
   font-weight: 800;
   font-family: var(--font-secondary);
   font-size: clamp(2rem, 1rem + 8vw, 8rem);
@@ -641,7 +610,7 @@ nav ul {
   justify-content: center;
   align-items: flex-end;
   pointer-events: none;
-  z-index: var(--z-visual-effect);
+  z-index: var(--z-interactive);
   opacity: 0;
   will-change: transform, opacity;
   width: 100vw;
@@ -704,7 +673,7 @@ nav ul {
   font-size: min(1rem, 2vw);
   font-weight: 500;
   font-family: var(--font-primary);
-  border: var(--border-width-thick) dashed var(--color-text-dark);
+  border: var(--border-width-thick) dashed var(--color-black);
   border-radius: var(--radius-medium);
   padding: 0.5rem 1rem;
   z-index: var(--z-interactive);
@@ -730,13 +699,13 @@ nav ul {
   padding: 0.5em 0.5em;
   margin: 0.2em;
   user-select: none;
-  color: var(--color-text-dark);
+  color: var(--color-black);
   animation: wave 2s ease-in-out infinite;
   transition: all 0.2s var(--ease-default);
 }
 
 .categorySelect span[draggable="true"]:hover {
-  border: var(--border-width-medium) solid var(--color-text-dark);
+  border: var(--border-width-medium) solid var(--color-black);
   border-radius: var(--radius-pill);
   animation: wave 2s ease-in-out infinite, shake 0.3s ease-in-out infinite;
   padding: 0.52em 1.2em;
@@ -781,7 +750,7 @@ nav ul {
 }
 
 .placeholder-text {
-  color: var(--color-text-dark);
+  color: var(--color-black);
   font-style: italic;
   font-size: clamp(1rem, 1.1rem + 3vw, 4rem);
   font-weight: 300;
@@ -795,7 +764,7 @@ nav ul {
   text-align: left;
   font-weight: 300;
   cursor: grab;
-  color: var(--color-text-dark);
+  color: var(--color-black);
   padding: 0.5rem 1rem;
   border-radius: var(--radius-medium);
 }
@@ -811,13 +780,13 @@ nav ul {
 .page-header h1 {
   font-size: clamp(2.5rem, 8vw, 5rem);
   font-weight: 600;
-  color: var(--color-text-dark);
+  color: var(--color-black);
   margin-bottom: 0.5rem;
 }
 
 .page-header .subtitle {
   font-size: clamp(1rem, 2.5vw, 1.25rem);
-  color: var(--color-text-dark);
+  color: var(--color-black);
   max-width: 600px;
   margin: 0 auto;
 }
@@ -825,13 +794,13 @@ nav ul {
 .project-section {
   cursor: pointer;
   padding: 4rem;
-  border-top: var(--border-width-medium) solid var(--color-border);
+  border-top: var(--border-width-medium) solid var(--color-black);
 }
 
 .section-title {
   font-family: var(--font-secondary);
   font-size: clamp(2rem, 6vw, 3rem);
-  color: var(--color-text-dark);
+  color: var(--color-black);
   margin-bottom: 2.5rem;
   text-align: center;
   position: relative;
@@ -851,8 +820,8 @@ nav ul {
   max-width: 500px;
   margin: 0 auto;
   background-color: var(--color-white);
-  border: var(--border-width-thick) solid var(--color-border);
-  border-radius: var(--radius-large);
+  border: var(--border-width-thick) solid var(--color-black);
+  border-radius: var(--radius-medium);
   overflow: hidden;
   box-shadow: var(--shadow-card);
   transition: transform var(--duration-medium) var(--ease-default),
@@ -870,7 +839,7 @@ nav ul {
 .project-image {
   width: 100%;
   height: 200px;
-  border-bottom: var(--border-width-medium) solid var(--color-border);
+  border-bottom: var(--border-width-medium) solid var(--color-black);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -892,7 +861,7 @@ nav ul {
 
 .project-info h3 {
   font-size: 1.5rem;
-  color: var(--color-text-dark);
+  color: var(--color-black);
   margin-bottom: 0.5rem;
 }
 
@@ -907,9 +876,9 @@ nav ul {
   display: inline-block;
   text-align: center;
   padding: 0.6em 1.2em;
-  border: var(--border-width-medium) solid var(--color-text-dark);
+  border: var(--border-width-medium) solid var(--color-black);
   border-radius: var(--radius-pill);
-  color: var(--color-text-dark);
+  color: var(--color-black);
   font-weight: 500;
   text-decoration: none;
   margin-top: auto;
@@ -1016,7 +985,7 @@ nav ul {
   background-color: var(--color-shadow-light);
   border-radius: var(--radius-medium);
   box-shadow: var(--shadow-card);
-  border: var(--border-width-thick) dashed var(--color-border);
+  border: var(--border-width-thick) dashed var(--color-black);
 }
 
 /* #endregion */
@@ -1042,7 +1011,7 @@ nav ul {
 .modal-content {
   background-color: var(--color-white);
   padding: 2rem;
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-medium);
   box-shadow: var(--shadow-card-hover);
   position: relative;
   width: 90vw;
@@ -1066,7 +1035,7 @@ nav ul {
 }
 
 .modal-close:hover {
-  color: var(--color-text-dark);
+  color: var(--color-black);
 }
 
 #model-canvas-container {
@@ -1094,7 +1063,7 @@ nav ul {
 .container h1 {
   font-size: clamp(2rem, 6vw, 3rem);
   font-weight: 600;
-  color: var(--color-text-dark);
+  color: var(--color-black);
   text-align: center;
   margin-bottom: 1rem;
 }
@@ -1108,7 +1077,7 @@ nav ul {
 }
 
 .form-messages.success {
-  background-color: var(--color-success-bg);
+  background-color: var(--color-primary);
   color: var(--color-white);
   display: block;
 }
@@ -1148,7 +1117,7 @@ form label {
   font-family: var(--font-secondary);
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: var(--color-text-dark);
+  color: var(--color-black);
 }
 
 .required {
@@ -1174,7 +1143,7 @@ form textarea {
   width: 100%;
   max-width: none;
   padding: 0.75rem;
-  border: var(--border-width-medium) solid var(--color-text-dark);
+  border: var(--border-width-medium) solid var(--color-black);
   border-radius: var(--radius-medium);
   font-family: var(--font-secondary);
   font-size: 1rem;
@@ -1193,13 +1162,13 @@ form textarea:focus {
 form input.error-field,
 form textarea.error-field {
   border-color: var(--color-text-error);
-  box-shadow: var(--shadow-focus-error);
+  box-shadow: 0 0 0 3px var(--color-error-transparent);
 }
 
 form input.success-field,
 form textarea.success-field {
   border-color: var(--color-success-validation);
-  box-shadow: var(--shadow-focus-success);
+  box-shadow: 0 0 0 3px var(--color-success-transparent);
 }
 
 form textarea {
@@ -1267,7 +1236,7 @@ form textarea {
 .submit-button {
   width: 100%;
   padding: 1rem var(--gap-xl);
-  background: linear-gradient(135deg, var(--color-text-dark) 0%, var(--color-text-dark) 100%);
+  background: linear-gradient(135deg, var(--color-black) 0%, var(--color-black) 100%);
   color: var(--color-white);
   border: none;
   border-radius: var(--radius-medium);
@@ -1398,7 +1367,7 @@ form textarea {
   content: '';
   position: absolute;
   inset: 0;
-  border: var(--border-width-thick) solid var(--color-border);
+  border: var(--border-width-thick) solid var(--color-black);
   border-radius: 50%;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -1451,7 +1420,7 @@ form textarea {
   text-align: left;
   font-size: clamp(1.8rem, 5vw, 3rem);
   font-weight: 600;
-  color: var(--color-text-dark);
+  color: var(--color-black);
   margin-bottom: 1rem;
   font-family: var(--font-secondary);
 }
@@ -1471,9 +1440,9 @@ form textarea {
   font-weight: 600;
   font-family: var(--font-primary);
   text-align: center;
-  color: var(--color-text-dark);
+  color: var(--color-black);
   background-color: transparent;
-  border: var(--border-width-medium) solid var(--color-border);
+  border: var(--border-width-medium) solid var(--color-black);
   padding: 0.75em 1.25em;
   border-radius: var(--radius-pill);
   transition: transform var(--duration-medium) var(--ease-aggressive),
@@ -1483,7 +1452,7 @@ form textarea {
 
 .resume-btn:hover {
   background-color: var(--color-primary);
-  color: var(--color-text-dark);
+  color: var(--color-black);
   transform: scale(1.05);
 }
 
@@ -1664,8 +1633,6 @@ form textarea {
 
 /*  #endregion */
 
-/*  #endregion */
-
 /* #region Category select wave delays */
 .categorySelect span:nth-child(1) {
   animation-delay: 0s, 0s;
@@ -1683,6 +1650,7 @@ form textarea {
   animation-delay: calc(var(--wave-delay-base) * 3), 0s;
 }
 
+/*  #endregion */
 /*  #endregion */
 
 /* #region =================================== MEDIA QUERIES =================================== */
