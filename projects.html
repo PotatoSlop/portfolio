@@ -15,8 +15,7 @@
 <body>
   <nav>
     <ul class="sidebar">
-      <li><a id="close-sidebar" href="#"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
-            width="24px">
+      <li><a id="close-sidebar" href="#"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="http://www.w3.org/2000/svg" width="24px">
             <path
               d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
           </svg></a></li>
@@ -35,7 +34,7 @@
       <li class="hideOnMobile nav-link"><a href="about.html">About</a></li>
       <li class="hideOnMobile nav-link"><a href="contact.html">Contact</a></li>
       <li class="menu-button"><a id="hamburger-menu" href="#"><svg xmlns="http://www.w3.org/2000/svg" height="24px"
-            viewBox="0 -960 960 960" width="24px">
+            viewBox="http://www.w3.org/2000/svg" width="24px">
             <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z" />
           </svg></a></li>
     </ul>
@@ -46,120 +45,128 @@
     <p class="subtitle">Dabbling in anything and everything I find interesting. Explore my vision!</p>
   </header>
 
-  <details id="engineering-page" class="project-section">
-    <summary class="section-title">Engineering</summary>
-    <div class="container">
-      <ul class="project-list">
-        <li class="project-card">
-          <div class="project-image">
-            <img src="Assets/Engineering Poster.png" alt="Automated Pill Dispenser Project" />
-          </div>
-          <div class="project-info">
-            <h3>Automated Pill Dispenser</h3>
-            <p>Economic and modular pill dispenser designed for reliable timing and dosage using an automated dispensing
-              and easily refillable medicine storage chamber.</p>
-            <a href="https://github.com/PotatoSlop/Automated-Pill-Dispenser" class="project-link" target="_blank"
-              rel="noopener noreferrer">Read More</a>
-          </div>
-        </li>
-        <li class="project-card">
-          <div class="project-image">
-            <img src="Assets\Nob_Thumbnail.jpg" alt="Nob Smart Dial" />
-          </div>
-          <div class="project-info">
-            <h3>Nob</h3>
-            <p>Nob is a wireless smart dial connected via Wi-Fi and Bluetooth. Designed for desktop volume control and
-              macros.</p>
-            <a href="https://github.com/PotatoSlop/Nob" class="project-link" target="_blank"
-              rel="noopener noreferrer">Read More</a>
-          </div>
-        </li>
-      </ul>
+  <details id="engineering-page">
+    <summary class="section-title project-section">Engineering</summary>
+    <div class="project-section-content">
+      <div class="container">
+        <ul class="project-list">
+          <li class="project-card">
+            <div class="project-image">
+              <img src="Assets/Engineering Poster.png" alt="Automated Pill Dispenser Project" />
+            </div>
+            <div class="project-info">
+              <h3>Automated Pill Dispenser</h3>
+              <p>Economic and modular pill dispenser designed for reliable timing and dosage using an automated dispensing
+                and easily refillable medicine storage chamber.</p>
+              <a href="https://github.com/PotatoSlop/Automated-Pill-Dispenser" class="project-link" target="_blank"
+                rel="noopener noreferrer">Read More</a>
+            </div>
+          </li>
+          <li class="project-card">
+            <div class="project-image">
+              <img src="Assets\Nob_Thumbnail.jpg" alt="Nob Smart Dial" />
+            </div>
+            <div class="project-info">
+              <h3>Nob [WIP]</h3>
+              <p>Nob is a wireless smart dial connected via Wi-Fi and Bluetooth. Designed for desktop volume control and
+                macros.</p>
+              <a href="https://github.com/PotatoSlop/Nob" class="project-link" target="_blank"
+                rel="noopener noreferrer">Read More</a>
+            </div>
+          </li>
+        </ul>
+      </div>
     </div>
 
   </details>
 
-  <details id="design-page" class="project-section">
-    <summary class="section-title">Design</summary>
-    <div class="container">
-      <ul class="project-list">
-        <li class="project-card">
-          <div class="project-image">
-            <img src="Assets\Boat.png" alt="Low Poly Boat Asset" />
-          </div>
-          <div class="project-info">
-            <h3>Low-Poly Boat Asset</h3>
-            <p>Low-poly steam boat model designed and published as a free 3D Unity Asset for users to download and use
-              in their projects.</p>
-            <a href="#" class="project-link view-3d-button" data-model-url="Assets\models\boat.glb" role="button">View
-              Model</a>
-          </div>
-        </li>
-        <li class="project-card">
-          <div class="project-image">
-            <img src="Assets\WIP Project.jpg" alt="Original Design Combative Robot 3D Model" />
-          </div>
-          <div class="project-info">
-            <h3>Peacemaker</h3>
-            <p>[WIP] Rigged Hard surface 3D model of Peacemaker, a custom mecha design original illustrated by me in 2D
-              using Procreate. Brought to life in Blender. </p>
-            <a href="#" class="project-link view-3d-button" data-model-url="Assets\models\WIPMecha.glb"
-              role="button">View Model</a>
-          </div>
-        </li>
-      </ul>
+  <details id="design-page">
+    <summary class="section-title project-section">Design</summary>
+    <div class="project-section-content">
+      <div class="container">
+        <ul class="project-list">
+          <li class="project-card">
+            <div class="project-image">
+              <img src="Assets\Boat.png" alt="Low Poly Boat Asset" />
+            </div>
+            <div class="project-info">
+              <h3>Low-Poly Boat Asset</h3>
+              <p>Low-poly steam boat model designed and published as a free 3D Unity Asset for users to download and use
+                in their projects.</p>
+              <a href="#" class="project-link view-3d-button" data-model-url="Assets\models\boat.glb" role="button">View
+                Model</a>
+            </div>
+          </li>
+          <li class="project-card">
+            <div class="project-image">
+              <img src="Assets\WIP Project.jpg" alt="Original Design Combative Robot 3D Model" />
+            </div>
+            <div class="project-info">
+              <h3>Peacemaker</h3>
+              <p>[WIP] Rigged Hard surface 3D model of Peacemaker, a custom mecha design original illustrated by me in 2D
+                using Procreate. Brought to life in Blender. </p>
+              <a href="#" class="project-link view-3d-button" data-model-url="Assets\models\WIPMecha.glb"
+                role="button">View Model</a>
+            </div>
+          </li>
+        </ul>
+      </div>
     </div>
   </details>
 
-  <details id="photography-page" class="project-section">
-    <summary class="section-title">Photography</summary>
-    <div class="container">
+  <details id="photography-page">
+    <summary class="section-title project-section">Photography</summary>
+    <div class="project-section-content">
+      <div class="container">
 
-      <div class="gallery-section">
-        <div id="landscape-gallery" class="gallery-grid landscape-grid">
+        <div class="gallery-section">
+          <div id="landscape-gallery" class="gallery-grid landscape-grid">
+          </div>
         </div>
-      </div>
-      <div class="gallery-section">
-        <div id="portrait-gallery" class="gallery-grid portrait-grid">
+        <div class="gallery-section">
+          <div id="portrait-gallery" class="gallery-grid portrait-grid">
+          </div>
         </div>
-      </div>
-      <div class="gallery-section">
-        <div id="portrait-short-gallery" class="gallery-grid portrait-short-grid">
+        <div class="gallery-section">
+          <div id="portrait-short-gallery" class="gallery-grid portrait-short-grid">
+          </div>
         </div>
-      </div>
 
+      </div>
     </div>
   </details>
 
-  <details id="programming-page" class="project-section">
-    <summary class="section-title">Programming</summary>
-    <div class="container">
-      <ul class="project-list">
-        <li class="project-card">
-          <div class="project-image">
-            <img src="Assets\WebsiteLandingPageScreenshot.svg" alt="Portfolio Project" />
-          </div>
-          <div class="project-info">
-            <h3>Portfolioslop</h3>
-            <p>Personal portfolio website that showcases my various projects and interests (You're viewing this project
-              right now!)</p>
-            <a href="https://github.com/PotatoSlop/Portfolioslop" class="project-link" target="_blank"
-              rel="noopener noreferrer">Read More</a>
-          </div>
-        </li>
-        <li class="project-card">
-          <div class="project-image">
-            <img src="Assets\ColorMatch.svg" alt="Color Match Project" />
-          </div>
-          <div class="project-info">
-            <h3>Color Match [WIP]</h3>
-            <p>Color-Match is a free to play (FTP) indie card card battling game developed in Godot about matching
-              colors. Battle in 1v1 puzzles where you can mix and match your way into victory with color theory!</p>
-            <a href="https://github.com/PotatoSlop/color-match" class="project-link" target="_blank"
-              rel="noopener noreferrer">Read More</a>
-          </div>
-        </li>
-      </ul>
+  <details id="programming-page">
+    <summary class="section-title project-section">Programming</summary>
+    <div class="project-section-content">
+      <div class="container">
+        <ul class="project-list">
+          <li class="project-card">
+            <div class="project-image">
+              <img src="Assets\WebsiteLandingPageScreenshot.svg" alt="Portfolio Project" />
+            </div>
+            <div class="project-info">
+              <h3>Portfolioslop</h3>
+              <p>Personal portfolio website that showcases my various projects and interests (You're viewing this project
+                right now!)</p>
+              <a href="https://github.com/PotatoSlop/Portfolioslop" class="project-link" target="_blank"
+                rel="noopener noreferrer">Read More</a>
+            </div>
+          </li>
+          <li class="project-card">
+            <div class="project-image">
+              <img src="Assets\ColorMatch.svg" alt="Color Match Project" />
+            </div>
+            <div class="project-info">
+              <h3>Color Match [WIP]</h3>
+              <p>Color-Match is a free to play (FTP) indie card card battling game developed in Godot about matching
+                colors. Battle in 1v1 puzzles where you can mix and match your way into victory with color theory!</p>
+              <a href="https://github.com/PotatoSlop/color-match" class="project-link" target="_blank"
+                rel="noopener noreferrer">Read More</a>
+            </div>
+          </li>
+        </ul>
+      </div>
     </div>
   </details>
 
@@ -208,5 +215,4 @@
   <script type="module" src="./viewer3d.js"></script>
   <script type="module" src="./page-effects.js"></script>
 </body>
-
 </html>
