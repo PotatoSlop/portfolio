@@ -1657,7 +1657,7 @@ form textarea {
 
 /*Desktop Navigation */
 @media (min-width: 769px) {
-  .hide-on-mobile {
+  .hideOnMobile {
     display: list-item !important;
   }
 }
@@ -1666,6 +1666,10 @@ form textarea {
 @media (max-width: 768px) {
   .menu-button {
     display: flex !important;
+  }
+
+  .hideOnMobile {
+    display: none !important;
   }
 
   .contact-footer {
@@ -1710,7 +1714,6 @@ form textarea {
   .scroll-down-text {
     position: fixed;
     top: calc(50vh + 4rem);
-    /* Position below the title */
     left: 50%;
     right: auto;
     transform: translateX(-50%);
@@ -1810,5 +1813,3 @@ form textarea {
 }
 
 /* #endregion */
-
-/*  #endregion */
