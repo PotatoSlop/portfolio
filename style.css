@@ -24,6 +24,9 @@
   --color-error-transparent: rgba(220, 53, 69, 0.5);
   --color-success-transparent: rgba(134, 245, 143, 0.5);
 
+  /* ===== SHADOWS ===== */
+  --shadow-focus-primary: 0 0 0 3px var(--color-primary-transparent);
+
   /* ===== TYPOGRAPHY ===== */
   --font-primary: 'interstate-mono', monospace;
   --font-secondary: 'Nunito', sans-serif;
@@ -118,6 +121,25 @@ body.fade-out {
   padding: var(--gap-xl);
 }
 
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-dark);
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
 /*  #endregion */
 
 /* #region ============= Base Typography ============= */
@@ -194,17 +216,23 @@ nav ul {
   border: var(--border-width-medium) solid var(--color-black);
   background-color: var(--color-white);
   border-radius: var(--radius-pill);
-  padding: 0.3em 1.2em;
+  padding: 0;
   position: relative;
   overflow: hidden;
   transition: background-color var(--duration-medium), border-color var(--duration-medium), transform var(--duration-medium);
 }
 
 .nav-link:hover {
-  transform: scale(var(--transform-scale-hover-small));
+  transform: var(--transform-scale-hover-small);
 }
 
 .nav-link a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3em 1.2em;
+  width: 100%;
+  height: 100%;
   font-weight: 500;
   font-family: var(--font-secondary);
   color: var(--color-black);
@@ -593,7 +621,6 @@ nav ul {
   overflow: hidden;
   line-height: 1.1;
   padding: 0.5em 1rem;
-  word-break: break-word;
   opacity: 0;
   transition: transform var(--duration-medium) var(--ease-aggressive), opacity var(--duration-medium);
   will-change: transform, opacity;
@@ -669,16 +696,16 @@ nav ul {
 .categorySelect {
   position: fixed;
   top: calc(51vh + 1rem);
-  scale: 1.3;
-  left: 20%;
-  right: 20%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: fit-content;
+  max-width: min(92vw, 700px);
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 0.5rem;
-  max-width: min(95vw, 850px);
-  font-size: min(1rem, 2vw);
+  font-size: clamp(0.75rem, 1vw + 0.4rem, 1rem);
   font-weight: 500;
   font-family: var(--font-primary);
   border: var(--border-width-thick) dashed var(--color-black);
@@ -689,7 +716,6 @@ nav ul {
   pointer-events: auto;
   will-change: opacity;
   opacity: 0;
-  transition: opacity 0.7s var(--ease-smooth), transform var(--duration-medium);
 }
 
 .categorySelect.visible {
@@ -702,9 +728,10 @@ nav ul {
   will-change: opacity;
   justify-content: center;
   top: calc(51vh + 1rem);
-  left: 20%;
-  right: 20%;
-  scale: 1.3;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  transition: opacity 1s var(--ease-smooth);
 }
 
 .categorySelect span[draggable="true"] {
@@ -747,13 +774,13 @@ nav ul {
   display: none;
   align-items: center;
   justify-content: flex-start;
-  transition: all var(--duration-medium) var(--ease-smooth), opacity 0.7s var(--ease-in-out);
+  transition: all var(--duration-medium) var(--ease-smooth), opacity 1s var(--ease-in-out);
 }
 
 #category-drop-zone.scrolled {
   display: inline-flex;
   opacity: 1;
-  transition: all var(--duration-medium) var(--ease-smooth), opacity 0.7s var(--ease-in-out);
+  transition: all var(--duration-medium) var(--ease-smooth), opacity 1s var(--ease-in-out);
 }
 
 #category-drop-zone.drag-over {
@@ -806,18 +833,58 @@ nav ul {
 
 .project-section {
   cursor: pointer;
-  padding: 4rem;
+  padding: 3rem 4rem;
   border-top: var(--border-width-medium) solid var(--color-black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  list-style: none;
+  user-select: none;
+}
+
+/* Hide default summary triangle marker */
+.project-section::-webkit-details-marker { display: none; }
+.project-section::marker { content: none; }
+
+/* Rotating chevron */
+.project-section::after {
+  content: '';
+  position: absolute;
+  right: 4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.75rem;
+  height: 1.75rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231e1e14' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: center;
+  transition: transform var(--duration-smooth) var(--ease-in-out);
+}
+
+details[open] > .project-section::after {
+  transform: translateY(-50%) rotate(180deg);
 }
 
 .section-title {
   font-family: var(--font-secondary);
   font-size: clamp(2rem, 6vw, 3rem);
   color: var(--color-black);
-  margin-bottom: 2.5rem;
+  margin-bottom: 0;
   text-align: center;
   position: relative;
+}
 
+/* Animated details content wrapper */
+.project-section-content {
+  overflow: hidden;
+  transition: height 0.45s var(--ease-in-out);
+}
+
+.project-section-content > .container {
+  padding-top: 2.5rem;
+  padding-bottom: 3rem;
 }
 
 .project-list {
@@ -837,10 +904,22 @@ nav ul {
   border-radius: var(--radius-medium);
   overflow: hidden;
   box-shadow: var(--shadow-card);
-  transition: transform var(--duration-medium) var(--ease-default),
-    box-shadow var(--duration-medium) var(--ease-default);
   display: flex;
   flex-direction: column;
+  /* Entrance state: invisible and shifted down */
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.4s var(--ease-out),
+    transform 0.4s var(--ease-out),
+    box-shadow var(--duration-medium) var(--ease-default),
+    border-color var(--duration-medium) var(--ease-default);
+}
+
+/* Visible state — comes before :hover so :hover wins at equal specificity */
+.project-card.card-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .project-card:hover {
@@ -1316,9 +1395,12 @@ form textarea {
 
 /* #region =================================== ABOUT PAGE =================================== */
 
-.about-page-main {
-  height: 150dvh;
-}
+/*
+  Gap elimination strategy: the whole-container sticky required min-height:150dvh,
+  leaving 50dvh of dead scroll. Instead, only the image is sticky. The text-stack
+  gets an explicit min-height that provides just enough scroll room for the flip —
+  the about section's total height is its real content height, so no dead gap.
+*/
 
 .about-page-main.container {
   max-width: 1200px;
@@ -1326,38 +1408,23 @@ form textarea {
   padding-right: 1rem;
 }
 
+/* Full-viewport centred stage — content stays centred here while scroll is locked */
 .scroll-animation-container {
-  position: sticky;
-  top: 25%;
-  height: 100vh;
   display: flex;
-  align-items: center top;
+  align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
+  min-height: 100vh;
+  padding: 0 1rem;
 }
 
 .sticky-wrapper {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 4rem;
   width: 100%;
   max-width: 1100px;
-  height: auto;
 }
 
-.text-block {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  max-width: 600px;
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease-in-out, transform 0.6s ease-in-out;
-  padding-right: 2rem;
-}
-
-/* Photo Coin Styles */
 .about-image-stack {
   perspective: 1000px;
   width: 30vh;
@@ -1366,8 +1433,8 @@ form textarea {
 }
 
 .headshot {
-  top: 5vh;
   position: relative;
+  top: 0;
   width: 100%;
   height: 100%;
   transition: transform 0.8s;
@@ -1388,7 +1455,6 @@ form textarea {
 
 .headshot.flipped {
   transform: rotateY(180deg);
-  top: 10vh;
 }
 
 .headshot-face {
@@ -1406,27 +1472,34 @@ form textarea {
   transform: rotateY(180deg);
 }
 
-/* Text Stack Styles */
+/* Text stack — cross-fading blocks overlay each other inside here */
 .about-text-stack {
   position: relative;
   flex: 1;
-  height: auto;
+  min-height: 300px;
 }
 
+/* Both blocks are absolutely overlaid — only .is-visible is shown */
 .text-block {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
+  max-width: 600px;
+  padding-right: 2rem;
   opacity: 0;
   transform: translateY(20px);
-  transition: opacity 0.6s ease-in-out, transform 0.6s ease-in-out;
-  padding-right: 2rem;
+  pointer-events: none;
+  /* Outgoing */
+  transition: opacity 0.35s ease-in, transform 0.35s ease-in;
 }
 
 .text-block.is-visible {
   opacity: 1;
   transform: translateY(0);
+  pointer-events: auto;
+  /* Incoming: slight delay so outgoing has time to clear */
+  transition: opacity 0.5s ease-out 0.15s, transform 0.5s var(--ease-out) 0.15s;
 }
 
 .text-block h1 {
@@ -1446,7 +1519,6 @@ form textarea {
   font-family: var(--font-primary);
   letter-spacing: 0.01em;
 }
-
 
 .resume-btn {
   display: inline-block;
@@ -1469,30 +1541,21 @@ form textarea {
   transform: scale(1.05);
 }
 
-@media (max-width: 1200px) {
-  .sticky-wrapper {
-    gap: 4rem;
-    max-width: 1100px;
-  }
-}
-
 @media (max-width: 768px) {
   .scroll-animation-container {
-    padding: 1rem;
-    align-items: flex-start;
-    padding-top: 3rem;
+    padding: 4rem 1rem;
+    min-height: auto;
   }
 
   .sticky-wrapper {
     display: block;
-    text-align: left;
     max-width: none;
   }
 
   .about-image-stack {
     width: 28vh;
     height: 28vh;
-    margin: 0 auto 2rem auto;
+    margin: 0 auto 2.5rem auto;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1502,45 +1565,21 @@ form textarea {
     width: 100%;
     max-width: 500px;
     margin: 0 auto;
-    position: relative;
+    min-height: 280px;
   }
 
   .text-block {
     padding-right: 0;
-    position: absolute;
-    top: 0vh;
-    left: 0;
-    transform: translateY(0);
-    margin-bottom: 0;
-    width: 100%;
-  }
-
-  .headshot,
-  .headshot.flipped {
-    top: 0vh;
   }
 }
 
 @media (max-width: 480px) {
-  .scroll-animation-container {
-    padding-top: 1rem;
-  }
-
-  .sticky-wrapper {
-    gap: 1.5rem;
-  }
-
   .about-image-stack {
     width: 25vh;
     height: 25vh;
   }
 
-  .about-text-stack {
-    margin-top: 0;
-  }
-
   .text-block h1 {
-    text-align: center;
     font-size: 1.8rem;
   }
 
@@ -1549,6 +1588,149 @@ form textarea {
   }
 }
 
+/* #endregion */
+
+/* #region ===== EXPERIENCE TIMELINE ===== */
+.timeline-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 5rem 2rem 6rem;
+}
+
+.timeline-heading {
+  font-family: var(--font-secondary);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  text-align: left;
+  margin-bottom: 4rem;
+  color: var(--color-black);
+}
+
+/* Container: SVG spine lives absolutely on the left */
+.timeline {
+  position: relative;
+  padding-left: 56px;
+}
+
+/* Inline SVG spine — sized by JS */
+.timeline-svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 56px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.timeline-path {
+  fill: none;
+  stroke: var(--color-black);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+/* Each timeline item */
+.timeline-item {
+  position: relative;
+  padding-bottom: 4rem;
+  /* Bottom-up entrance */
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+}
+
+.timeline-item.reveal {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Connector dot — anchored to the SVG x-center (x=28) */
+.timeline-dot {
+  position: absolute;
+  left: -34px; /* 28px svg-center - 6px dot-radius - 56px padding = -34 from item edge */
+  /* top is set per-item by JS to align with .timeline-title vertical centre */
+  top: 1rem; /* fallback only */
+  width: 12px;
+  height: 12px;
+  background: var(--color-black);
+  border: 2px solid var(--color-black);
+  border-radius: 50%;
+  z-index: var(--z-content);
+  /* Hidden until JS activates */
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.2s ease, transform 0.4s var(--ease-bouncy);
+}
+
+.timeline-dot.dot-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Text content — no card border, clean and minimal */
+.timeline-content {
+  padding: 0 0 0 0.5rem;
+}
+
+.timeline-date {
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.timeline-title {
+  font-family: var(--font-secondary);
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+  font-weight: 800;
+  color: var(--color-black);
+  margin-bottom: 0.15rem;
+  line-height: 1.2;
+}
+
+.timeline-company {
+  font-family: var(--font-primary);
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+  margin-bottom: 0.6rem;
+  font-style: italic;
+}
+
+.timeline-desc {
+  font-family: var(--font-primary);
+  font-size: 0.88rem;
+  color: var(--color-text-light);
+  line-height: 1.7;
+  margin: 0;
+  max-width: 680px;
+}
+
+/* Mobile — keep same spine geometry, just tighten section padding */
+@media (max-width: 480px) {
+  .timeline-section {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Reduced motion: skip draw animation, show everything immediately */
+@media (prefers-reduced-motion: reduce) {
+  .timeline-dot {
+    opacity: 1;
+    transform: scale(1);
+    transition: none;
+  }
+
+  .timeline-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
 /* #endregion */
 
 /* #region ===== CURSOR EFFECTS ===== */
@@ -1569,6 +1751,22 @@ form textarea {
 /*  #endregion */
 
 /* #region ===== ANIMATIONS ===== */
+/* Page load fade-in for non-landing pages */
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+body:not(:has(.landing)) main,
+body:not(:has(.landing)) .page-header {
+  animation: pageFadeIn 0.45s var(--ease-out) both;
+}
+
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes wave {
 
   0%,
@@ -1665,6 +1863,76 @@ form textarea {
 
 /*  #endregion */
 /*  #endregion */
+
+/* #region ===== FOCUS VISIBLE (Keyboard Accessibility) ===== */
+/* Reset default outlines and apply consistent :focus-visible styles */
+*:focus {
+  outline: none;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-small);
+}
+
+.nav-link:focus-visible,
+.nav-link:focus-visible a {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-pill);
+}
+
+.draggable-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.footer-cta-button:focus-visible,
+.resume-btn:focus-visible,
+.project-link:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 3px;
+}
+
+form input:focus-visible,
+form textarea:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus-primary);
+}
+/* #endregion */
+
+/* #region ===== TOUCH DEVICE HINT ===== */
+/* On touch-only devices, show a "tap to select" hint since drag-and-drop is unavailable */
+@media (hover: none) and (pointer: coarse) {
+  .categorySelect {
+    cursor: pointer;
+  }
+
+  .categorySelect::after {
+    content: 'tap to select';
+    display: block;
+    width: 100%;
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--color-text-light);
+    letter-spacing: 0.08em;
+    margin-top: 0.25rem;
+    opacity: 0.7;
+  }
+
+  .categorySelect span[draggable="true"]:hover {
+    animation: wave 2s ease-in-out infinite;
+    border: var(--border-width-medium) solid var(--color-black);
+    border-radius: var(--radius-pill);
+    padding: 0.52em 1.2em;
+  }
+}
+/* #endregion */
 
 /* #region =================================== MEDIA QUERIES =================================== */
 
@@ -1800,17 +2068,35 @@ form textarea {
 
 @media (prefers-reduced-motion: reduce) {
 
-  .form-messages,
-  .error-message,
-  .submit-button {
-    animation: none;
+  /* Disable all CSS animations */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Ensure cards are visible immediately without animation */
+  .project-card {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Keep text blocks readable */
+  .text-block {
     transition: none;
   }
 
-  .wave-text span,
-  .categorySelect span[draggable="true"] {
+  /* Timeline items: show immediately */
+  .timeline-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .timeline-item .timeline-dot {
     animation: none;
-    border: none;
   }
 }
 
