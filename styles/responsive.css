@@ -1,0 +1,123 @@
+/* ===== Responsive layout overrides =====
+   Site-wide @media queries for navigation, footer, sidebar, gallery columns,
+   and mobile-only typography/layout adjustments.
+
+   Page-specific media queries live with their pages (about.css, timeline.css)
+   because they're tightly coupled to that page's geometry. */
+
+/* ----- Desktop navigation visibility ----- */
+@media (min-width: 769px) {
+  .hideOnMobile {
+    display: list-item !important;
+  }
+}
+
+/* ----- Mobile navigation + general mobile layout ----- */
+@media (max-width: 768px) {
+  .menu-button {
+    display: flex !important;
+  }
+
+  .hideOnMobile {
+    display: none !important;
+  }
+
+  .contact-footer {
+    padding-top: var(--gap-xl);
+    min-height: auto;
+  }
+
+  .footer-links {
+    flex-direction: column;
+  }
+
+  .link-separator {
+    display: none;
+  }
+
+  .container {
+    padding: 1rem;
+  }
+
+  form textarea {
+    min-height: calc(25vh - 80px);
+    max-height: calc(35vh - 80px);
+    height: calc(30vh - 80px);
+  }
+
+  .field-hint {
+    font-size: 0.8rem;
+    flex: 1;
+    margin-right: 0.5rem;
+  }
+
+  .character-counter {
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .about-container {
+    flex-direction: column;
+  }
+
+  .scroll-down-text {
+    position: fixed;
+    top: calc(50vh + 4rem);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    text-align: center;
+    width: auto;
+    justify-content: center;
+  }
+}
+
+/* ----- Small mobile sidebar ----- */
+@media (max-width: 400px) {
+  .sidebar {
+    width: 100%;
+  }
+}
+
+/* ----- Small devices ----- */
+@media (max-width: 480px) {
+  .bottom-gif img {
+    height: clamp(200px, 27vh, 350px);
+  }
+
+  .scroll-down-text {
+    top: 60vh;
+    font-size: clamp(0.6rem, 2.5vw, 0.8rem);
+    padding: clamp(0.2rem, 0.8vw, 0.4rem) clamp(0.4rem, 1.5vw, 0.8rem);
+    gap: clamp(0.05rem, 0.3vw, 0.15rem);
+    right: clamp(0.5rem, 1vw, 2vw);
+  }
+}
+
+@media (max-width: 460px) {
+  .job-role-container {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--gap-small);
+  }
+
+  #category-drop-zone {
+    margin-left: 0;
+    justify-content: center;
+    min-height: 50px;
+  }
+}
+
+/* ----- Gallery columns ----- */
+@media (min-width: 600px) {
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .gallery-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

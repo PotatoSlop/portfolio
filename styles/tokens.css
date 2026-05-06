@@ -1,0 +1,80 @@
+/* ===== Design tokens =====
+   Single source of truth for colors, typography, spacing, motion, etc.
+   Anywhere you find yourself typing a magic number, add a token here first. */
+
+:root {
+  /* ===== COLORS ===== */
+  --color-text-light: #555666;
+  --color-text-error: #dc3545;
+  --color-text-error-dark: #721c24;
+
+  --color-black: #1e1e14;
+  --color-primary: #F5A045;
+  --color-primary-dark: #e8913d;
+  --color-white: #ffffff;
+
+  --color-error-bg: #f87680;
+  --color-error-border: #f5c6cb;
+  --color-success-validation: rgb(69, 201, 80);
+
+  /* Transparent & shadow colors */
+  --color-shadow-light: rgba(0, 0, 0, 0.1);
+  --color-shadow-dark: rgba(0, 0, 0, 0.5);
+  --color-overlay-dark: rgba(0, 0, 0, 0.15);
+  --color-black-transparent: rgba(30, 30, 20, 0.5);
+  --color-primary-transparent: rgba(245, 160, 69, 0.5);
+  --color-error-transparent: rgba(220, 53, 69, 0.5);
+  --color-success-transparent: rgba(134, 245, 143, 0.5);
+
+  /* ===== SHADOWS ===== */
+  --shadow-focus-primary: 0 0 0 3px var(--color-primary-transparent);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 10px 20px var(--color-shadow-light);
+
+  /* ===== TYPOGRAPHY ===== */
+  --font-primary: 'interstate-mono', monospace;
+  --font-secondary: 'Nunito', sans-serif;
+
+  /* ===== SPACING ===== */
+  --gap-small: 0.5rem;
+  --gap-medium: 1rem;
+  --gap-large: 1.25rem;
+  --gap-xl: 2rem;
+
+  /* ===== TRANSITIONS & ANIMATIONS ===== */
+  --duration-fast: 0.25s;
+  --duration-medium: 0.3s;
+  --duration-smooth: 0.35s;
+  --duration-slow: 0.5s;
+  --duration-xslow: 1s;
+
+  --ease-default: ease;
+  --ease-in-out: ease-in-out;
+  --ease-out: ease-out;
+  --ease-bouncy: cubic-bezier(.4, 1.1, .6, 1);
+  --ease-smooth: cubic-bezier(.4, 1, .6, 1);
+  --ease-aggressive: cubic-bezier(.4, 2, .6, 1);
+  --ease-logo-hover: cubic-bezier(0.075, 0.82, 0.165, 1);
+  --wave-delay-base: 0.25s;
+
+  /* ===== BORDERS & RADII ===== */
+  --radius-small: 4px;
+  --radius-medium: 8px;
+  --radius-pill: 999px;
+  --border-width-medium: 2px;
+  --border-width-thick: 3px;
+
+  /* ===== Z-INDEXES ===== */
+  --z-base: 1;
+  --z-content: 2;
+  --z-interactive: 10;
+  --z-footer: 100;
+  --z-nav: 1000;
+  --z-overlay: 101;
+  --z-sidebar: 1001;
+
+  /* ===== TRANSFORMS ===== */
+  --transform-scale-hover: scale(1.1);
+  --transform-scale-hover-small: scale(1.05);
+  --transform-translate-up-small: translateY(-3px);
+}

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const viewButtons = document.querySelectorAll('.view-3d-button');
 const modal = document.getElementById('modal-3d-viewer');
@@ -53,8 +54,18 @@ function init3DScene(modelUrl) {
   renderer.setSize(containerRect.width, containerRect.height);
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.outputEncoding = THREE.sRGBEncoding;
+  // outputEncoding was renamed to outputColorSpace in Three r152+;
+  // SRGBColorSpace is the modern equivalent of sRGBEncoding.
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   canvasContainer.appendChild(renderer.domElement);
+
+  // Environment map for PBR reflections. RoomEnvironment is built into
+  // three/addons and provides a neutral studio-style cubemap. Without
+  // this, MeshStandardMaterial with metallic/glossy surfaces (like the
+  // mecha) has nothing to reflect and looks flat.
+  const pmremGenerator = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmremGenerator.dispose();
 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -63,9 +74,11 @@ function init3DScene(modelUrl) {
   controls.minDistance = 1;
   controls.maxDistance = 500;
 
-  const ambientLight = new THREE.AmbientLight(ambientLightColor, 2);
+  // Lights are now supplemental — the environment map handles ambient
+  // light, and the directional light just adds a crisp highlight.
+  const ambientLight = new THREE.AmbientLight(ambientLightColor, 0.5);
   scene.add(ambientLight);
-  const directionalLight = new THREE.DirectionalLight(keyLightColor, 5);
+  const directionalLight = new THREE.DirectionalLight(keyLightColor, 2);
   directionalLight.position.set(5, 10, 7.5);
   scene.add(directionalLight);
 
@@ -120,9 +133,16 @@ function destroy3DScene() {
     }
   });
 
+  // Dispose the PMREM-generated environment texture so it doesn't leak
+  // GPU memory across modal opens.
+  if (scene.environment) {
+    scene.environment.dispose();
+    scene.environment = null;
+  }
+
   renderer.dispose();
   canvasContainer.removeChild(renderer.domElement);
-  
+
   scene = null;
   camera = null;
   renderer = null;

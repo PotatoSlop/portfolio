@@ -1,0 +1,196 @@
+/* ===== About page =====
+   Sticky-image-with-cross-fading-text-stack scroll experience.
+   The headshot flips between cartoon and real photo on scroll.
+
+   Gap elimination strategy: the whole-container sticky required min-height:150dvh,
+   leaving 50dvh of dead scroll. Instead, only the image is sticky. The text-stack
+   gets an explicit min-height that provides just enough scroll room for the flip —
+   the about section's total height is its real content height, so no dead gap. */
+
+.about-page-main.container {
+  max-width: 1200px;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Full-viewport centred stage — content stays centred here while scroll is locked */
+.scroll-animation-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 0 1rem;
+}
+
+.sticky-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4rem;
+  width: 100%;
+  max-width: 1100px;
+}
+
+.about-image-stack {
+  perspective: 1000px;
+  width: 30vh;
+  height: 30vh;
+  flex-shrink: 0;
+}
+
+.headshot {
+  position: relative;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
+  display: grid;
+  place-items: center;
+}
+
+.headshot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: var(--border-width-thick) solid var(--color-black);
+  border-radius: 50%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.headshot.flipped {
+  transform: rotateY(180deg);
+}
+
+.headshot-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background-position: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 50%;
+}
+
+.real-photo {
+  transform: rotateY(180deg);
+}
+
+/* Text stack — cross-fading blocks overlay each other inside here */
+.about-text-stack {
+  position: relative;
+  flex: 1;
+  min-height: 300px;
+}
+
+/* Both blocks are absolutely overlaid — only .is-visible is shown */
+.text-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  max-width: 600px;
+  padding-right: 2rem;
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+  /* Outgoing */
+  transition: opacity 0.35s ease-in, transform 0.35s ease-in;
+}
+
+.text-block.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  /* Incoming: slight delay so outgoing has time to clear */
+  transition: opacity 0.5s ease-out 0.15s, transform 0.5s var(--ease-out) 0.15s;
+}
+
+.text-block h1 {
+  text-align: left;
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-weight: 600;
+  color: var(--color-black);
+  margin-bottom: 1rem;
+  font-family: var(--font-secondary);
+}
+
+.block-text {
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  line-height: 1.6;
+  color: var(--color-text-light);
+  margin-bottom: 1.5rem;
+  font-family: var(--font-primary);
+  letter-spacing: 0.01em;
+}
+
+.resume-btn {
+  display: inline-block;
+  font-weight: 600;
+  font-family: var(--font-primary);
+  text-align: center;
+  color: var(--color-black);
+  background-color: transparent;
+  border: var(--border-width-medium) solid var(--color-black);
+  padding: 0.75em 1.25em;
+  border-radius: var(--radius-pill);
+  transition: transform var(--duration-medium) var(--ease-aggressive),
+    background-color var(--duration-medium) var(--ease-default);
+  margin-top: var(--gap-large);
+}
+
+.resume-btn:hover {
+  background-color: var(--color-primary);
+  color: var(--color-black);
+  transform: scale(1.05);
+}
+
+/* About page has its own breakpoint tweaks because the layout flips
+   from side-by-side to stacked at 768px and tightens further below 480px. */
+@media (max-width: 768px) {
+  .scroll-animation-container {
+    padding: 4rem 1rem;
+    min-height: auto;
+  }
+
+  .sticky-wrapper {
+    display: block;
+    max-width: none;
+  }
+
+  .about-image-stack {
+    width: 28vh;
+    height: 28vh;
+    margin: 0 auto 2.5rem auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .about-text-stack {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    min-height: 280px;
+  }
+
+  .text-block {
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-image-stack {
+    width: 25vh;
+    height: 25vh;
+  }
+
+  .text-block h1 {
+    font-size: 1.8rem;
+  }
+
+  .block-text {
+    font-size: 0.9rem;
+  }
+}

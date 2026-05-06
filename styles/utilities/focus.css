@@ -1,0 +1,42 @@
+/* ===== Focus-visible (keyboard accessibility) =====
+   Reset default outlines, then re-apply consistent :focus-visible styles
+   on every focusable element. */
+
+*:focus {
+  outline: none;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-small);
+}
+
+.nav-link:focus-visible,
+.nav-link:focus-visible a {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-pill);
+}
+
+.draggable-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.footer-cta-button:focus-visible,
+.resume-btn:focus-visible,
+.project-link:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 3px;
+}
+
+form input:focus-visible,
+form textarea:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus-primary);
+}

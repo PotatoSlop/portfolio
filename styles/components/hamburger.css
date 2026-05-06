@@ -1,0 +1,28 @@
+/* ===== Hamburger menu button =====
+   Hidden on desktop (toggled in responsive.css), shown on mobile.
+   Triggers the sidebar. */
+
+.menu-button {
+  display: none;
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  height: clamp(48px, 9vw, 64px);
+  width: clamp(48px, 9vw, 64px);
+}
+
+.menu-button a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  border-radius: var(--radius-pill);
+  transition: background-color var(--duration-medium) var(--ease-default);
+  height: 100%;
+  width: 100%;
+}
+
+.menu-button a:hover {
+  background-color: var(--color-primary);
+}

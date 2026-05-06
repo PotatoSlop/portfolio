@@ -1,0 +1,116 @@
+/* ===== Footer =====
+   Sticky pill-shaped contact-CTA footer with curved top edge.
+   Includes the CTA button, link list, and the slim bottom copyright bar. */
+
+.contact-footer {
+  position: sticky;
+  z-index: var(--z-base);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  height: 90dvh;
+  padding-top: 4rem;
+  background-color: var(--color-primary);
+  border-radius: 50% / 10%;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  filter: drop-shadow(0 12px 30px var(--color-shadow-dark));
+  overflow: hidden;
+  z-index: var(--z-footer);
+}
+
+.footer-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  width: 100%;
+  max-width: 800px;
+  padding: var(--gap-xl) 1rem;
+  position: relative;
+  z-index: var(--z-content);
+  text-align: center;
+}
+
+.footer-title {
+  font-weight: 800;
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  margin-bottom: 1rem;
+}
+
+.footer-subtitle {
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  color: var(--color-black);
+  max-width: 550px;
+  line-height: 1.6;
+  margin: 0 auto 1.5rem;
+}
+
+.footer-cta-button {
+  display: inline-block;
+  font-weight: 600;
+  color: var(--color-white);
+  background-color: var(--color-black);
+  padding: 0.8em 2.5em;
+  border-radius: var(--radius-pill);
+  transition: transform var(--duration-fast) var(--ease-bouncy), background-color var(--duration-fast) var(--ease-default);
+}
+
+.footer-cta-button:hover {
+  background-color: var(--color-white);
+  color: var(--color-black);
+  transform: var(--transform-scale-hover-small);
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-large);
+  margin-top: 2.5rem;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  font-weight: 500;
+  color: var(--color-black);
+  position: relative;
+}
+
+.footer-link::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  bottom: -4px;
+  left: 0;
+  background-color: var(--color-black);
+  transform: scaleX(0);
+  transform-origin: bottom right;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.footer-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}
+
+.link-separator {
+  color: var(--color-black-transparent);
+  user-select: none;
+}
+
+.footer-bottom-bar {
+  width: 100%;
+  padding: 1.5rem var(--gap-xl);
+  background-color: var(--color-shadow-light);
+  position: relative;
+  z-index: var(--z-content);
+}
+
+.footer-bottom-bar p {
+  margin: 0;
+  font-size: 0.875rem;
+}

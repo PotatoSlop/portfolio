@@ -1,0 +1,57 @@
+/* ===== Base / reset =====
+   Universal box-sizing, body defaults, scrollbar styling. */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--color-white);
+  min-height: 100dvh;
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  color: var(--color-black);
+}
+
+body.no-scroll {
+  overflow: hidden;
+  height: 100vh;
+  min-height: 100dvh;
+}
+
+body.fade-out {
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-in-out);
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--gap-xl);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-dark);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}

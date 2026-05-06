@@ -1,0 +1,31 @@
+/* ===== Base typography =====
+   Heading + paragraph + link defaults; classed exceptions that share fonts. */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-secondary);
+  color: var(--color-black);
+}
+
+p {
+  font-family: var(--font-primary);
+  font-weight: lighter;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Components that use the secondary font for headings */
+.footer-title,
+.section-title,
+.project-info h3,
+.gallery-info h4,
+.container h1 {
+  font-family: var(--font-secondary);
+}

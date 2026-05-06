@@ -1,0 +1,61 @@
+/* ===== Accessibility utilities =====
+   .sr-only for visually-hidden but screen-reader-readable content.
+   prefers-contrast and prefers-reduced-motion overrides loaded last so
+   they override animations and transitions defined elsewhere. */
+
+@media (prefers-contrast: high) {
+  form input,
+  form textarea {
+    border-width: var(--border-width-thick);
+  }
+
+  .error-message {
+    font-weight: bold;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Disable all CSS animations */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Ensure cards and gallery items are visible immediately without animation */
+  .project-card,
+  .gallery-item {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Keep text blocks readable */
+  .text-block {
+    transition: none;
+  }
+
+  /* Timeline items: show immediately */
+  .timeline-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .timeline-item .timeline-dot {
+    animation: none;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

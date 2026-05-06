@@ -1,0 +1,16 @@
+/* ===== Cursor effects =====
+   White circle that follows the cursor on certain elements (driven by JS). */
+
+.cursor-effects {
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity var(--duration-medium) var(--ease-default),
+    transform var(--duration-medium) var(--ease-default);
+  position: absolute;
+  z-index: var(--z-base);
+  width: 9vh;
+  height: 9vh;
+  border-radius: 50%;
+  background-color: var(--color-white);
+  pointer-events: none;
+}

@@ -1,0 +1,85 @@
+/* ===== Animations =====
+   Shared @keyframes used across pages and the wave-text utility class.
+
+   Note: page-specific @keyframes (blinkingCursor, slideIn, errorSlide, spin)
+   stay in their own component files for locality. This file collects only
+   the truly reusable ones. */
+
+/* Page-load fade-in for non-landing pages */
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+body:not(:has(.landing)) main,
+body:not(:has(.landing)) .page-header {
+  animation: pageFadeIn 0.45s var(--ease-out) both;
+}
+
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wave {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-0.33rem);
+  }
+}
+
+@keyframes shake {
+  0% {
+    transform: rotate(3deg);
+  }
+
+  50% {
+    transform: rotate(-3deg);
+  }
+
+  100% {
+    transform: rotate(3deg);
+  }
+}
+
+
+/* ----- Wave-text utility -----
+   Wraps each character in a span and assigns staggered animation delays. */
+.wave-text span {
+  display: inline-block;
+  font-size: 1.5rem;
+  animation: wave 2s ease-in-out infinite;
+}
+
+.wave-text span:nth-child(2) { animation-delay: 0s; }
+.wave-text span:nth-child(3) { animation-delay: 0.07s; }
+.wave-text span:nth-child(4) { animation-delay: 0.14s; }
+.wave-text span:nth-child(5) { animation-delay: 0.21s; }
+.wave-text span:nth-child(6) { animation-delay: 0.28s; }
+.wave-text span:nth-child(8) { animation-delay: 0.35s; }
+.wave-text span:nth-child(9) { animation-delay: 0.42s; }
+.wave-text span:nth-child(10) { animation-delay: 0.49s; }
+.wave-text span:nth-child(11) { animation-delay: 0.56s; }
+.wave-text span:nth-child(12) { animation-delay: 0.63s; }
+
+/* ----- Category-select wave delays ----- */
+.categorySelect span:nth-child(1) {
+  animation-delay: 0s, 0s;
+}
+
+.categorySelect span:nth-child(2) {
+  animation-delay: calc(var(--wave-delay-base) * 1), 0s;
+}
+
+.categorySelect span:nth-child(3) {
+  animation-delay: calc(var(--wave-delay-base) * 2), 0s;
+}
+
+.categorySelect span:nth-child(4) {
+  animation-delay: calc(var(--wave-delay-base) * 3), 0s;
+}

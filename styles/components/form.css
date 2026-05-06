@@ -1,0 +1,245 @@
+/* ===== Forms =====
+   Inputs, labels, validation states, character counter, submit button.
+   Used on the contact page but defined globally for consistency. */
+
+.container h1 {
+  font-size: clamp(2rem, 6vw, 3rem);
+  font-weight: 600;
+  color: var(--color-black);
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+/* ----- Form-level message banners ----- */
+.form-messages {
+  margin-bottom: var(--gap-xl);
+  padding: 1rem;
+  border-radius: var(--radius-medium);
+  display: none;
+  animation: slideIn var(--duration-medium) var(--ease-out);
+}
+
+.form-messages.success {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  display: block;
+}
+
+.form-messages.error {
+  background-color: var(--color-error-bg);
+  color: var(--color-text-error-dark);
+  display: block;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.form-group.message-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ----- Labels ----- */
+form label {
+  display: block;
+  font-family: var(--font-secondary);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--color-black);
+}
+
+.required {
+  color: var(--color-text-error);
+  font-weight: bold;
+  margin-left: 0.25rem;
+}
+
+.optional {
+  color: var(--color-text-light);
+  font-weight: normal;
+  font-style: italic;
+  font-size: 0.9em;
+  margin-left: 0.25rem;
+}
+
+/* ----- Input fields ----- */
+form input[type="text"],
+form input[type="email"],
+form input[type="tel"],
+form textarea {
+  width: 100%;
+  max-width: none;
+  padding: 0.75rem;
+  border: var(--border-width-medium) solid var(--color-black);
+  border-radius: var(--radius-medium);
+  font-family: var(--font-secondary);
+  font-size: 1rem;
+  transition: border-color var(--duration-medium) var(--ease-default),
+    box-shadow var(--duration-medium) var(--ease-default);
+  background-color: var(--color-white);
+}
+
+form input:focus,
+form textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus-primary);
+}
+
+form input.error-field,
+form textarea.error-field {
+  border-color: var(--color-text-error);
+  box-shadow: 0 0 0 3px var(--color-error-transparent);
+}
+
+form input.success-field,
+form textarea.success-field {
+  border-color: var(--color-success-validation);
+  box-shadow: 0 0 0 3px var(--color-success-transparent);
+}
+
+form textarea {
+  resize: none;
+  overflow-y: auto;
+  min-height: calc(30vh - 100px);
+  max-height: calc(40vh - 100px);
+  height: calc(35vh - 100px);
+  line-height: 1.5;
+}
+
+/* ----- Per-field metadata (hint + counter) ----- */
+.message-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.field-hint {
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+  margin-top: 0.25rem;
+}
+
+.character-counter {
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+  font-weight: 500;
+}
+
+.character-counter.warning {
+  color: var(--color-primary);
+}
+
+.character-counter.valid {
+  color: var(--color-success-validation);
+}
+
+/* ----- Per-field error messaging ----- */
+.error-message {
+  color: var(--color-text-error);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  display: block;
+  min-height: 1.2em;
+  line-height: 1.2;
+  animation: errorSlide var(--duration-medium) var(--ease-out);
+}
+
+.error-message:empty {
+  display: none;
+}
+
+@keyframes errorSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ----- Submit button + spinner ----- */
+.submit-button {
+  width: 100%;
+  padding: 1rem var(--gap-xl);
+  background: linear-gradient(135deg, var(--color-black) 0%, var(--color-black) 100%);
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--radius-medium);
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-medium) var(--ease-aggressive);
+  position: relative;
+  overflow: hidden;
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.submit-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  transform: var(--transform-scale-hover-small);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.submit-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submit-button:disabled {
+  background: var(--color-text-light);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.button-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid var(--color-white);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: none;
+}
+
+.submit-button.loading .button-spinner {
+  display: block;
+}
+
+.submit-button.loading .button-text {
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}

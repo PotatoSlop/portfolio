@@ -1,0 +1,93 @@
+/* ===== Navigation =====
+   Top sticky nav, logo, and pill-style nav links with sliding fill on hover. */
+
+nav {
+  background: transparent;
+  padding: clamp(0.5rem, 2vh, 1rem) 0;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-nav);
+  height: clamp(60px, 10vh, 80px);
+  display: flex;
+  align-items: center;
+}
+
+nav ul {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  gap: var(--gap-medium);
+}
+
+.logo {
+  position: absolute;
+  left: clamp(0.5rem, 1vw, 2vw);
+}
+
+.logo-img {
+  height: clamp(38px, 9vw, 48px);
+  width: auto;
+  display: block;
+  transition: transform var(--duration-medium) var(--ease-logo-hover),
+              filter var(--duration-medium) var(--ease-default);
+  filter:
+    drop-shadow(0 0 5px rgba(255, 255, 255, 0.85))
+    drop-shadow(0 0 2px rgba(255, 255, 255, 1))
+}
+
+.logo-img:hover {
+  transform: var(--transform-scale-hover);
+}
+
+.nav-link {
+  border: var(--border-width-medium) solid var(--color-black);
+  background-color: var(--color-white);
+  border-radius: var(--radius-pill);
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  transition: background-color var(--duration-medium), border-color var(--duration-medium), transform var(--duration-medium);
+}
+
+.nav-link:hover {
+  transform: var(--transform-scale-hover-small);
+}
+
+.nav-link a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3em 1.2em;
+  width: 100%;
+  height: 100%;
+  font-weight: 500;
+  font-family: var(--font-secondary);
+  color: var(--color-black);
+  position: relative;
+  z-index: var(--z-content);
+  transition: color var(--duration-medium);
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+  z-index: var(--z-base);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-smooth) var(--ease-smooth);
+}
+
+.nav-link:hover::before {
+  transform: scaleX(1);
+}
+
+.nav-link:hover a {
+  color: var(--color-black);
+}

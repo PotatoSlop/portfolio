@@ -1,0 +1,144 @@
+/* ===== Experience timeline =====
+   Vertical timeline with an SVG spine drawn by JS. Each item has a dot,
+   date, title, company, and description. Bottom-up reveal on scroll. */
+
+.timeline-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 5rem 2rem 6rem;
+}
+
+.timeline-heading {
+  font-family: var(--font-secondary);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  text-align: left;
+  margin-bottom: 4rem;
+  color: var(--color-black);
+}
+
+/* Container: SVG spine lives absolutely on the left */
+.timeline {
+  position: relative;
+  padding-left: 56px;
+}
+
+/* Inline SVG spine — sized by JS */
+.timeline-svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 56px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.timeline-path {
+  fill: none;
+  stroke: var(--color-black);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+/* Each timeline item */
+.timeline-item {
+  position: relative;
+  padding-bottom: 4rem;
+  /* Bottom-up entrance */
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+}
+
+.timeline-item.reveal {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Connector dot — anchored to the SVG x-center (x=28) */
+.timeline-dot {
+  position: absolute;
+  left: -34px; /* 28px svg-center - 6px dot-radius - 56px padding = -34 from item edge */
+  /* top is set per-item by JS to align with .timeline-title vertical centre */
+  top: 1rem; /* fallback only */
+  width: 12px;
+  height: 12px;
+  background: var(--color-black);
+  border: 2px solid var(--color-black);
+  border-radius: 50%;
+  z-index: var(--z-content);
+  /* Hidden until JS activates */
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.2s ease, transform 0.4s var(--ease-bouncy);
+}
+
+.timeline-dot.dot-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Text content — no card border, clean and minimal */
+.timeline-content {
+  padding: 0 0 0 0.5rem;
+}
+
+.timeline-date {
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.timeline-title {
+  font-family: var(--font-secondary);
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+  font-weight: 800;
+  color: var(--color-black);
+  margin-bottom: 0.15rem;
+  line-height: 1.2;
+}
+
+.timeline-company {
+  font-family: var(--font-primary);
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+  margin-bottom: 0.6rem;
+  font-style: italic;
+}
+
+.timeline-desc {
+  font-family: var(--font-primary);
+  font-size: 0.88rem;
+  color: var(--color-text-light);
+  line-height: 1.7;
+  margin: 0;
+  max-width: 680px;
+}
+
+/* Mobile — keep same spine geometry, just tighten section padding */
+@media (max-width: 480px) {
+  .timeline-section {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Reduced motion: skip draw animation, show everything immediately */
+@media (prefers-reduced-motion: reduce) {
+  .timeline-dot {
+    opacity: 1;
+    transform: scale(1);
+    transition: none;
+  }
+
+  .timeline-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

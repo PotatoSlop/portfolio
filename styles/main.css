@@ -1,0 +1,57 @@
+/*
+  main.css — entry point for all stylesheets.
+  Imports are ordered to match the original style.css cascade.
+  Adding a new component? Drop it in components/ and add an @import below
+  in the right cascade position.
+
+  NOTE on performance: native CSS @import is sequential (each import
+  blocks until the previous resolves). For a ~15-file split on a portfolio
+  site this is fine, but if you ever notice slow first paint, switch to
+  multiple <link> tags in HTML (parallel loads) or add a build step.
+*/
+
+/* ---- Foundations ---- */
+@import url('./tokens.css');
+@import url('./base.css');
+@import url('./typography.css');
+
+/* ---- Global components (header / chrome / sidebar) ---- */
+@import url('./components/nav.css');
+@import url('./components/hamburger.css');
+@import url('./components/sidebar.css');
+
+/* ---- Page-shared utility section ---- */
+@import url('./pages/temp.css');
+
+/* ---- Footer (sits below page content in cascade) ---- */
+@import url('./components/footer.css');
+
+/* ---- Pages ---- */
+@import url('./pages/landing.css');
+@import url('./pages/projects.css');
+
+/* ---- Modal lives between projects and form because the 3D viewer modal
+        is opened from the projects page; keeping it after projects.css
+        preserves any specificity ordering. ---- */
+@import url('./components/modal.css');
+
+/* ---- Form (used on contact page; loaded site-wide for consistency) ---- */
+@import url('./components/form.css');
+
+/* ---- About + timeline + cursor ---- */
+@import url('./pages/about.css');
+@import url('./components/timeline.css');
+@import url('./components/cursor.css');
+
+/* ---- Animations & utilities ---- */
+@import url('./utilities/animations.css');
+@import url('./utilities/focus.css');
+@import url('./utilities/touch-hint.css');
+
+/* ---- Responsive layout overrides (must come AFTER component styles
+        so media queries can override base styles) ---- */
+@import url('./responsive.css');
+
+/* ---- Accessibility helpers (.sr-only, prefers-reduced-motion overrides)
+        loaded LAST so prefers-reduced-motion can override animations. ---- */
+@import url('./utilities/accessibility.css');

@@ -1,0 +1,125 @@
+/* ===== Sidebar (mobile nav drawer) =====
+   Slides in from the right, with a tappable overlay behind it.
+   Shares pill-link visuals with .nav-link but as full-width rows. */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100dvh;
+  width: 250px;
+  z-index: var(--z-sidebar);
+  background-color: var(--color-white);
+  box-shadow: -10px 0 10px var(--color-shadow-light);
+  display: flex;
+  flex-direction: column;
+  padding: 6rem 1rem 2rem 1rem;
+  gap: var(--gap-medium);
+  transform: translateX(100%);
+  transition: transform var(--duration-medium) var(--ease-default), visibility var(--duration-medium);
+  visibility: hidden;
+  justify-content: flex-start;
+}
+
+.sidebar.active {
+  visibility: visible;
+  display: flex;
+  transform: translateX(0);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--color-overlay-dark);
+  z-index: var(--z-overlay);
+  opacity: 0;
+  transition: opacity var(--duration-medium) var(--ease-default);
+  pointer-events: none;
+}
+
+.sidebar-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Sidebar close button — first <li> is the close icon */
+.sidebar li:first-child {
+  position: absolute;
+  top: calc((clamp(60px, 10vh, 80px) - clamp(38px, 9vw, 48px)) / 2);
+  right: 1rem;
+  height: clamp(48px, 9vw, 64px);
+  width: clamp(48px, 9vw, 64px);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar li:first-child a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0.75rem;
+  border-radius: var(--radius-pill);
+  transition: background-color var(--duration-medium) var(--ease-default);
+  text-decoration: none;
+}
+
+.sidebar li:first-child a:hover {
+  background-color: var(--color-primary);
+}
+
+/* Sidebar links — every <li> after the first is a nav row */
+.sidebar li:not(:first-child) {
+  width: 100%;
+  list-style: none;
+  border: var(--border-width-medium) solid var(--color-black);
+  background-color: var(--color-white);
+  border-radius: var(--radius-pill);
+  padding: 0.3em 1.2em;
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--duration-medium);
+  min-height: 48px;
+  flex-shrink: 0;
+}
+
+.sidebar li:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+  z-index: var(--z-base);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-smooth) var(--ease-smooth);
+}
+
+.sidebar li:hover::before {
+  transform: scaleX(1);
+}
+
+.sidebar a {
+  width: 100%;
+  padding: 0.5rem 0;
+  text-decoration: none;
+  color: var(--color-black);
+  font-family: var(--font-primary);
+  font-weight: 300;
+  position: relative;
+  z-index: var(--z-content);
+  transition: color var(--duration-medium);
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+}
+
+.sidebar li:hover a {
+  color: var(--color-black);
+}
