@@ -3,6 +3,40 @@ import { photos } from './gallery.js';
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ============================================================
+// SECTION ROW ENTRANCE — staggered fade-up on page load
+// ============================================================
+
+// Start each <details> row invisible, then cascade them in after the
+// page-header has had a moment to animate (mirrors the pageFadeIn keyframe
+// on .page-header but gives each row its own staggered delay).
+document.querySelectorAll('details').forEach((details, i) => {
+    if (prefersReducedMotion) return;
+
+    details.style.opacity = '0';
+    details.style.transform = 'translateY(16px)';
+
+    // Double rAF ensures the browser paints the hidden state before
+    // we apply the transition, so it actually plays.
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            const delayMs = 200 + i * 100; // stagger after page-header fades in
+            details.style.transition =
+                `opacity 0.45s ease-out ${delayMs}ms, transform 0.45s ease-out ${delayMs}ms`;
+            details.style.opacity = '1';
+            details.style.transform = 'translateY(0)';
+
+            // Clean up inline styles once the entrance is done so they
+            // don't interfere with anything else on the element.
+            setTimeout(() => {
+                details.style.transition = '';
+                details.style.opacity = '';
+                details.style.transform = '';
+            }, delayMs + 450 + 50);
+        });
+    });
+});
+
+// ============================================================
 // ACCORDION — smooth height animation for <details> sections
 // ============================================================
 
@@ -81,13 +115,9 @@ document.querySelectorAll('details').forEach(details => {
 // CARD ENTRANCE — staggered slide-in via IntersectionObserver
 // ============================================================
 
-// Set per-card stagger delay based on position within its project-list
-document.querySelectorAll('.project-list').forEach(list => {
-    list.querySelectorAll('.project-card').forEach((card, i) => {
-        card.style.transitionDelay = prefersReducedMotion ? '0s' : `${i * 0.1}s`;
-    });
-});
-
+// triggerCardEntrances() owns stagger on accordion-open.
+// The observers below are a fallback for any items that scroll into view later
+// (e.g. photography items below the fold).
 const cardObserver = new IntersectionObserver(entries => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -101,13 +131,47 @@ document.querySelectorAll('.project-card').forEach(card => {
     cardObserver.observe(card);
 });
 
-// Called after accordion opens — resets delay so cards stagger from that moment
-function triggerCardEntrances(details) {
-    const cards = details.querySelectorAll('.project-card:not(.card-visible)');
-    cards.forEach((card, i) => {
-        card.style.transitionDelay = prefersReducedMotion ? '0s' : `${i * 0.12}s`;
+// Gallery item observer — same fade-up entrance as project cards
+const galleryObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('item-visible');
+            galleryObserver.unobserve(entry.target);
+        }
     });
-    // The IntersectionObserver will pick them up as they scroll into view
+}, { threshold: 0.08, rootMargin: '0px 0px -20px 0px' });
+
+// Preload all photography images in the background so they're cached
+// and the fade-in is smooth when the accordion opens
+photos.forEach(photo => {
+    const img = new Image();
+    img.src = photo.imageURL;
+});
+
+// Called after accordion opens — directly staggers card/item entrances via setTimeout.
+// We can't rely on IntersectionObserver here because the observer may have already
+// fired for newly-visible elements before delays were set (race condition).
+function triggerCardEntrances(details) {
+    const cards = [...details.querySelectorAll('.project-card:not(.card-visible)')];
+    cards.forEach((card, i) => {
+        const delay = prefersReducedMotion ? 0 : i * 120;
+        setTimeout(() => {
+            card.style.transitionDelay = '0s'; // clear any residual delay
+            card.classList.add('card-visible');
+            cardObserver.unobserve(card); // no longer needs observing
+        }, delay);
+    });
+
+    // Gallery items — tighter stagger (more items)
+    const galleryItems = [...details.querySelectorAll('.gallery-item:not(.item-visible)')];
+    galleryItems.forEach((item, i) => {
+        const delay = prefersReducedMotion ? 0 : i * 70;
+        setTimeout(() => {
+            item.style.transitionDelay = '0s';
+            item.classList.add('item-visible');
+            galleryObserver.unobserve(item);
+        }, delay);
+    });
 }
 
 // ============================================================
@@ -155,6 +219,14 @@ function renderGallery() {
     addPlaceholders(landscapeContainer, columns);
     addPlaceholders(portraitContainer, columns);
     addPlaceholders(portraitShortContainer, columns);
+
+    // After DOM is rebuilt, assign stagger delays and observe each gallery item
+    // Items inside the closed accordion won't trigger until the section opens
+    const allItems = document.querySelectorAll('.gallery-item');
+    allItems.forEach((item, i) => {
+        item.style.transitionDelay = prefersReducedMotion ? '0s' : `${i * 0.07}s`;
+        galleryObserver.observe(item);
+    });
 }
 
 function createGalleryItemHTML(photo) {

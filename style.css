@@ -205,7 +205,11 @@ nav ul {
   height: clamp(38px, 9vw, 48px);
   width: auto;
   display: block;
-  transition: transform var(--duration-medium) var(--ease-logo-hover);
+  transition: transform var(--duration-medium) var(--ease-logo-hover),
+              filter var(--duration-medium) var(--ease-default);
+  filter:
+    drop-shadow(0 0 5px rgba(255, 255, 255, 0.85))
+    drop-shadow(0 0 2px rgba(255, 255, 255, 1))
 }
 
 .logo-img:hover {
@@ -926,6 +930,11 @@ details[open] > .project-section::after {
   transform: var(--transform-scale-hover-small);
   box-shadow: var(--shadow-card-hover);
   border-color: var(--color-primary);
+  /* Match button hover speed/easing */
+  transition:
+    transform var(--duration-fast) var(--ease-bouncy),
+    box-shadow var(--duration-medium) var(--ease-default),
+    border-color var(--duration-medium) var(--ease-default);
 }
 
 .project-image {
@@ -1020,14 +1029,28 @@ details[open] > .project-section::after {
   overflow: hidden;
   border-radius: var(--radius-medium);
   box-shadow: var(--shadow-card);
-  transition: transform var(--duration-medium) var(--ease-default),
+  /* Entrance state: invisible and shifted down — mirrors .project-card */
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.4s var(--ease-out),
+    transform 0.4s var(--ease-out),
     box-shadow var(--duration-medium) var(--ease-default);
+}
 
+/* Visible state — set by IntersectionObserver */
+.gallery-item.item-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .gallery-item:hover {
   transform: var(--transform-scale-hover-small);
   box-shadow: var(--shadow-card-hover);
+  /* Match button hover speed/easing */
+  transition:
+    transform var(--duration-fast) var(--ease-bouncy),
+    box-shadow var(--duration-medium) var(--ease-default);
 }
 
 .gallery-item img {
@@ -2077,8 +2100,9 @@ form textarea:focus-visible {
     transition-duration: 0.01ms !important;
   }
 
-  /* Ensure cards are visible immediately without animation */
-  .project-card {
+  /* Ensure cards and gallery items are visible immediately without animation */
+  .project-card,
+  .gallery-item {
     opacity: 1;
     transform: none;
   }
