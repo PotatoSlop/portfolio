@@ -28,10 +28,15 @@ button:focus-visible {
 }
 
 .footer-cta-button:focus-visible,
-.resume-btn:focus-visible,
-.project-link:focus-visible {
+.resume-btn:focus-visible {
   outline: 2px solid var(--color-black);
   outline-offset: 3px;
+}
+
+/* Project cards: focus ring lives on the card itself via :focus-within
+   (see pages/projects.css) so the inner link gets no visible outline. */
+.project-card-link:focus-visible {
+  outline: none;
 }
 
 form input:focus-visible,

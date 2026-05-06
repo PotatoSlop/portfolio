@@ -47,10 +47,15 @@ function animateOpen(details) {
     // Show the element before animating
     details.setAttribute('open', '');
 
-    if (prefersReducedMotion) {
-        triggerCardEntrances(details);
-        return;
-    }
+    // Reveal cards now, while the height transition runs in parallel.
+    // Don't wait for transitionend — it occasionally misses (transition
+    // cancellation, race conditions, browser quirks) and leaves cards
+    // permanently invisible. triggerCardEntrances is idempotent via the
+    // :not(.card-visible) filter, so calling it now is safe even if
+    // transitionend later fires too.
+    triggerCardEntrances(details);
+
+    if (prefersReducedMotion) return;
 
     content.style.overflow = 'hidden';
     content.style.height = '0px';
@@ -64,7 +69,6 @@ function animateOpen(details) {
                 content.style.height = '';
                 content.style.overflow = '';
                 content.removeEventListener('transitionend', handler);
-                triggerCardEntrances(details);
             });
         });
     });
@@ -104,8 +108,13 @@ document.querySelectorAll('details').forEach(details => {
     summary.addEventListener('click', e => {
         e.preventDefault();
         if (details.open) {
+            // Toggle .is-open synchronously so the chevron rotates the
+            // instant the click is registered, not after the close
+            // animation finishes (which is when [open] is removed).
+            details.classList.remove('is-open');
             animateClose(details);
         } else {
+            details.classList.add('is-open');
             animateOpen(details);
         }
     });
@@ -185,6 +194,7 @@ addEventListener('DOMContentLoaded', () => {
         if (target && target.tagName === 'DETAILS') {
             // Open without animation so it's ready instantly
             target.setAttribute('open', '');
+            target.classList.add('is-open'); // Keep chevron in sync
             triggerCardEntrances(target);
             setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
         }
@@ -264,3 +274,79 @@ function addPlaceholders(container, columnCount) {
 
 window.addEventListener('resize', renderGallery);
 renderGallery();
+
+// ============================================================
+// PROJECT CARD "VIEW" CURSOR PILL
+// ============================================================
+
+// Single global pill element that follows the cursor while it's over any
+// .project-card. Reinforces the whole-card click affordance — since we
+// removed the explicit "View Model" / "Read More" buttons in favour of
+// stretched-link cards, this is the visual cue that the card is clickable.
+
+// Lagging follow: rather than snapping the pill to cursor position every
+// mousemove, we lerp current -> target in a rAF loop. Lower LERP value =
+// more lag (pill trails further behind during fast moves). The pill's
+// transform: translate(-50%, -50%) (in CSS) centers it on its top/left
+// coords, so the pill's center follows the cursor directly.
+
+const cardCursor = document.querySelector('.card-cursor');
+
+if (cardCursor) {
+    let targetX = 0, targetY = 0;
+    let currentX = 0, currentY = 0;
+    let cursorRAF = null;
+    const LERP = 0.18; // 0.10 = heavier lag, 0.30 = barely-there lag
+
+    function tickCursor() {
+        currentX += (targetX - currentX) * LERP;
+        currentY += (targetY - currentY) * LERP;
+        cardCursor.style.left = `${currentX}px`;
+        cardCursor.style.top  = `${currentY}px`;
+
+        // Keep ticking only while the pill is actively visible. Once the
+        // hover ends, let the loop end so we're not running rAF for nothing.
+        if (cardCursor.classList.contains('visible')) {
+            cursorRAF = requestAnimationFrame(tickCursor);
+        } else {
+            cursorRAF = null;
+        }
+    }
+
+    // Default text if a card doesn't declare its own CTA via data-cta.
+    const DEFAULT_CTA = 'View';
+
+    document.querySelectorAll('.project-card').forEach((card) => {
+        card.addEventListener('mouseenter', (e) => {
+            // Per-card CTA text: "View Model" for 3D viewer cards,
+            // "View Repo" for GitHub-link cards (declared via data-cta on
+            // each <li class="project-card">). Updated while the pill is
+            // mid fade-out from the previous card so the swap is invisible
+            // to the user.
+            cardCursor.textContent = card.dataset.cta || DEFAULT_CTA;
+
+            // Snap on enter so the pill appears AT the cursor, not lerping
+            // in from its previous resting position (potentially elsewhere
+            // on the page or off-screen).
+            targetX = currentX = e.clientX;
+            targetY = currentY = e.clientY;
+            cardCursor.style.left = `${currentX}px`;
+            cardCursor.style.top  = `${currentY}px`;
+
+            cardCursor.classList.add('visible');
+            if (!cursorRAF) cursorRAF = requestAnimationFrame(tickCursor);
+        });
+
+        card.addEventListener('mouseleave', () => {
+            cardCursor.classList.remove('visible');
+            // The lerp loop self-terminates on the next tick when it sees
+            // the .visible class is gone.
+        });
+
+        card.addEventListener('mousemove', (e) => {
+            // Just update the target — the rAF loop handles lerping toward it.
+            targetX = e.clientX;
+            targetY = e.clientY;
+        });
+    });
+}

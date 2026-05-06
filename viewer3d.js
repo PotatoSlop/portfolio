@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { lightingPresets, DEFAULT_PRESET } from './lighting-presets.js';
 
 const viewButtons = document.querySelectorAll('.view-3d-button');
 const modal = document.getElementById('modal-3d-viewer');
@@ -11,15 +12,21 @@ const canvasContainer = document.getElementById('model-canvas-container');
 let scene, camera, renderer, controls, model;
 let animationFrameId; // To control the animation loop
 
-const backgroundColor = 0xf0f0f0;
-const ambientLightColor = 0xfff0d9;
-const keyLightColor = 0xffffff;
+// Map preset string -> THREE constant for tone mapping.
+const TONE_MAPPING = {
+  'NoToneMapping': THREE.NoToneMapping,
+  'Linear': THREE.LinearToneMapping,
+  'Cineon': THREE.CineonToneMapping,
+  'Reinhard': THREE.ReinhardToneMapping,
+  'ACESFilmic': THREE.ACESFilmicToneMapping,
+};
 
-viewButtons.forEach(button => { //Modal Based 3D preview
+viewButtons.forEach(button => { // Modal-based 3D preview
   button.addEventListener('click', (e) => {
     e.preventDefault();
     const modelUrl = button.dataset.modelUrl;
-    openModal(modelUrl);
+    const presetName = button.dataset.lightingPreset || DEFAULT_PRESET;
+    openModal(modelUrl, presetName);
   });
 });
 
@@ -30,10 +37,16 @@ modal.addEventListener('click', (e) => {
   }
 });
 
-function openModal(modelUrl) {
+function openModal(modelUrl, presetName) {
   modal.classList.add('active');
   document.body.classList.add('no-scroll');
-  init3DScene(modelUrl);
+  const preset = lightingPresets[presetName] || lightingPresets[DEFAULT_PRESET];
+  if (!preset) {
+    console.error(`[viewer3d] Unknown lighting preset "${presetName}" and no DEFAULT_PRESET fallback resolved.`);
+    return;
+  }
+  console.log(`[viewer3d] Using lighting preset "${presetName}"`);
+  init3DScene(modelUrl, preset);
 }
 
 function closeModal() {
@@ -42,9 +55,36 @@ function closeModal() {
   destroy3DScene(); // Clean up scene for memory
 }
 
-function init3DScene(modelUrl) {
+/**
+ * Construct a THREE light from a preset light config object.
+ * See lighting-presets.js for the supported config shape.
+ */
+function createLight(config) {
+  switch (config.type) {
+    case 'ambient':
+      return new THREE.AmbientLight(config.color, config.intensity);
+
+    case 'hemisphere': {
+      const light = new THREE.HemisphereLight(config.skyColor, config.groundColor, config.intensity);
+      if (config.position) light.position.set(...config.position);
+      return light;
+    }
+
+    case 'directional': {
+      const light = new THREE.DirectionalLight(config.color, config.intensity);
+      if (config.position) light.position.set(...config.position);
+      return light;
+    }
+
+    default:
+      console.warn(`[viewer3d] Unknown light type "${config.type}" in preset config`);
+      return null;
+  }
+}
+
+function init3DScene(modelUrl, preset) {
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(backgroundColor); 
+  scene.background = new THREE.Color(preset.background);
 
   const containerRect = canvasContainer.getBoundingClientRect();
   camera = new THREE.PerspectiveCamera(50, containerRect.width / containerRect.height, 0.1, 1000);
@@ -53,19 +93,19 @@ function init3DScene(modelUrl) {
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(containerRect.width, containerRect.height);
   renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  // outputEncoding was renamed to outputColorSpace in Three r152+;
-  // SRGBColorSpace is the modern equivalent of sRGBEncoding.
+  renderer.toneMapping = TONE_MAPPING[preset.toneMapping] ?? THREE.LinearToneMapping;
+  renderer.toneMappingExposure = preset.toneMappingExposure ?? 1.0;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   canvasContainer.appendChild(renderer.domElement);
 
-  // Environment map for PBR reflections. RoomEnvironment is built into
-  // three/addons and provides a neutral studio-style cubemap. Without
-  // this, MeshStandardMaterial with metallic/glossy surfaces (like the
-  // mecha) has nothing to reflect and looks flat.
-  const pmremGenerator = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
-  pmremGenerator.dispose();
+  // Optional environment map. Some presets (e.g. boat) don't want one
+  // because their materials are stylised, not PBR-realistic.
+  if (preset.useEnvironment) {
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmremGenerator.dispose();
+    console.log('[viewer3d] RoomEnvironment applied. scene.environment =', scene.environment);
+  }
 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -74,29 +114,47 @@ function init3DScene(modelUrl) {
   controls.minDistance = 1;
   controls.maxDistance = 500;
 
-  // Lights are now supplemental — the environment map handles ambient
-  // light, and the directional light just adds a crisp highlight.
-  const ambientLight = new THREE.AmbientLight(ambientLightColor, 0.5);
-  scene.add(ambientLight);
-  const directionalLight = new THREE.DirectionalLight(keyLightColor, 2);
-  directionalLight.position.set(5, 10, 7.5);
-  scene.add(directionalLight);
+  // Build the lighting rig from the preset's light list.
+  preset.lights.forEach((cfg) => {
+    const light = createLight(cfg);
+    if (light) scene.add(light);
+  });
 
   const loader = new GLTFLoader();
   loader.load(modelUrl, (gltf) => {
     model = gltf.scene;
-    
+
+    // Apply preset envMapIntensity to every PBR material on the model.
+    // Skipped if the preset disables env entirely, since the value would
+    // have no effect.
+    if (preset.useEnvironment) {
+      let pbrMaterialCount = 0;
+      model.traverse((obj) => {
+        if (obj.isMesh && obj.material) {
+          const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+          materials.forEach((m) => {
+            if (m.isMeshStandardMaterial || m.isMeshPhysicalMaterial) {
+              m.envMapIntensity = preset.envMapIntensity ?? 1.0;
+              m.needsUpdate = true;
+              pbrMaterialCount++;
+            }
+          });
+        }
+      });
+      console.log(`[viewer3d] Tuned envMapIntensity on ${pbrMaterialCount} PBR materials`);
+    }
+
     const box = new THREE.Box3().setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = camera.fov * (Math.PI / 180);
     let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
-    cameraZ *= 1.5; // Zoom for Padding 
-    
+    cameraZ *= 1.5; // Zoom padding
+
     camera.position.set(center.x, center.y, center.z + cameraZ);
     controls.target.copy(center); // Point controls at the model's center
-    
+
     scene.add(model);
   }, undefined, (error) => {
     console.error('An error occurred while loading model:', error);
@@ -119,7 +177,7 @@ function destroy3DScene() {
   cancelAnimationFrame(animationFrameId);
   window.removeEventListener('resize', onWindowResize);
 
-  // Destroys of model geometry and materials
+  // Dispose model geometry and materials
   scene.traverse((object) => {
     if (object.isMesh) {
       if (object.geometry) object.geometry.dispose();
@@ -134,7 +192,7 @@ function destroy3DScene() {
   });
 
   // Dispose the PMREM-generated environment texture so it doesn't leak
-  // GPU memory across modal opens.
+  // GPU memory across modal opens. (Only present if the preset opted in.)
   if (scene.environment) {
     scene.environment.dispose();
     scene.environment = null;

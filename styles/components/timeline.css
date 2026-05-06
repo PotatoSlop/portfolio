@@ -5,7 +5,10 @@
 .timeline-section {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 5rem 2rem 6rem;
+  /* Bottom padding tightened from 6rem to 4rem to match the tighter
+     inter-item padding; otherwise the empty space below the last item
+     looks disproportionately large. */
+  padding: 5rem 2rem 4rem;
 }
 
 .timeline-heading {
@@ -13,7 +16,9 @@
   font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 800;
   text-align: left;
-  margin-bottom: 4rem;
+  /* Reduced from 4rem to 2.5rem so the gap between heading and first
+     item is visually similar to the new gap between items. */
+  margin-bottom: 2.5rem;
   color: var(--color-black);
 }
 
@@ -43,11 +48,18 @@
 /* Each timeline item */
 .timeline-item {
   position: relative;
-  padding-bottom: 4rem;
+  padding-bottom: 2rem;
   /* Bottom-up entrance */
   opacity: 0;
-  transform: translateY(28px);
-  transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+  /* Reduced from 28px to 20px since items are stacked tighter — the
+     larger translation now overlaps with the next item visually as it
+     reveals. */
+  transform: translateY(20px);
+  /* Snappier reveal (0.6s -> 0.45s) matches the tighter pacing: as the
+     line draws past dot Y, items reveal in quicker succession, so each
+     individual fade-up should be brisk to keep them feeling distinct
+     instead of stacking visually. */
+  transition: opacity 0.45s var(--ease-out), transform 0.45s var(--ease-out);
 }
 
 .timeline-item.reveal {

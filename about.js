@@ -16,22 +16,30 @@ document.addEventListener('DOMContentLoaded', () => {
     showTextBlock(0);
 
     // ── scroll lock ───────────────────────────────────────────────────────────
-    let _lockY = 0;
+    let _lockY     = 0;
+    let _isLocked  = false;
     function lockScroll() {
+        // Idempotent: if we're already locked, don't capture scrollY again
+        // (it'd be 0 once body is position:fixed, which would corrupt the
+        // restore target).
+        if (_isLocked) return;
         _lockY = window.scrollY;
         document.body.style.position  = 'fixed';
         document.body.style.top       = `-${_lockY}px`;
         document.body.style.left      = '0';
         document.body.style.right     = '0';
         document.body.style.overflowY = 'scroll';
+        _isLocked = true;
     }
     function unlockScroll() {
+        if (!_isLocked) return;
         document.body.style.position  = '';
         document.body.style.top       = '';
         document.body.style.left      = '';
         document.body.style.right     = '';
         document.body.style.overflowY = '';
         window.scrollTo({ top: _lockY, behavior: 'instant' });
+        _isLocked = false;
     }
 
     // ── state machine ─────────────────────────────────────────────────────────
@@ -51,14 +59,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const FLIP_DELTA = 160;
     const EXIT_DELTA = 130;
 
-    // ── lock entry ────────────────────────────────────────────────────────────
+    // ── lock entry / re-entry ─────────────────────────────────────────────────
+    // The forward path: phase 0 (above) -> 1 (locked, accumulating) -> 2
+    //   (locked, flipped, accumulating) -> 3 (below).
+    // The reverse path needs symmetric treatment: scrolling back up through
+    // the section from below should re-engage the lock so the user can
+    // accumulate negative wheel and trigger the unflip+text-undo together.
+    // Without this, both animations stay stuck in their flipped state if you
+    // scroll back up after exiting.
+    //
+    // Critical: re-entry must only fire when the user is actually scrolling
+    // UP. Without that gate, the condition fires the moment the section
+    // bottom passes through the viewport on the way down (right after exit),
+    // re-locking the user immediately and trapping the page.
+    let lastScrollY = window.scrollY;
     window.addEventListener('scroll', () => {
-        if (phase !== 0 || !aboutMain) return;
+        if (!aboutMain) return;
+        const sy             = window.scrollY;
+        const isScrollingUp  = sy < lastScrollY;
+        lastScrollY = sy;
+
         const rect = aboutMain.getBoundingClientRect();
-        if (rect.top <= 80 && rect.bottom > window.innerHeight * 0.3) {
-            accumulated = 0;
-            lockScroll();
-            phase = 1;
+
+        if (phase === 0) {
+            // Entering from above (forward)
+            if (rect.top <= 80 && rect.bottom > window.innerHeight * 0.3) {
+                accumulated = 0;
+                lockScroll();
+                phase = 1;
+            }
+        } else if (phase === 3 && isScrollingUp) {
+            // Re-entering from below — section bottom has come back down into
+            // the viewport (lower 80px), AND the user is scrolling up.
+            // Lock and resume in phase 2 (post-flip) so further upward wheel
+            // accumulates toward -FLIP_DELTA, which fires the existing
+            // unflip+showTextBlock(0) path that handles both animations
+            // together.
+            if (rect.bottom >= window.innerHeight - 80 && rect.top < window.innerHeight * 0.7) {
+                accumulated = 0;
+                lockScroll();
+                phase = 2;
+            }
         }
     }, { passive: true });
 
@@ -158,7 +199,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Random wobble values generated ONCE per page load.
     // Different on each visit, stable across redraws within a session.
-    const WOBBLE_RANGE = 8;
+    // WOBBLE_RANGE is the X-amplitude of the cubic curve control points.
+    // It needs to scale with the inter-dot spacing — at 2rem item padding
+    // the segments are short, so an 8px wobble bends too sharply between
+    // points. 5 keeps the visual character at the new tighter spacing.
+    const WOBBLE_RANGE = 5;
     const randomVals   = Array.from({ length: 40 }, () => Math.random() * 2 - 1);
 
     let totalLength  = 0;
@@ -182,12 +227,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const timelineTopAbs = timelineEl.getBoundingClientRect().top + window.scrollY;
 
         // --- Align each dot with the vertical centre of its title ---
-        const dotYs          = [];
-        const contentBotYs   = [];
+        const dotYs = [];
 
         timelineItems.forEach((item, i) => {
             const title   = item.querySelector('.timeline-title');
-            const content = item.querySelector('.timeline-content');
 
             const titleRect    = title.getBoundingClientRect();
             const itemRect     = item.getBoundingClientRect();
@@ -199,17 +242,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // y of this dot in timeline-local coordinates (for path)
             dotYs.push(titleCenterY - timelineTopAbs);
-
-            // bottom of this entry's content box (trigger point for the NEXT dot)
-            const contentBotY = content.getBoundingClientRect().bottom + window.scrollY - timelineTopAbs;
-            contentBotYs.push(contentBotY);
         });
 
         if (dotYs.length === 0) return;
 
-        // Build SVG path from above the first dot to below the last
-        const startY = dotYs[0] - 60;
-        const endY   = dotYs[dotYs.length - 1] + 80;
+        // Build SVG path from above the first dot to below the last.
+        // Tail lengths sized for the tighter 2rem inter-item padding —
+        // 60/80 above/below was disproportionate at the new spacing.
+        const startY = dotYs[0] - 32;
+        const endY   = dotYs[dotYs.length - 1] + 44;
         const totalH = endY + 10;
 
         svgEl.setAttribute('viewBox', `0 0 56 ${totalH}`);
@@ -227,13 +268,14 @@ document.addEventListener('DOMContentLoaded', () => {
         totalLength = pathEl.getTotalLength();
 
         // --- Reveal fractions ---
-        // Item 0: reveal when the line reaches dot 0's y position.
-        // Item i (i > 0): reveal when the line passes the BOTTOM of item i-1's
-        //   content — i.e. as soon as the previous entry is fully passed.
-        revealFracs = dotYs.map((dotY, i) => {
-            const targetY = i === 0 ? dotY : contentBotYs[i - 1];
-            return fracAtY(targetY);
-        });
+        // Each item reveals exactly when the drawn line reaches THAT item's
+        // dot y-position — the visible intersection of line and dot. This
+        // gives a tight "draw, then dot+text appear" beat per entry,
+        // instead of the previous behaviour where the next item appeared
+        // as soon as the prior entry's content-bottom was passed (which
+        // fired too early — the dot popped in before the line had visibly
+        // drawn to it).
+        revealFracs = dotYs.map((dotY) => fracAtY(dotY));
 
         pathEl.style.strokeDasharray  = totalLength;
         pathEl.style.strokeDashoffset = totalLength;
@@ -246,9 +288,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const topAbs    = rect.top    + window.scrollY;
         const bottomAbs = rect.bottom + window.scrollY;
 
-        // Start drawing when timeline is 1.1 viewports below current position
-        const drawStart = topAbs    - viewH * 1.1;
-        const drawEnd   = bottomAbs - viewH * 0.3;
+        // The drawing's scroll range is (timeline height + drawStartOffset
+        // - drawEndOffset). Smaller range = items reveal faster per scroll.
+        //
+        // drawStartOffset: drawing begins when timeline top is this many
+        //   viewports below current scroll. Lower = drawing starts later
+        //   (closer to timeline being in view).
+        // drawEndOffset: drawing finishes when timeline bottom is this many
+        //   viewports above the bottom of the viewport. Higher = drawing
+        //   finishes sooner (timeline bottom doesn't have to scroll as far up).
+        //
+        // Previous values 1.1 / 0.3 made the user scroll ~0.8 viewports worth
+        // of "dead space" beyond the timeline's own height. New values
+        // compress that to ~0.15 viewports — items now reveal much earlier
+        // in the scroll journey.
+        const drawStartOffset = 0.7;
+        const drawEndOffset   = 0.9;
+
+        const drawStart = topAbs    - viewH * drawStartOffset;
+        const drawEnd   = bottomAbs - viewH * drawEndOffset;
         const sy        = window.scrollY;
 
         if (sy < drawStart) return 0;

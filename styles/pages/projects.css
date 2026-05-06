@@ -51,10 +51,15 @@
   background-repeat: no-repeat;
   background-size: contain;
   background-position: center;
-  transition: transform var(--duration-smooth) var(--ease-in-out);
+  transition: transform var(--duration-fast) var(--ease-in-out);
 }
 
-details[open] > .project-section::after {
+/* Chevron uses .is-open (toggled synchronously on click) instead of the
+   [open] attribute. [open] is removed only at the end of the close
+   animation, which made the chevron lag — flipping back only after the
+   section had fully collapsed. The class is toggled the instant the
+   click is registered, so the chevron rotates in lockstep with intent. */
+details.is-open > .project-section::after {
   transform: translateY(-50%) rotate(180deg);
 }
 
@@ -88,29 +93,63 @@ details[open] > .project-section::after {
 }
 
 /* ----- Project card -----
+   Full-bleed image with a gradient overlay holding the title and description.
+   The whole card is clickable via a stretched-link pattern: the title's
+   <a> has an absolutely-positioned ::after covering the card, so clicking
+   anywhere triggers the title link.
+
    Lives here (vs. components/) because hover/visible states are tightly
    coupled to the accordion entrance behavior in projects.js. */
 .project-card {
-  max-width: 500px;
+  position: relative;
+  isolation: isolate;
+  max-width: 450px;
   margin: 0 auto;
+  /* Use min-height instead of aspect-ratio. aspect-ratio can fail to
+     compute when all children are absolutely-positioned AND the parent
+     <details> is animating its height — the card collapses to 0 mid-
+     animation and never recovers. min-height guarantees a measurable
+     box for the bg image and content overlay regardless. */
+  min-height: 420px;
+  width: 100%;
+  /* Defensive: remove the <li> bullet marker even if list-style: none on
+     the parent <ul> ever fails to inherit. */
+  list-style: none;
   background-color: var(--color-white);
   border: var(--border-width-thick) solid var(--color-black);
   border-radius: var(--radius-medium);
   overflow: hidden;
   box-shadow: var(--shadow-card);
-  display: flex;
-  flex-direction: column;
-  /* Entrance state: invisible and shifted down */
-  opacity: 0;
-  transform: translateY(28px);
+  /* Visible by default. Entrance animation below runs via CSS @keyframes
+     triggered by the parent details[open] state — no JS required to
+     reveal them, so any JS failure can't hide cards permanently. */
+  opacity: 1;
+  transform: translateY(0);
   transition:
-    opacity 0.4s var(--ease-out),
-    transform 0.4s var(--ease-out),
     box-shadow var(--duration-medium) var(--ease-default),
     border-color var(--duration-medium) var(--ease-default);
 }
 
-/* Visible state — comes before :hover so :hover wins at equal specificity */
+/* Entrance animation — runs each time the parent <details> opens.
+   animation-fill-mode: backwards keeps the card at the 'from' state
+   (invisible) during any animation-delay, then plays the fade-up. */
+@keyframes cardEntrance {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+details[open] .project-card {
+  animation: cardEntrance 0.5s var(--ease-out) backwards;
+}
+
+/* Per-position stagger via animation-delay. */
+details[open] .project-card:nth-child(1) { animation-delay: 0.10s; }
+details[open] .project-card:nth-child(2) { animation-delay: 0.20s; }
+details[open] .project-card:nth-child(3) { animation-delay: 0.30s; }
+details[open] .project-card:nth-child(4) { animation-delay: 0.40s; }
+details[open] .project-card:nth-child(n+5) { animation-delay: 0.50s; }
+
+/* Kept as a no-op for any JS that adds this class. */
 .project-card.card-visible {
   opacity: 1;
   transform: translateY(0);
@@ -120,79 +159,134 @@ details[open] > .project-section::after {
   transform: var(--transform-scale-hover-small);
   box-shadow: var(--shadow-card-hover);
   border-color: var(--color-primary);
-  /* Match button hover speed/easing */
   transition:
     transform var(--duration-fast) var(--ease-bouncy),
     box-shadow var(--duration-medium) var(--ease-default),
     border-color var(--duration-medium) var(--ease-default);
 }
 
-.project-image {
-  width: 100%;
-  height: 200px;
-  border-bottom: var(--border-width-medium) solid var(--color-black);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+/* Keyboard focus ring lives on the card, not the inner link, so the
+   visible affordance matches the click target. */
+.project-card:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
 }
 
-.project-image img {
+/* ----- Background image ----- */
+.project-card-bg {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  object-fit: contain;
+  height: 100%;
+  object-fit: cover;
   object-position: center;
+  /* Snappy bouncy zoom matches the card's own hover ease so the image
+     and frame feel coordinated, not disjointed. */
+  transition:
+    transform var(--duration-smooth) var(--ease-bouncy),
+    filter var(--duration-smooth) var(--ease-out);
+  z-index: 0;
 }
 
-.project-info {
-  padding: 1.5rem;
-  flex-grow: 1;
+.project-card:hover .project-card-bg {
+  transform: scale(1.12);
+  /* Subtle saturation/contrast pop layered onto the zoom so the image
+     feels alive, not just bigger. */
+  filter: saturate(1.15) contrast(1.05);
+}
+
+/* ----- Overlay (gradient + text) ----- */
+.project-card-content {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  z-index: 1;
+
+  /* Default = dark tone: dark gradient at bottom for white text on top */
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.92) 0%,
+    rgba(0, 0, 0, 0.72) 10%,
+    rgba(0, 0, 0, 0.30) 30%,
+    rgba(0, 0, 0, 0.0) 60%
+  );
+  color: var(--color-white);
+  transition: background var(--duration-medium) var(--ease-default);
 }
 
-.project-info h3 {
-  font-size: 1.5rem;
+.project-card:hover .project-card-content {
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.96) 0%,
+    rgba(0, 0, 0, 0.82) 45%,
+    rgba(0, 0, 0, 0.45) 80%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+}
+
+/* Light tone variant — for cards whose image is dark/saturated and a
+   white-gradient + black text reads better. Set data-card-tone="light"
+   on the .project-card to enable. */
+.project-card[data-card-tone="light"] .project-card-content {
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.94) 0%,
+    rgba(255, 255, 255, 0.78) 35%,
+    rgba(255, 255, 255, 0.35) 65%,
+    rgba(255, 255, 255, 0.0) 100%
+  );
   color: var(--color-black);
-  margin-bottom: 0.5rem;
 }
 
-.project-info p {
-  color: var(--color-text-light);
-  line-height: 1.6;
-  flex-grow: 1;
-  margin-bottom: 1.5rem;
+.project-card[data-card-tone="light"]:hover .project-card-content {
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.97) 0%,
+    rgba(255, 255, 255, 0.86) 45%,
+    rgba(255, 255, 255, 0.50) 80%,
+    rgba(255, 255, 255, 0.10) 100%
+  );
 }
 
-.project-link {
-  display: inline-block;
-  text-align: center;
-  padding: 0.6em 1.2em;
-  border: var(--border-width-medium) solid var(--color-black);
-  border-radius: var(--radius-pill);
-  color: var(--color-black);
-  font-weight: 500;
+/* ----- Title ----- */
+.project-card-title {
+  font-family: var(--font-secondary);
+  font-size: clamp(1.25rem, 2vw + 0.5rem, 1.65rem);
+  font-weight: 800;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.2;
+  color: inherit;
+}
+
+.project-card-link {
+  color: inherit;
   text-decoration: none;
-  margin-top: auto;
-  position: relative;
-  overflow: hidden;
-  z-index: var(--z-base);
-  transition: color var(--duration-medium);
 }
 
-.project-link::before {
+/* Stretched-link pattern: title's <a> covers the whole card, so any
+   click on the card triggers it. Positioned over the bg + content. */
+.project-card-link::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--color-primary);
-  border-radius: var(--radius-pill);
-  z-index: -1;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform var(--duration-smooth) var(--ease-smooth);
+  z-index: 2;
+  /* Transparent click target; visible focus is handled by :focus-within
+     on the card. */
 }
 
-.project-link:hover::before {
-  transform: scaleX(1);
+/* ----- Description ----- */
+.project-card-desc {
+  font-family: var(--font-primary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+  color: inherit;
+  /* Currently allows full description to display; if a card runs over,
+     uncomment the next line to clamp to 4 lines:
+     display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; */
 }
 
 /* ===== Photography gallery ===== */
@@ -217,14 +311,25 @@ details[open] > .project-section::after {
   overflow: hidden;
   border-radius: var(--radius-medium);
   box-shadow: var(--shadow-card);
-  /* Entrance state: invisible and shifted down — mirrors .project-card */
-  opacity: 0;
-  transform: translateY(28px);
-  transition:
-    opacity 0.4s var(--ease-out),
-    transform 0.4s var(--ease-out),
-    box-shadow var(--duration-medium) var(--ease-default);
+  /* Visible by default — same rationale as .project-card. */
+  opacity: 1;
+  transform: translateY(0);
+  transition: box-shadow var(--duration-medium) var(--ease-default);
 }
+
+/* Entrance animation — same keyframe as cards, slightly tighter stagger
+   since gallery items are smaller / more numerous. */
+details[open] .gallery-item {
+  animation: cardEntrance 0.45s var(--ease-out) backwards;
+}
+
+details[open] .gallery-item:nth-child(1) { animation-delay: 0.05s; }
+details[open] .gallery-item:nth-child(2) { animation-delay: 0.10s; }
+details[open] .gallery-item:nth-child(3) { animation-delay: 0.15s; }
+details[open] .gallery-item:nth-child(4) { animation-delay: 0.20s; }
+details[open] .gallery-item:nth-child(5) { animation-delay: 0.25s; }
+details[open] .gallery-item:nth-child(6) { animation-delay: 0.30s; }
+details[open] .gallery-item:nth-child(n+7) { animation-delay: 0.35s; }
 
 /* Visible state — set by IntersectionObserver */
 .gallery-item.item-visible {
