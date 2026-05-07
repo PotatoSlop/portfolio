@@ -51,7 +51,7 @@
     <div class="project-section-content">
       <div class="container">
         <ul class="project-list">
-          <li class="project-card" data-card-tone="dark" data-cta="View Repo">
+          <li class="project-card" data-card-tone="dark">
             <img class="project-card-bg" src="Assets/Engineering Poster.png" alt="Automated Pill Dispenser Project" />
             <div class="project-card-content">
               <h3 class="project-card-title">
@@ -62,7 +62,7 @@
                 using an automated dispensing and easily refillable medicine storage chamber.</p>
             </div>
           </li>
-          <li class="project-card" data-card-tone="dark" data-cta="View Repo">
+          <li class="project-card" data-card-tone="dark">
             <img class="project-card-bg" src="Assets\Nob_Thumbnail.jpg" alt="Nob Smart Dial" />
             <div class="project-card-content">
               <h3 class="project-card-title">
@@ -84,7 +84,7 @@
     <div class="project-section-content">
       <div class="container">
         <ul class="project-list">
-          <li class="project-card" data-card-tone="dark" data-cta="View Model">
+          <li class="project-card" data-card-tone="dark">
             <img class="project-card-bg" src="Assets\Boat.png" alt="Low Poly Boat Asset" />
             <div class="project-card-content">
               <h3 class="project-card-title">
@@ -95,7 +95,7 @@
                 for users to download and use in their projects.</p>
             </div>
           </li>
-          <li class="project-card" data-card-tone="dark" data-cta="View Model">
+          <li class="project-card" data-card-tone="dark">
             <img class="project-card-bg" src="Assets\Peacemaker.jpg" alt="Original Design Combative Robot 3D Model" />
             <div class="project-card-content">
               <h3 class="project-card-title">
@@ -138,7 +138,7 @@
     <div class="project-section-content">
       <div class="container">
         <ul class="project-list">
-          <li class="project-card" data-card-tone="dark" data-cta="View Repo">
+          <li class="project-card" data-card-tone="dark">
             <img class="project-card-bg" src="Assets\WebsiteLandingPageScreenshot.svg" alt="Portfolio Project" />
             <div class="project-card-content">
               <h3 class="project-card-title">
@@ -149,7 +149,7 @@
                 (you're viewing this project right now!).</p>
             </div>
           </li>
-          <li class="project-card" data-card-tone="dark" data-cta="View Repo">
+          <li class="project-card" data-card-tone="dark">
             <img class="project-card-bg" src="Assets\ColorMatch.svg" alt="Color Match Project" />
             <div class="project-card-content">
               <h3 class="project-card-title">
@@ -196,12 +196,18 @@
 
   <div class="sidebar-overlay"></div>
 
-  <!-- "View" pill that follows the cursor over project cards.
-       Lives outside the cards so a single global element handles all of them. -->
   <div class="card-cursor" aria-hidden="true">View</div>
 
+  <!-- gallery.js must load BEFORE projects.js — gallery.js sets
+       window.photos which projects.js reads. Both are now plain scripts
+       (not modules) to avoid the module loader issue that was breaking
+       projects.js in the dev environment. -->
+  <!-- projects.js imports gallery.js as a module — script tag must be
+       type="module" or the browser throws SyntaxError on the import.
+       gallery.js doesn't need its own script tag; the module loader
+       fetches it automatically when projects.js imports from it. -->
   <script type="module" src="./projects.js"></script>
-  <script type="module" src="./hamburger-menu.js"></script>
+  <script src="./hamburger-menu.js"></script>
 
   <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
   <script type="importmap">
@@ -213,7 +219,7 @@
     }
   </script>
   <script type="module" src="./viewer3d.js"></script>
-  <script type="module" src="./page-effects.js"></script>
+  <script src="./page-effects.js"></script>
 </body>
 
 </html>

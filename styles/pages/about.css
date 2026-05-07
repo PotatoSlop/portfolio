@@ -11,15 +11,20 @@
   max-width: 1200px;
   padding-left: 1rem;
   padding-right: 1rem;
+  padding-bottom: 30vh;
 }
 
-/* Full-viewport centred stage — content stays centred here while scroll is locked */
+/* Centred stage — content stays centred here while scroll is locked.
+   Height hugs its content (per the gap-elimination strategy above). The text-stack
+   provides the scroll-room min-height; forcing 100vh here just pushed the bio
+   below the visible viewport centre on initial load, since nav (~80px) + .container
+   top padding (2rem) sit above this element. The scroll-lock entry/exit math in
+   about.js doesn't depend on this being 100vh. */
 .scroll-animation-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  padding: 0 1rem;
+  padding: 4rem 1rem;
 }
 
 .sticky-wrapper {
@@ -99,7 +104,6 @@
   opacity: 0;
   transform: translateY(20px);
   pointer-events: none;
-  /* Outgoing */
   transition: opacity 0.35s ease-in, transform 0.35s ease-in;
 }
 
@@ -107,7 +111,6 @@
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
-  /* Incoming: slight delay so outgoing has time to clear */
   transition: opacity 0.5s ease-out 0.15s, transform 0.5s var(--ease-out) 0.15s;
 }
 
@@ -124,7 +127,7 @@
   font-size: clamp(1rem, 2.5vw, 1.2rem);
   line-height: 1.6;
   color: var(--color-text-light);
-  margin-bottom: 1.5rem;
+  margin-bottom: 0rem;
   font-family: var(--font-primary);
   letter-spacing: 0.01em;
 }

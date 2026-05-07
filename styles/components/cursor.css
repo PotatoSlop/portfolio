@@ -36,7 +36,7 @@
 
   /* Pill shape */
   padding: 0.55em 1.4em;
-  background: var(--color-white);
+  background: var(--color-primary);
   color: var(--color-black);
   border-radius: var(--radius-pill);
   border: var(--border-width-medium) solid var(--color-black);

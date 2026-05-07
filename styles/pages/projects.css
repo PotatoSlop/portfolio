@@ -120,36 +120,20 @@ details.is-open > .project-section::after {
   border-radius: var(--radius-medium);
   overflow: hidden;
   box-shadow: var(--shadow-card);
-  /* Visible by default. Entrance animation below runs via CSS @keyframes
-     triggered by the parent details[open] state — no JS required to
-     reveal them, so any JS failure can't hide cards permanently. */
-  opacity: 1;
-  transform: translateY(0);
+  /* Entrance state — JS animates the fade-up via Web Animations API
+     (card.animate). opacity/transform are deliberately NOT in the
+     transition list so removing .card-visible on close snaps back to
+     this state instantly without playing the fade in reverse. */
+  opacity: 0;
+  transform: translateY(28px);
   transition:
     box-shadow var(--duration-medium) var(--ease-default),
     border-color var(--duration-medium) var(--ease-default);
 }
 
-/* Entrance animation — runs each time the parent <details> opens.
-   animation-fill-mode: backwards keeps the card at the 'from' state
-   (invisible) during any animation-delay, then plays the fade-up. */
-@keyframes cardEntrance {
-  from { opacity: 0; transform: translateY(28px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-details[open] .project-card {
-  animation: cardEntrance 0.5s var(--ease-out) backwards;
-}
-
-/* Per-position stagger via animation-delay. */
-details[open] .project-card:nth-child(1) { animation-delay: 0.10s; }
-details[open] .project-card:nth-child(2) { animation-delay: 0.20s; }
-details[open] .project-card:nth-child(3) { animation-delay: 0.30s; }
-details[open] .project-card:nth-child(4) { animation-delay: 0.40s; }
-details[open] .project-card:nth-child(n+5) { animation-delay: 0.50s; }
-
-/* Kept as a no-op for any JS that adds this class. */
+/* Visible state — added by JS. Matches the WAI animation's 'to' frame
+   so when the animation ends and its effect is removed, the card stays
+   at the same opacity/translateY values via the underlying CSS. */
 .project-card.card-visible {
   opacity: 1;
   transform: translateY(0);
@@ -311,25 +295,12 @@ details[open] .project-card:nth-child(n+5) { animation-delay: 0.50s; }
   overflow: hidden;
   border-radius: var(--radius-medium);
   box-shadow: var(--shadow-card);
-  /* Visible by default — same rationale as .project-card. */
-  opacity: 1;
-  transform: translateY(0);
+  /* Entrance state — same WAI-driven fade as .project-card.
+     opacity/transform deliberately not in transition list. */
+  opacity: 0;
+  transform: translateY(28px);
   transition: box-shadow var(--duration-medium) var(--ease-default);
 }
-
-/* Entrance animation — same keyframe as cards, slightly tighter stagger
-   since gallery items are smaller / more numerous. */
-details[open] .gallery-item {
-  animation: cardEntrance 0.45s var(--ease-out) backwards;
-}
-
-details[open] .gallery-item:nth-child(1) { animation-delay: 0.05s; }
-details[open] .gallery-item:nth-child(2) { animation-delay: 0.10s; }
-details[open] .gallery-item:nth-child(3) { animation-delay: 0.15s; }
-details[open] .gallery-item:nth-child(4) { animation-delay: 0.20s; }
-details[open] .gallery-item:nth-child(5) { animation-delay: 0.25s; }
-details[open] .gallery-item:nth-child(6) { animation-delay: 0.30s; }
-details[open] .gallery-item:nth-child(n+7) { animation-delay: 0.35s; }
 
 /* Visible state — set by IntersectionObserver */
 .gallery-item.item-visible {
@@ -355,7 +326,7 @@ details[open] .gallery-item:nth-child(n+7) { animation-delay: 0.35s; }
 .gallery-overlay {
   position: absolute;
   inset: 0;
-  background: var(--color-shadow-dark);
+  background: var(--color-shadow-light);
   opacity: 0;
   transition: opacity var(--duration-medium) var(--ease-default);
 }
