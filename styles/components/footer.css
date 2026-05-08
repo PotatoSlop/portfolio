@@ -1,7 +1,3 @@
-/* ===== Footer =====
-   Sticky pill-shaped contact-CTA footer with curved top edge.
-   Includes the CTA button, link list, and the slim bottom copyright bar. */
-
 .contact-footer {
   position: sticky;
   z-index: var(--z-base);

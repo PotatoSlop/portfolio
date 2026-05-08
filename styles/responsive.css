@@ -1,10 +1,3 @@
-/* ===== Responsive layout overrides =====
-   Site-wide @media queries for navigation, footer, sidebar, gallery columns,
-   and mobile-only typography/layout adjustments.
-
-   Page-specific media queries live with their pages (about.css, timeline.css)
-   because they're tightly coupled to that page's geometry. */
-
 /* ----- Desktop navigation visibility ----- */
 @media (min-width: 769px) {
   .hideOnMobile {

@@ -1,7 +1,3 @@
-/* ===== Sidebar (mobile nav drawer) =====
-   Slides in from the right, with a tappable overlay behind it.
-   Shares pill-link visuals with .nav-link but as full-width rows. */
-
 .sidebar {
   position: fixed;
   top: 0;
@@ -42,7 +38,7 @@
   pointer-events: auto;
 }
 
-/* Sidebar close button — first <li> is the close icon */
+/* Sidebar close button */
 .sidebar li:first-child {
   position: absolute;
   top: calc((clamp(60px, 10vh, 80px) - clamp(38px, 9vw, 48px)) / 2);
@@ -70,7 +66,7 @@
   background-color: var(--color-primary);
 }
 
-/* Sidebar links — every <li> after the first is a nav row */
+/* Sidebar links */
 .sidebar li:not(:first-child) {
   width: 100%;
   list-style: none;

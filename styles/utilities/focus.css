@@ -1,7 +1,3 @@
-/* ===== Focus-visible (keyboard accessibility) =====
-   Reset default outlines, then re-apply consistent :focus-visible styles
-   on every focusable element. */
-
 *:focus {
   outline: none;
 }
@@ -33,8 +29,6 @@ button:focus-visible {
   outline-offset: 3px;
 }
 
-/* Project cards: focus ring lives on the card itself via :focus-within
-   (see pages/projects.css) so the inner link gets no visible outline. */
 .project-card-link:focus-visible {
   outline: none;
 }

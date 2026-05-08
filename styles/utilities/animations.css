@@ -1,10 +1,3 @@
-/* ===== Animations =====
-   Shared @keyframes used across pages and the wave-text utility class.
-
-   Note: page-specific @keyframes (blinkingCursor, slideIn, errorSlide, spin)
-   stay in their own component files for locality. This file collects only
-   the truly reusable ones. */
-
 /* Page-load fade-in for non-landing pages */
 @keyframes pageFadeIn {
   from { opacity: 0; transform: translateY(10px); }
@@ -48,7 +41,7 @@ body:not(:has(.landing)) .page-header {
 }
 
 
-/* ----- Wave-text utility -----
+/*  Wave-text utility 
    Wraps each character in a span and assigns staggered animation delays. */
 .wave-text span {
   display: inline-block;
@@ -67,7 +60,7 @@ body:not(:has(.landing)) .page-header {
 .wave-text span:nth-child(11) { animation-delay: 0.56s; }
 .wave-text span:nth-child(12) { animation-delay: 0.63s; }
 
-/* ----- Category-select wave delays ----- */
+/*  Category-select wave delays  */
 .categorySelect span:nth-child(1) {
   animation-delay: 0s, 0s;
 }

@@ -1,7 +1,3 @@
-/* ===== Hamburger menu button =====
-   Hidden on desktop (toggled in responsive.css), shown on mobile.
-   Triggers the sidebar. */
-
 .menu-button {
   display: none;
   position: absolute;

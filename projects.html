@@ -198,14 +198,6 @@
 
   <div class="card-cursor" aria-hidden="true">View</div>
 
-  <!-- gallery.js must load BEFORE projects.js — gallery.js sets
-       window.photos which projects.js reads. Both are now plain scripts
-       (not modules) to avoid the module loader issue that was breaking
-       projects.js in the dev environment. -->
-  <!-- projects.js imports gallery.js as a module — script tag must be
-       type="module" or the browser throws SyntaxError on the import.
-       gallery.js doesn't need its own script tag; the module loader
-       fetches it automatically when projects.js imports from it. -->
   <script type="module" src="./projects.js"></script>
   <script src="./hamburger-menu.js"></script>
 

@@ -1,7 +1,3 @@
-/* ===== Projects page =====
-   Shared page-header used by projects/about/contact, plus the accordion
-   <details>/<summary> sections, project cards, and photography gallery. */
-
 .page-header {
   text-align: center;
   padding: 4rem var(--gap-xl);
@@ -21,7 +17,7 @@
   margin: 0 auto;
 }
 
-/* ----- Accordion <summary> rows ----- */
+/*  Accordion rows  */
 .project-section {
   cursor: pointer;
   padding: 3rem 4rem;
@@ -34,11 +30,10 @@
   user-select: none;
 }
 
-/* Hide default summary triangle marker */
 .project-section::-webkit-details-marker { display: none; }
 .project-section::marker { content: none; }
 
-/* Rotating chevron */
+/* Chevron arrow */
 .project-section::after {
   content: '';
   position: absolute;
@@ -54,11 +49,6 @@
   transition: transform var(--duration-fast) var(--ease-in-out);
 }
 
-/* Chevron uses .is-open (toggled synchronously on click) instead of the
-   [open] attribute. [open] is removed only at the end of the close
-   animation, which made the chevron lag — flipping back only after the
-   section had fully collapsed. The class is toggled the instant the
-   click is registered, so the chevron rotates in lockstep with intent. */
 details.is-open > .project-section::after {
   transform: translateY(-50%) rotate(180deg);
 }
@@ -72,7 +62,6 @@ details.is-open > .project-section::after {
   position: relative;
 }
 
-/* Animated details content wrapper */
 .project-section-content {
   overflow: hidden;
   transition: height 0.45s var(--ease-in-out);
@@ -92,38 +81,19 @@ details.is-open > .project-section::after {
   margin: 0;
 }
 
-/* ----- Project card -----
-   Full-bleed image with a gradient overlay holding the title and description.
-   The whole card is clickable via a stretched-link pattern: the title's
-   <a> has an absolutely-positioned ::after covering the card, so clicking
-   anywhere triggers the title link.
-
-   Lives here (vs. components/) because hover/visible states are tightly
-   coupled to the accordion entrance behavior in projects.js. */
 .project-card {
   position: relative;
   isolation: isolate;
   max-width: 450px;
   margin: 0 auto;
-  /* Use min-height instead of aspect-ratio. aspect-ratio can fail to
-     compute when all children are absolutely-positioned AND the parent
-     <details> is animating its height — the card collapses to 0 mid-
-     animation and never recovers. min-height guarantees a measurable
-     box for the bg image and content overlay regardless. */
   min-height: 420px;
   width: 100%;
-  /* Defensive: remove the <li> bullet marker even if list-style: none on
-     the parent <ul> ever fails to inherit. */
   list-style: none;
   background-color: var(--color-white);
   border: var(--border-width-thick) solid var(--color-black);
   border-radius: var(--radius-medium);
   overflow: hidden;
   box-shadow: var(--shadow-card);
-  /* Entrance state — JS animates the fade-up via Web Animations API
-     (card.animate). opacity/transform are deliberately NOT in the
-     transition list so removing .card-visible on close snaps back to
-     this state instantly without playing the fade in reverse. */
   opacity: 0;
   transform: translateY(28px);
   transition:
@@ -131,9 +101,6 @@ details.is-open > .project-section::after {
     border-color var(--duration-medium) var(--ease-default);
 }
 
-/* Visible state — added by JS. Matches the WAI animation's 'to' frame
-   so when the animation ends and its effect is removed, the card stays
-   at the same opacity/translateY values via the underlying CSS. */
 .project-card.card-visible {
   opacity: 1;
   transform: translateY(0);
@@ -149,14 +116,12 @@ details.is-open > .project-section::after {
     border-color var(--duration-medium) var(--ease-default);
 }
 
-/* Keyboard focus ring lives on the card, not the inner link, so the
-   visible affordance matches the click target. */
 .project-card:focus-within {
   outline: 2px solid var(--color-primary);
   outline-offset: 3px;
 }
 
-/* ----- Background image ----- */
+/*  Background image  */
 .project-card-bg {
   position: absolute;
   inset: 0;
@@ -164,8 +129,6 @@ details.is-open > .project-section::after {
   height: 100%;
   object-fit: cover;
   object-position: center;
-  /* Snappy bouncy zoom matches the card's own hover ease so the image
-     and frame feel coordinated, not disjointed. */
   transition:
     transform var(--duration-smooth) var(--ease-bouncy),
     filter var(--duration-smooth) var(--ease-out);
@@ -174,12 +137,10 @@ details.is-open > .project-section::after {
 
 .project-card:hover .project-card-bg {
   transform: scale(1.12);
-  /* Subtle saturation/contrast pop layered onto the zoom so the image
-     feels alive, not just bigger. */
   filter: saturate(1.15) contrast(1.05);
 }
 
-/* ----- Overlay (gradient + text) ----- */
+/* Overlay  */
 .project-card-content {
   position: absolute;
   inset: 0;
@@ -189,7 +150,6 @@ details.is-open > .project-section::after {
   padding: 1.5rem;
   z-index: 1;
 
-  /* Default = dark tone: dark gradient at bottom for white text on top */
   background: linear-gradient(
     to top,
     rgba(0, 0, 0, 0.92) 0%,
@@ -211,9 +171,7 @@ details.is-open > .project-section::after {
   );
 }
 
-/* Light tone variant — for cards whose image is dark/saturated and a
-   white-gradient + black text reads better. Set data-card-tone="light"
-   on the .project-card to enable. */
+/* Light tone variant */
 .project-card[data-card-tone="light"] .project-card-content {
   background: linear-gradient(
     to top,
@@ -235,7 +193,7 @@ details.is-open > .project-section::after {
   );
 }
 
-/* ----- Title ----- */
+/*  Title  */
 .project-card-title {
   font-family: var(--font-secondary);
   font-size: clamp(1.25rem, 2vw + 0.5rem, 1.65rem);
@@ -250,15 +208,11 @@ details.is-open > .project-section::after {
   text-decoration: none;
 }
 
-/* Stretched-link pattern: title's <a> covers the whole card, so any
-   click on the card triggers it. Positioned over the bg + content. */
 .project-card-link::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 2;
-  /* Transparent click target; visible focus is handled by :focus-within
-     on the card. */
 }
 
 /* ----- Description ----- */
@@ -268,12 +222,9 @@ details.is-open > .project-section::after {
   line-height: 1.5;
   margin: 0;
   color: inherit;
-  /* Currently allows full description to display; if a card runs over,
-     uncomment the next line to clamp to 4 lines:
-     display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; */
 }
 
-/* ===== Photography gallery ===== */
+/*  gallery  */
 #photography-page .container {
   max-width: 100%;
   padding-left: min(5rem, 5vh);
@@ -295,14 +246,11 @@ details.is-open > .project-section::after {
   overflow: hidden;
   border-radius: var(--radius-medium);
   box-shadow: var(--shadow-card);
-  /* Entrance state — same WAI-driven fade as .project-card.
-     opacity/transform deliberately not in transition list. */
   opacity: 0;
   transform: translateY(28px);
   transition: box-shadow var(--duration-medium) var(--ease-default);
 }
 
-/* Visible state — set by IntersectionObserver */
 .gallery-item.item-visible {
   opacity: 1;
   transform: translateY(0);
@@ -311,7 +259,6 @@ details.is-open > .project-section::after {
 .gallery-item:hover {
   transform: var(--transform-scale-hover-small);
   box-shadow: var(--shadow-card-hover);
-  /* Match button hover speed/easing */
   transition:
     transform var(--duration-fast) var(--ease-bouncy),
     box-shadow var(--duration-medium) var(--ease-default);

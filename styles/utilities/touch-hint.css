@@ -1,7 +1,4 @@
-/* ===== Touch device hint =====
-   On touch-only devices, drag-and-drop is unavailable, so the categorySelect
-   shows a "tap to select" hint and disables hover-only styling. */
-
+/* Touch hint text*/
 @media (hover: none) and (pointer: coarse) {
   .categorySelect {
     cursor: pointer;

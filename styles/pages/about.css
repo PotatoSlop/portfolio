@@ -1,12 +1,3 @@
-/* ===== About page =====
-   Sticky-image-with-cross-fading-text-stack scroll experience.
-   The headshot flips between cartoon and real photo on scroll.
-
-   Gap elimination strategy: the whole-container sticky required min-height:150dvh,
-   leaving 50dvh of dead scroll. Instead, only the image is sticky. The text-stack
-   gets an explicit min-height that provides just enough scroll room for the flip —
-   the about section's total height is its real content height, so no dead gap. */
-
 .about-page-main.container {
   max-width: 1200px;
   padding-left: 1rem;
@@ -14,12 +5,6 @@
   padding-bottom: 30vh;
 }
 
-/* Centred stage — content stays centred here while scroll is locked.
-   Height hugs its content (per the gap-elimination strategy above). The text-stack
-   provides the scroll-room min-height; forcing 100vh here just pushed the bio
-   below the visible viewport centre on initial load, since nav (~80px) + .container
-   top padding (2rem) sit above this element. The scroll-lock entry/exit math in
-   about.js doesn't depend on this being 100vh. */
 .scroll-animation-container {
   display: flex;
   align-items: center;
@@ -47,10 +32,6 @@
   top: 0;
   width: 100%;
   height: 100%;
-  /* Flip duration chosen to end ~at the same moment as the text crossfade
-     (incoming text-block: 0.5s ease-out with 0.15s delay = 0.65s total).
-     Previously this was 0.8s, which left the headshot still rotating
-     after the text had already finished cross-fading. */
   transition: transform 0.65s var(--ease-smooth);
   transform-style: preserve-3d;
   display: grid;
@@ -86,14 +67,12 @@
   transform: rotateY(180deg);
 }
 
-/* Text stack — cross-fading blocks overlay each other inside here */
 .about-text-stack {
   position: relative;
   flex: 1;
   min-height: 300px;
 }
 
-/* Both blocks are absolutely overlaid — only .is-visible is shown */
 .text-block {
   position: absolute;
   top: 0;
@@ -153,8 +132,6 @@
   transform: scale(1.05);
 }
 
-/* About page has its own breakpoint tweaks because the layout flips
-   from side-by-side to stacked at 768px and tightens further below 480px. */
 @media (max-width: 768px) {
   .scroll-animation-container {
     padding: 4rem 1rem;

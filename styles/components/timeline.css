@@ -1,13 +1,6 @@
-/* ===== Experience timeline =====
-   Vertical timeline with an SVG spine drawn by JS. Each item has a dot,
-   date, title, company, and description. Bottom-up reveal on scroll. */
-
 .timeline-section {
   max-width: 1200px;
   margin: 0 auto;
-  /* Bottom padding tightened from 6rem to 4rem to match the tighter
-     inter-item padding; otherwise the empty space below the last item
-     looks disproportionately large. */
   padding: 5rem 2rem 4rem;
 }
 
@@ -16,19 +9,15 @@
   font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 800;
   text-align: left;
-  /* Reduced from 4rem to 2.5rem so the gap between heading and first
-     item is visually similar to the new gap between items. */
   margin-bottom: 2.5rem;
   color: var(--color-black);
 }
 
-/* Container: SVG spine lives absolutely on the left */
 .timeline {
   position: relative;
   padding-left: 56px;
 }
 
-/* Inline SVG spine — sized by JS */
 .timeline-svg {
   position: absolute;
   left: 0;
@@ -49,16 +38,8 @@
 .timeline-item {
   position: relative;
   padding-bottom: 2rem;
-  /* Bottom-up entrance */
   opacity: 0;
-  /* Reduced from 28px to 20px since items are stacked tighter — the
-     larger translation now overlaps with the next item visually as it
-     reveals. */
   transform: translateY(20px);
-  /* Snappier reveal (0.6s -> 0.45s) matches the tighter pacing: as the
-     line draws past dot Y, items reveal in quicker succession, so each
-     individual fade-up should be brisk to keep them feeling distinct
-     instead of stacking visually. */
   transition: opacity 0.45s var(--ease-out), transform 0.45s var(--ease-out);
 }
 
@@ -67,19 +48,16 @@
   transform: translateY(0);
 }
 
-/* Connector dot — anchored to the SVG x-center (x=28) */
+/* Connector dot:  SVG x-center = 28 */
 .timeline-dot {
   position: absolute;
-  left: -34px; /* 28px svg-center - 6px dot-radius - 56px padding = -34 from item edge */
-  /* top is set per-item by JS to align with .timeline-title vertical centre */
-  top: 1rem; /* fallback only */
+  left: -34px;
   width: 12px;
   height: 12px;
   background: var(--color-black);
   border: 2px solid var(--color-black);
   border-radius: 50%;
   z-index: var(--z-content);
-  /* Hidden until JS activates */
   opacity: 0;
   transform: scale(0);
   transition: opacity 0.2s ease, transform 0.4s var(--ease-bouncy);
@@ -90,7 +68,7 @@
   transform: scale(1);
 }
 
-/* Text content — no card border, clean and minimal */
+/* Text content */
 .timeline-content {
   padding: 0 0 0 0.5rem;
 }
@@ -132,7 +110,6 @@
   max-width: 680px;
 }
 
-/* Mobile — keep same spine geometry, just tighten section padding */
 @media (max-width: 480px) {
   .timeline-section {
     padding-left: 1rem;
@@ -140,7 +117,6 @@
   }
 }
 
-/* Reduced motion: skip draw animation, show everything immediately */
 @media (prefers-reduced-motion: reduce) {
   .timeline-dot {
     opacity: 1;

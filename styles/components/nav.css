@@ -1,6 +1,3 @@
-/* ===== Navigation =====
-   Top sticky nav, logo, and pill-style nav links with sliding fill on hover. */
-
 nav {
   background: transparent;
   padding: clamp(0.5rem, 2vh, 1rem) 0;

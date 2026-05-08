@@ -1,7 +1,3 @@
-/* ===== Design tokens =====
-   Single source of truth for colors, typography, spacing, motion, etc.
-   Anywhere you find yourself typing a magic number, add a token here first. */
-
 :root {
   /* ===== COLORS ===== */
   --color-text-light: #555666;

@@ -241,16 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const topAbs    = rect.top    + window.scrollY;
         const bottomAbs = rect.bottom + window.scrollY;
 
-        // The drawing's scroll range is (timeline height + drawStartOffset
-        // - drawEndOffset). Smaller range = items reveal faster per scroll.
-        //
-        // drawStartOffset: drawing begins when timeline top is this many
-        //   viewports below current scroll. Lower = drawing starts later
-        //   (closer to timeline being in view).
-        // drawEndOffset: drawing finishes when timeline bottom is this many
-        //   viewports above the bottom of the viewport. Higher = drawing
-        //   finishes sooner (timeline bottom doesn't have to scroll as far up).
- 
         const drawStartOffset = 0.7;
         const drawEndOffset   = 0.9;
 
