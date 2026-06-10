@@ -1,7 +1,3 @@
-/* ===== Temp section =====
-   Spacer/scaffold sections used during layout development.
-   Likely candidates for removal once final content lands. */
-
 .temp-section {
   min-height: 200dvh;
   padding: var(--gap-xl) 0;

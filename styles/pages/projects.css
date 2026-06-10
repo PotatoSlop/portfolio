@@ -164,8 +164,6 @@ details.is-open > .project-section::after {
   height: 100%;
   object-fit: cover;
   object-position: center;
-  /* Snappy bouncy zoom matches the card's own hover ease so the image
-     and frame feel coordinated, not disjointed. */
   transition:
     transform var(--duration-smooth) var(--ease-bouncy),
     filter var(--duration-smooth) var(--ease-out);
@@ -174,8 +172,6 @@ details.is-open > .project-section::after {
 
 .project-card:hover .project-card-bg {
   transform: scale(1.12);
-  /* Subtle saturation/contrast pop layered onto the zoom so the image
-     feels alive, not just bigger. */
   filter: saturate(1.15) contrast(1.05);
 }
 
@@ -189,7 +185,6 @@ details.is-open > .project-section::after {
   padding: 1.5rem;
   z-index: 1;
 
-  /* Default = dark tone: dark gradient at bottom for white text on top */
   background: linear-gradient(
     to top,
     rgba(0, 0, 0, 0.92) 0%,
@@ -211,9 +206,7 @@ details.is-open > .project-section::after {
   );
 }
 
-/* Light tone variant — for cards whose image is dark/saturated and a
-   white-gradient + black text reads better. Set data-card-tone="light"
-   on the .project-card to enable. */
+/* Light tone variant */
 .project-card[data-card-tone="light"] .project-card-content {
   background: linear-gradient(
     to top,
@@ -235,7 +228,7 @@ details.is-open > .project-section::after {
   );
 }
 
-/* ----- Title ----- */
+/* Title */
 .project-card-title {
   font-family: var(--font-secondary);
   font-size: clamp(1.25rem, 2vw + 0.5rem, 1.65rem);
@@ -250,30 +243,23 @@ details.is-open > .project-section::after {
   text-decoration: none;
 }
 
-/* Stretched-link pattern: title's <a> covers the whole card, so any
-   click on the card triggers it. Positioned over the bg + content. */
 .project-card-link::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 2;
-  /* Transparent click target; visible focus is handled by :focus-within
-     on the card. */
 }
 
-/* ----- Description ----- */
+/* Description */
 .project-card-desc {
   font-family: var(--font-primary);
   font-size: 0.95rem;
   line-height: 1.5;
   margin: 0;
   color: inherit;
-  /* Currently allows full description to display; if a card runs over,
-     uncomment the next line to clamp to 4 lines:
-     display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; */
 }
 
-/* ===== Photography gallery ===== */
+/* Photography gallery  */
 #photography-page .container {
   max-width: 100%;
   padding-left: min(5rem, 5vh);
@@ -295,14 +281,11 @@ details.is-open > .project-section::after {
   overflow: hidden;
   border-radius: var(--radius-medium);
   box-shadow: var(--shadow-card);
-  /* Entrance state — same WAI-driven fade as .project-card.
-     opacity/transform deliberately not in transition list. */
   opacity: 0;
   transform: translateY(28px);
   transition: box-shadow var(--duration-medium) var(--ease-default);
 }
 
-/* Visible state — set by IntersectionObserver */
 .gallery-item.item-visible {
   opacity: 1;
   transform: translateY(0);
@@ -311,7 +294,6 @@ details.is-open > .project-section::after {
 .gallery-item:hover {
   transform: var(--transform-scale-hover-small);
   box-shadow: var(--shadow-card-hover);
-  /* Match button hover speed/easing */
   transition:
     transform var(--duration-fast) var(--ease-bouncy),
     box-shadow var(--duration-medium) var(--ease-default);
