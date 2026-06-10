@@ -1,0 +1,18 @@
+---
+import Base from '../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+// Smoke-test the content collection wiring (proves SCHEMA.md → Zod works).
+const projects = await getCollection('projects');
+---
+
+<Base title="Dylan Chen — Portfolio (rebuild)">
+  <main>
+    <h1>Portfolio rebuild — scaffold online</h1>
+    <p>Astro + React islands + TypeScript + MDX. View Transitions enabled.</p>
+    <p>Projects in the content collection: {projects.length}</p>
+    <ul>
+      {projects.map((p) => <li>{p.data.title} — {p.data.disciplines.join(', ')}</li>)}
+    </ul>
+  </main>
+</Base>

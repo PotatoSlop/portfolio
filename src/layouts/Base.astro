@@ -1,0 +1,27 @@
+---
+// Shared HTML shell. The skeleton (anchor, breadcrumbs, tokens) gets built out
+// in Phase 3; for now it just wires the document + View Transitions.
+import { ClientRouter } from 'astro:transitions';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = 'Dylan Chen', description = 'Dylan Chen — portfolio' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    {/* Astro View Transitions (ClientRouter) — powers the sketch→render cross-fades */}
+    <ClientRouter />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
