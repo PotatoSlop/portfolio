@@ -1,0 +1,50 @@
+---
+// Verbatim port of the original site's <nav> + sidebar overlay (index.html).
+// Markup and classes are unchanged so the existing nav/hamburger/sidebar CSS
+// (styles/components/{nav,hamburger,sidebar}.css, loaded globally) applies
+// identically.
+//
+// Deferred (separate, deliberate step): the nav information architecture — the
+// Projects/About/Contact link targets are left as the original .html paths.
+// Behavior (hamburger-menu.js) is wired in the next micro-step.
+//
+// One necessary fix vs. verbatim: the logo src is made root-absolute (/Assets/…)
+// instead of relative, so it resolves from nested routes via the shared layout.
+---
+
+<nav>
+  <ul class="sidebar">
+    <li>
+      <a id="close-sidebar" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
+          <path
+            d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"
+          ></path>
+        </svg>
+      </a>
+    </li>
+    <li><a href="index.html">Home</a></li>
+    <li><a href="projects.html">Projects</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="contact.html">Contact</a></li>
+  </ul>
+  <ul>
+    <li class="logo">
+      <a href="index.html">
+        <img src="/Assets/boilingName.gif" alt="Dylan Chen Portfolio Home" class="logo-img" />
+      </a>
+    </li>
+    <li class="hideOnMobile nav-link"><a href="projects.html">Projects</a></li>
+    <li class="hideOnMobile nav-link"><a href="about.html">About</a></li>
+    <li class="hideOnMobile nav-link"><a href="contact.html">Contact</a></li>
+    <li class="menu-button">
+      <a id="hamburger-menu" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
+          <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z"></path>
+        </svg>
+      </a>
+    </li>
+  </ul>
+</nav>
+
+<div class="sidebar-overlay"></div>

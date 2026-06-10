@@ -2,6 +2,8 @@
 // Shared HTML shell. The skeleton (anchor, breadcrumbs, tokens) gets built out
 // in Phase 3; for now it just wires the document + View Transitions.
 import { ClientRouter } from 'astro:transitions';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
 
 // Migration Step 1: reuse the existing modular stylesheet as-is, kept global.
 // styles/ stays at the repo root (single source of truth); the bundler inlines
@@ -24,7 +26,7 @@ const { title = 'Dylan Chen', description = 'Dylan Chen — portfolio' } = Astro
     <meta name="description" content={description} />
     <title>{title}</title>
 
-    {/* Fonts — same providers the original site used (Google Nunito + Adobe Typekit) */}
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -33,10 +35,69 @@ const { title = 'Dylan Chen', description = 'Dylan Chen — portfolio' } = Astro
     />
     <link rel="stylesheet" href="https://use.typekit.net/nnb5nol.css" />
 
-    {/* Astro View Transitions (ClientRouter) — powers the sketch→render cross-fades */}
     <ClientRouter />
   </head>
   <body>
+    <Nav />
     <slot />
+    <Footer />
+
+    <script>
+      // Ported verbatim from page-effects.js, with one required change: it runs
+      // on `astro:page-load` (fires on first load AND after each View Transition
+      // navigation) instead of DOMContentLoaded, which wouldn't re-fire once
+      // ClientRouter is enabled.
+      function initPageEffects() {
+        const footer = document.querySelector('.contact-footer') as HTMLElement | null;
+        const cursorEffect = document.querySelector('.cursor-effects') as HTMLElement | null;
+        const root = document.documentElement;
+        if (!footer || !cursorEffect) return;
+
+        // Footer cursor blob — follows the pointer while hovering the footer.
+        footer.addEventListener('mouseenter', () => {
+          cursorEffect.style.opacity = '1';
+          cursorEffect.style.transform = 'scale(1)';
+        });
+        footer.addEventListener('mouseleave', () => {
+          cursorEffect.style.opacity = '0';
+          cursorEffect.style.transform = 'scale(0)';
+        });
+        footer.addEventListener('mousemove', (e: MouseEvent) => {
+          const rect = footer.getBoundingClientRect();
+          const cursorWidth = cursorEffect.offsetWidth;
+          const cursorHeight = cursorEffect.offsetHeight;
+          cursorEffect.style.left = e.clientX - rect.left - cursorWidth / 2 + 'px';
+          cursorEffect.style.top = e.clientY - rect.top - cursorHeight / 2 + 'px';
+        });
+
+        // Recolor the nav theme tokens once the footer scrolls into view.
+        const defaultTheme: Record<string, string> = {
+          '--nav-link-bg': 'transparent',
+          '--nav-hover-fill': '#F5A045',
+          '--hamburger-hover-bg': '#F5A045',
+        };
+        const footerTheme: Record<string, string> = {
+          '--nav-link-bg': '#F5A045',
+          '--nav-hover-fill': '#fff',
+          '--hamburger-hover-bg': '#fff',
+        };
+        const applyNavTheme = (theme: Record<string, string>) => {
+          for (const [key, value] of Object.entries(theme)) {
+            root.style.setProperty(key, value);
+          }
+        };
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              applyNavTheme(entry.isIntersecting ? footerTheme : defaultTheme);
+            });
+          },
+          { root: null, rootMargin: '0px 0px -95% 0px', threshold: 0 }
+        );
+        observer.observe(footer);
+      }
+
+      document.addEventListener('astro:page-load', initPageEffects);
+    </script>
   </body>
 </html>
