@@ -24,9 +24,10 @@ Frontmatter = queryable metadata. MDX body = the optional rich case study
 | `subTags` | `SubTag[]` | no (default `[]`) | From the fixed enum below. |
 | `hero` | boolean | no (default `false`) | Eligible for a discipline hero slot. |
 | `order` | number | no (default `0`) | Sort within a discipline grid (lower = earlier). |
-| `cover` | image | yes | Card / grid cover image. |
+| `cover` | image | no | Card / grid cover image. Optional so frontmatter-only WIP stubs validate; shipped projects should have one (placeholder otherwise). |
 | `glb` | string (path) | no | GLB model path for R3F deep-dives (e.g. Nob). |
 | `gallery` | image[] | no (default `[]`) | Case-study gallery images. |
+| `links` | object | no | `{ repo?, live?, download? }` — outbound CTAs (GitHub repo, live demo, asset-store download). Most light projects are primarily a card + one of these, so this is effectively required for them in practice. |
 | `overview` | string | no | Short summary line. Rich version lives in MDX body. |
 | `process` | string | no | Short summary line. |
 | `outcome` | string | no | Short summary line. |
@@ -89,9 +90,14 @@ const projects = defineCollection({
     subTags: z.array(z.enum(SUBTAGS)).default([]),
     hero: z.boolean().default(false),
     order: z.number().default(0),
-    cover: image(),
+    cover: image().optional(),
     glb: z.string().optional(),
     gallery: z.array(image()).default([]),
+    links: z.object({
+      repo: z.string().url().optional(),
+      live: z.string().url().optional(),
+      download: z.string().url().optional(),
+    }).optional(),
     overview: z.string().optional(),
     process: z.string().optional(),
     outcome: z.string().optional(),
@@ -108,6 +114,9 @@ export const collections = { projects };
 
 - [x] Schema drafted (this file)
 - [x] Discipline rule written down (≥1 discipline per project)
-- [x] Photo axis decided (`location`, typed module)
-- [ ] Validate against real projects in 0.2 (does every existing project fit
-      these fields cleanly? if not, the schema is wrong — fix it here, not later)
+- [x] Photo axis decided (`location`, typed module) — owned by a standalone
+      `photo-gallery` project (`software`/`webdev`)
+- [x] Validated against real projects in 0.2 (see INVENTORY.md). Surfaced gaps,
+      now fixed here: added `links`, made `cover` optional for stubs.
+
+**Data model is LOCKED.** Changes from here need a deliberate reason.
