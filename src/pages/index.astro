@@ -1,18 +1,77 @@
 ---
+// Step 3: faithful port of the original index.html landing markup.
+// Classes/IDs unchanged so styles/pages/landing.css (loaded globally) applies
+// as-is. NOTE: most of this is opacity:0 / display:none until the landing JS
+// runs — that intro animation + the drag-to-navigate behavior are the next
+// step (the React island). Until then this page is intentionally near-blank.
+//
+// Deferred to that step (not changed here): the 4→3 role reduction
+// (Photographer is dropped, Programmer→Software) and where each role navigates.
+// Verbatim exceptions: gif src made root-absolute; one malformed </aside> fixed.
 import Base from '../layouts/Base.astro';
-import { getCollection } from 'astro:content';
-
-// Smoke-test the content collection wiring (proves SCHEMA.md → Zod works).
-const projects = await getCollection('projects');
 ---
 
-<Base title="Dylan Chen — Portfolio (rebuild)">
+<Base title="Dylan Chen - Engineering, Developer, and Design Portfolio">
   <main>
-    <h1>Portfolio rebuild — scaffold online</h1>
-    <p>Astro + React islands + TypeScript + MDX. View Transitions enabled.</p>
-    <p>Projects in the content collection: {projects.length}</p>
-    <ul>
-      {projects.map((p) => <li>{p.data.title} — {p.data.disciplines.join(', ')}</li>)}
-    </ul>
+    <section class="landing">
+      <div class="job-role-container">
+        <h2 class="typewriter-animation"></h2>
+        <div id="category-drop-zone">
+          <span class="placeholder-text">[Drop Here]</span>
+        </div>
+      </div>
+
+      <h1 id="scroll-title">DYLAN</h1>
+    </section>
+
+    <aside class="bottom-gif" aria-hidden="true">
+      <img height="844" width="636" src="/Assets/wavingDude.gif" alt="Waving Dude" />
+    </aside>
   </main>
+
+  <div class="scroll-down-text wave-text">
+    <span class="arrow-icon" aria-hidden="true">
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style="vertical-align:middle;"
+      >
+        <path
+          d="M12 5v14m0 0l-6-6m6 6l6-6"
+          stroke="#666"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"></path>
+      </svg>
+    </span>
+
+    <span>S</span><span>c</span><span>r</span><span>o</span><span>l</span><span>l</span>
+    <span style="margin-left:0.5ch;"></span>
+    <span>D</span><span>o</span><span>w</span><span>n</span>
+  </div>
+
+  <div
+    class="categorySelect"
+    role="group"
+    aria-label="Drag and drop job roles"
+    id="role-instructions"
+  >
+    <span id="Engineer" class="draggable-item" draggable="true">
+      <span class="bracket" aria-hidden="true">[</span>Engineer<span class="bracket" aria-hidden="true">]</span>
+    </span>
+    <span id="Designer" class="draggable-item" draggable="true">
+      <span class="bracket" aria-hidden="true">[</span>Designer<span class="bracket" aria-hidden="true">]</span>
+    </span>
+    <span id="Photographer" class="draggable-item" draggable="true">
+      <span class="bracket" aria-hidden="true">[</span>Photographer<span class="bracket" aria-hidden="true">]</span>
+    </span>
+    <span id="Programmer" class="draggable-item" draggable="true">
+      <span class="bracket" aria-hidden="true">[</span>Programmer<span class="bracket" aria-hidden="true">]</span>
+    </span>
+  </div>
+
+  <section class="temp-section"></section>
 </Base>
