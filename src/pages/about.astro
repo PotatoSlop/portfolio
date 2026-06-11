@@ -1,0 +1,369 @@
+---
+// Faithful port of about.html (image stack + text blocks + timeline) into the
+// Base layout. Classes/IDs unchanged so styles/pages/about.css and
+// styles/components/timeline.css (loaded globally) apply as-is.
+//
+// Verbatim exceptions: asset paths root-absolute; timeline's third dot id fixed
+// from a duplicate "js-dot-1" to "js-dot-2".
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="About — Dylan Chen">
+  <main class="container about-page-main">
+    <div class="scroll-animation-container">
+      <div class="sticky-wrapper">
+        <div class="about-image-stack">
+          <div class="headshot">
+            <img
+              class="headshot-face doodle-image"
+              src="/Assets/wavingDude.gif"
+              alt="Doodle of Dylan Chen"
+            />
+            <img
+              class="headshot-face real-photo"
+              src="/Assets/irlHeadshot.jpg"
+              alt="Dylan Chen Headshot"
+            />
+          </div>
+        </div>
+
+        <div class="about-text-stack">
+          <div class="text-block" id="philosophy-text">
+            <h1>It Starts with a Sketch</h1>
+            <p class="block-text">
+              Napkins, printer paper, sketchbooks or just my mind, my projects start from a simple
+              idea that is brought to reality. If you need a creative developer, a technical
+              designer, or anything in between, I can bring a new perspective to your vision.
+            </p>
+          </div>
+
+          <div class="text-block" id="intro-text">
+            <h1>About Me</h1>
+            <p class="block-text">
+              I'm Dylan, a 2nd-year computer science and engineering student at Northeastern
+              University. You can usually find me hopping between Boston and New York City, wandering
+              around capturing urban experiences on my camera or absorbing inspiration for my new
+              development or engineering project. If there's too much coffee in your office, I'm
+              always willing to help out!
+            </p>
+            <a
+              href="/Assets/Dylan Chen Resume - 9_8_25.pdf"
+              download="Dylan Chen Resume 2025"
+              class="resume-btn">Download Resume</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <section class="timeline-section">
+    <h2 class="timeline-heading">Experience</h2>
+    <div class="timeline" id="js-timeline">
+      <svg class="timeline-svg" id="js-timeline-svg" aria-hidden="true">
+        <path id="js-timeline-path" class="timeline-path"></path>
+      </svg>
+
+      <div class="timeline-item">
+        <div class="timeline-dot" id="js-dot-0"></div>
+        <div class="timeline-content">
+          <span class="timeline-date">Jan 2026 — Present</span>
+          <h3 class="timeline-title">Quality Test Engineering Co-op</h3>
+          <p class="timeline-company">SharkNinja</p>
+          <p class="timeline-desc">
+            Working across product development cycles on consumer electronics and home appliance
+            platforms. Performed quality assurance testing using rapid prototyping and constructed
+            automated testing frameworks.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot" id="js-dot-1"></div>
+        <div class="timeline-content">
+          <span class="timeline-date">Jul 2023 — Oct 2023</span>
+          <h3 class="timeline-title">Technical Support Engineer</h3>
+          <p class="timeline-company">Insights Gaming</p>
+          <p class="timeline-desc">
+            Provided technical support and troubleshooting for Insight Gaming's screen capture
+            software, using various diagnostic tools and techniques.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot" id="js-dot-2"></div>
+        <div class="timeline-content">
+          <span class="timeline-date">Jun 2020 — Jul 2024</span>
+          <h3 class="timeline-title">STEM Tutor</h3>
+          <p class="timeline-company">Sylvan Learning</p>
+          <p class="timeline-desc">
+            Led interactive STEM based sessions for elementary school students, creating lesson
+            plans for chemistry experiments and guiding through math concepts. Introduced
+            programming concepts through Scratch.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // About page behavior.
+    //  FLIP: faithful port of about.js's scroll-lock state machine. The lock is
+    //    intentional — it holds the section in view so the flip + swapped text
+    //    are actually seen (a de-jacked version swaps after you've scrolled past).
+    //  TIMELINE: hand-drawn spine that draws as you scroll (scroll-linked, no lock).
+    //  Astro hardening the original couldn't have: all listeners are removed and
+    //    the body lock is RELEASED on astro:before-swap, so a mid-flip navigation
+    //    can't leave the next page frozen; re-inits cleanly on astro:page-load.
+
+    let rafId: number | null = null;
+    let resizeHandler: (() => void) | null = null;
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+    let scrollHandler: (() => void) | null = null;
+    let wheelHandler: ((e: WheelEvent) => void) | null = null;
+    let touchStartHandler: ((e: TouchEvent) => void) | null = null;
+    let touchMoveHandler: ((e: TouchEvent) => void) | null = null;
+    let touchEndHandler: (() => void) | null = null;
+
+    // Scroll lock (body fixed) with safe restore.
+    let _lockY = 0;
+    let _isLocked = false;
+    function lockScroll() {
+      if (_isLocked) return;
+      _lockY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${_lockY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.overflowY = 'scroll';
+      _isLocked = true;
+    }
+    function unlockScroll() {
+      if (!_isLocked) return;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflowY = '';
+      window.scrollTo({ top: _lockY, behavior: 'instant' });
+      _isLocked = false;
+    }
+
+    function teardownAbout() {
+      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+      if (resizeHandler) { window.removeEventListener('resize', resizeHandler); resizeHandler = null; }
+      if (scrollHandler) { window.removeEventListener('scroll', scrollHandler); scrollHandler = null; }
+      if (wheelHandler) { window.removeEventListener('wheel', wheelHandler); wheelHandler = null; }
+      if (touchStartHandler) { window.removeEventListener('touchstart', touchStartHandler); touchStartHandler = null; }
+      if (touchMoveHandler) { window.removeEventListener('touchmove', touchMoveHandler); touchMoveHandler = null; }
+      if (touchEndHandler) { window.removeEventListener('touchend', touchEndHandler); touchEndHandler = null; }
+      unlockScroll(); // never leave the body locked across a navigation
+    }
+
+    function initAbout() {
+      teardownAbout(); // idempotent re-init
+
+      const aboutMain = document.querySelector('.about-page-main');
+      if (!aboutMain) return; // not on /about
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const headshot = document.querySelector('.headshot');
+      const textBlocks = document.querySelectorAll<HTMLElement>('.text-block');
+      const showTextBlock = (index: number) =>
+        textBlocks.forEach((b, i) => b.classList.toggle('is-visible', i === index));
+      showTextBlock(0);
+
+      // Phases: 0 IDLE (above, normal scroll), 1 PRE (locked, pre-flip),
+      //         2 POST (locked, flipped), 3 DONE (below, normal scroll).
+      const sectionAbsBottom = aboutMain.getBoundingClientRect().bottom + window.scrollY;
+      let phase = window.scrollY >= sectionAbsBottom ? 3 : 0;
+      let accumulated = 0;
+      const FLIP_DELTA = 100;
+      const EXIT_DELTA = 100;
+      let lastScrollY = window.scrollY;
+
+      scrollHandler = () => {
+        const sy = window.scrollY;
+        const isScrollingUp = sy < lastScrollY;
+        lastScrollY = sy;
+        const rect = aboutMain.getBoundingClientRect();
+        if (phase === 0) {
+          if (rect.top <= 80 && rect.bottom > window.innerHeight * 0.3) {
+            accumulated = 0; lockScroll(); phase = 1;
+          }
+        } else if (phase === 3 && isScrollingUp) {
+          if (rect.bottom >= window.innerHeight - 80 && rect.top < window.innerHeight * 0.7) {
+            accumulated = 0; lockScroll(); phase = 2;
+          }
+        }
+      };
+
+      wheelHandler = (e: WheelEvent) => {
+        if (phase !== 1 && phase !== 2) return;
+        e.preventDefault();
+        accumulated += e.deltaY;
+        if (phase === 1) {
+          if (accumulated >= FLIP_DELTA) {
+            headshot?.classList.add('flipped'); showTextBlock(1); phase = 2; accumulated = 0;
+          } else if (accumulated < -80) {
+            unlockScroll(); phase = 0; accumulated = 0;
+          }
+        } else {
+          if (accumulated >= EXIT_DELTA) {
+            unlockScroll(); phase = 3; accumulated = 0;
+          } else if (accumulated <= -FLIP_DELTA) {
+            headshot?.classList.remove('flipped'); showTextBlock(0); phase = 1; accumulated = 0;
+          }
+        }
+      };
+
+      let touchY0 = 0;
+      let touchBase = 0;
+      touchStartHandler = (e: TouchEvent) => { touchY0 = e.touches[0].clientY; };
+      touchMoveHandler = (e: TouchEvent) => {
+        if (phase !== 1 && phase !== 2) return;
+        e.preventDefault();
+        const dy = touchY0 - e.touches[0].clientY;
+        accumulated = touchBase + dy;
+        if (phase === 1) {
+          if (accumulated >= FLIP_DELTA) {
+            headshot?.classList.add('flipped'); showTextBlock(1); phase = 2;
+            touchBase = 0; touchY0 = e.touches[0].clientY; accumulated = 0;
+          } else if (accumulated < -80) {
+            unlockScroll(); phase = 0; touchBase = 0; accumulated = 0;
+          }
+        } else {
+          if (accumulated >= EXIT_DELTA) {
+            unlockScroll(); phase = 3; touchBase = 0; accumulated = 0;
+          } else if (accumulated <= -FLIP_DELTA) {
+            headshot?.classList.remove('flipped'); showTextBlock(0); phase = 1;
+            touchBase = 0; touchY0 = e.touches[0].clientY; accumulated = 0;
+          }
+        }
+      };
+      touchEndHandler = () => { touchBase = accumulated; touchY0 = 0; };
+
+      window.addEventListener('scroll', scrollHandler, { passive: true });
+      window.addEventListener('wheel', wheelHandler, { passive: false });
+      window.addEventListener('touchstart', touchStartHandler, { passive: true });
+      window.addEventListener('touchmove', touchMoveHandler, { passive: false });
+      window.addEventListener('touchend', touchEndHandler, { passive: true });
+
+      // ---- Timeline draw (scroll-linked, no lock) ----
+      const timelineElRaw = document.getElementById('js-timeline');
+      const svgElRaw = document.getElementById('js-timeline-svg') as unknown as SVGSVGElement | null;
+      const pathElRaw = document.getElementById('js-timeline-path') as unknown as SVGPathElement | null;
+      const timelineItems = Array.from(document.querySelectorAll<HTMLElement>('.timeline-item'));
+      const dots = Array.from(document.querySelectorAll<HTMLElement>('.timeline-dot'));
+      if (!timelineElRaw || !svgElRaw || !pathElRaw || timelineItems.length === 0) return;
+      const timelineEl = timelineElRaw;
+      const svgEl = svgElRaw;
+      const pathEl = pathElRaw;
+
+      if (prefersReducedMotion) {
+        timelineItems.forEach((item) => item.classList.add('reveal'));
+        dots.forEach((dot) => dot.classList.add('dot-visible'));
+        svgEl.style.display = 'none';
+        return;
+      }
+
+      const WOBBLE_RANGE = 7;
+      const randomVals = Array.from({ length: 40 }, () => Math.random() * 2 - 1);
+      let totalLength = 0;
+      let revealFracs: number[] = [];
+      let currentOffset = 0;
+
+      const fracAtY = (targetY: number) => {
+        let lo = 0, hi = 1;
+        for (let i = 0; i < 24; i++) {
+          const mid = (lo + hi) / 2;
+          if (pathEl.getPointAtLength(mid * totalLength).y < targetY) lo = mid;
+          else hi = mid;
+        }
+        return (lo + hi) / 2;
+      };
+
+      const buildPath = () => {
+        const svgX = 28;
+        const timelineTopAbs = timelineEl.getBoundingClientRect().top + window.scrollY;
+        const dotYs: number[] = [];
+        timelineItems.forEach((item, i) => {
+          const title = item.querySelector('.timeline-title');
+          if (!title) return;
+          const titleRect = title.getBoundingClientRect();
+          const itemRect = item.getBoundingClientRect();
+          const titleCenterY = titleRect.top + window.scrollY + titleRect.height / 2;
+          const dotTopInItem = titleCenterY - (itemRect.top + window.scrollY) - 6;
+          dots[i].style.top = `${dotTopInItem}px`;
+          dotYs.push(titleCenterY - timelineTopAbs);
+        });
+        if (dotYs.length === 0) return;
+        const startY = dotYs[0] - 32;
+        const endY = dotYs[dotYs.length - 1] + 44;
+        const totalH = endY + 10;
+        svgEl.setAttribute('viewBox', `0 0 56 ${totalH}`);
+        svgEl.style.height = `${totalH}px`;
+        const points = [startY, ...dotYs, endY];
+        let d = `M ${svgX} ${startY}`;
+        for (let i = 1; i < points.length; i++) {
+          const mid = (points[i - 1] + points[i]) / 2;
+          const cp1x = svgX + randomVals[(i * 2) % 40] * WOBBLE_RANGE;
+          const cp2x = svgX + randomVals[(i * 2 + 1) % 40] * WOBBLE_RANGE;
+          d += ` C ${cp1x} ${mid}, ${cp2x} ${mid}, ${svgX} ${points[i]}`;
+        }
+        pathEl.setAttribute('d', d);
+        totalLength = pathEl.getTotalLength();
+        revealFracs = dotYs.map((dotY) => fracAtY(dotY));
+        pathEl.style.strokeDasharray = String(totalLength);
+        pathEl.style.strokeDashoffset = String(totalLength);
+        currentOffset = totalLength;
+      };
+
+      const getScrollFraction = () => {
+        const viewH = window.innerHeight;
+        const rect = timelineEl.getBoundingClientRect();
+        const topAbs = rect.top + window.scrollY;
+        const bottomAbs = rect.bottom + window.scrollY;
+        const drawStartOffset = 0.7;
+        const drawEndOffset = 0.9;
+        const drawStart = topAbs - viewH * drawStartOffset;
+        const drawEnd = bottomAbs - viewH * drawEndOffset;
+        const sy = window.scrollY;
+        if (sy < drawStart) return 0;
+        if (sy > drawEnd) return 1;
+        return (sy - drawStart) / (drawEnd - drawStart);
+      };
+
+      const tick = () => {
+        const targetOffset = totalLength * (1 - getScrollFraction());
+        currentOffset += (targetOffset - currentOffset) * 0.08;
+        if (Math.abs(currentOffset - targetOffset) < 0.5) currentOffset = targetOffset;
+        pathEl.style.strokeDashoffset = String(currentOffset);
+        const drawnFraction = 1 - currentOffset / totalLength;
+        revealFracs.forEach((frac, i) => {
+          const visible = drawnFraction >= frac;
+          dots[i].classList.toggle('dot-visible', visible);
+          timelineItems[i].classList.toggle('reveal', visible);
+        });
+        rafId = requestAnimationFrame(tick);
+      };
+
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          buildPath();
+          if (rafId === null) rafId = requestAnimationFrame(tick);
+        })
+      );
+
+      resizeHandler = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(buildPath, 120);
+      };
+      window.addEventListener('resize', resizeHandler);
+    }
+
+    document.addEventListener('astro:page-load', initAbout);
+    document.addEventListener('astro:before-swap', teardownAbout);
+  </script>
+</Base>
