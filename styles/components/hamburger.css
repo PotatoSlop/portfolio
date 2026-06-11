@@ -12,7 +12,18 @@
   width: clamp(48px, 9vw, 64px);
 }
 
-.menu-button a {
+.menu-button a,
+.menu-button button {
+  /* UA reset so a <button> renders identically to the original <a> */
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: none;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -23,6 +34,7 @@
   width: 100%;
 }
 
-.menu-button a:hover {
+.menu-button a:hover,
+.menu-button button:hover {
   background-color: var(--color-primary);
 }

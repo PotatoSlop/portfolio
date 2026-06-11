@@ -1,27 +1,13 @@
----
-// Verbatim port of the original site's <nav> + sidebar overlay (index.html).
-// Markup and classes are unchanged so the existing nav/hamburger/sidebar CSS
-// (styles/components/{nav,hamburger,sidebar}.css, loaded globally) applies
-// identically.
-//
-// Deferred (separate, deliberate step): the nav information architecture — the
-// Projects/About/Contact link targets are left as the original .html paths.
-// Behavior (hamburger-menu.js) is wired in the next micro-step.
-//
-// One necessary fix vs. verbatim: the logo src is made root-absolute (/Assets/…)
-// instead of relative, so it resolves from nested routes via the shared layout.
----
-
 <nav>
   <ul class="sidebar">
     <li>
-      <a id="close-sidebar" href="#">
+      <button id="close-sidebar" type="button" aria-label="Close menu">
         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
           <path
             d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"
           ></path>
         </svg>
-      </a>
+      </button>
     </li>
     <li><a href="index.html">Home</a></li>
     <li><a href="projects.html">Projects</a></li>
@@ -38,13 +24,62 @@
     <li class="hideOnMobile nav-link"><a href="about.html">About</a></li>
     <li class="hideOnMobile nav-link"><a href="contact.html">Contact</a></li>
     <li class="menu-button">
-      <a id="hamburger-menu" href="#">
+      <button id="hamburger-menu" type="button" aria-label="Open menu">
         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
           <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z"></path>
         </svg>
-      </a>
+      </button>
     </li>
   </ul>
 </nav>
 
 <div class="sidebar-overlay"></div>
+
+<script>
+  function showSidebar() {
+    const sidebar = document.querySelector('.sidebar') as HTMLElement | null;
+    const overlay = document.querySelector('.sidebar-overlay');
+    if (!sidebar || !overlay) return;
+    sidebar.style.display = 'flex';
+    overlay.classList.add('active');
+    setTimeout(() => sidebar.classList.add('active'), 10);
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideSidebar() {
+    const sidebar = document.querySelector('.sidebar') as HTMLElement | null;
+    const overlay = document.querySelector('.sidebar-overlay');
+    if (!sidebar || !overlay) return;
+    sidebar.classList.remove('active');
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+
+    setTimeout(() => {
+      sidebar.style.display = 'none';
+    }, 300);
+  }
+
+  // closest() handles clicks landing on the inner <svg>/<path> of the buttons.
+  document.addEventListener('click', (e) => {
+    const t = e.target as Element;
+    if (t.closest('#hamburger-menu')) {
+      e.preventDefault();
+      showSidebar();
+    } else if (t.closest('#close-sidebar')) {
+      e.preventDefault();
+      hideSidebar();
+    } else if (t.closest('.sidebar-overlay')) {
+      hideSidebar();
+    }
+  });
+
+  // Escape closes; resizing to desktop closes. Both query the sidebar fresh
+  document.addEventListener('keydown', (e) => {
+    const sidebar = document.querySelector('.sidebar');
+    if (e.key === 'Escape' && sidebar?.classList.contains('active')) hideSidebar();
+  });
+  window.addEventListener('resize', () => {
+    const sidebar = document.querySelector('.sidebar');
+    if (window.innerWidth > 768 && sidebar?.classList.contains('active')) hideSidebar();
+  });
+</script>

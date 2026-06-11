@@ -54,7 +54,18 @@
   padding: 0;
 }
 
-.sidebar li:first-child a {
+.sidebar li:first-child a,
+.sidebar li:first-child button {
+  /* UA reset so a <button> renders identically to the original <a> */
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: none;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -66,7 +77,8 @@
   text-decoration: none;
 }
 
-.sidebar li:first-child a:hover {
+.sidebar li:first-child a:hover,
+.sidebar li:first-child button:hover {
   background-color: var(--color-primary);
 }
 
