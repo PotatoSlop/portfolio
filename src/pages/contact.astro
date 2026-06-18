@@ -105,7 +105,7 @@ import Base from '../layouts/Base.astro';
 
   <script>
     // ---- EmailJS (publishable client ids; kept as-is per CLAUDE.md) ----
-    const EMAILJS_PUBLIC_KEY = 'wkDWKazXq616KcvRf';
+    const EMAILJS_PUBLIC_KEY = 'zLTdEhCQ3xZ0quJlx';
     const EMAILJS_SERVICE = 'service_48b6ao1';
     const EMAILJS_TEMPLATE = 'template_rn6shkd';
     const EMAILJS_SDK = 'https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js';
@@ -233,7 +233,7 @@ import Base from '../layouts/Base.astro';
       }
     }
 
-    async function sendEmail(event: SubmitEvent) {
+    async function sendEmail(event: Event) {
       event.preventDefault();
       const form = event.target as HTMLFormElement;
 
@@ -401,7 +401,7 @@ import Base from '../layouts/Base.astro';
       if (!form) return; // not on /contact
       loadEmailJS(); // preload the SDK so submit is instant
 
-      form.addEventListener('submit', sendEmail as EventListener);
+      form.addEventListener('submit', sendEmail);
       setupRealTimeValidation();
       setupPhoneFormatting();
       adjustTextareaHeight();
