@@ -298,8 +298,10 @@ import Base from '../layouts/Base.astro';
         clearErrorMessages();
         updateMessageCounter();
         resetFieldStates();
-      } catch (error) {
-        console.error('EmailJS Error:', error);
+      } catch (error: any) {
+        // EmailJS rejections are { status, text }; the bare object minifies to
+        // "t". Log both so the real reason is visible in the console.
+        console.error('EmailJS Error:', error?.status, '-', error?.text ?? error);
         showFormMessage(
           'Sorry, there was a problem sending your message. Please try again or contact me directly.',
           'error'
