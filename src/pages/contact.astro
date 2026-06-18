@@ -1,15 +1,4 @@
 ---
-// Faithful port of contact.html + contact.js. Classes/IDs unchanged so
-// styles/components/form.css (loaded globally) applies as-is.
-//
-// Notes:
-//  - showFooter=false: the original contact page has no footer (a "Get in
-//    Touch" CTA on the contact page is circular).
-//  - EmailJS kept as-is per CLAUDE.md: same CDN SDK, same PUBLISHABLE ids
-//    (public key + service/template) that already ship in the live site. These
-//    are publishable client identifiers, not secrets. No new npm dependency.
-//  - The SDK is loaded once via a small loader and the form is wired on
-//    astro:page-load so it survives View Transition navigations.
 import Base from '../layouts/Base.astro';
 ---
 

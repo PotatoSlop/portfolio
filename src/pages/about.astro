@@ -1,10 +1,4 @@
 ---
-// Faithful port of about.html (image stack + text blocks + timeline) into the
-// Base layout. Classes/IDs unchanged so styles/pages/about.css and
-// styles/components/timeline.css (loaded globally) apply as-is.
-//
-// Verbatim exceptions: asset paths root-absolute; timeline's third dot id fixed
-// from a duplicate "js-dot-1" to "js-dot-2".
 import Base from '../layouts/Base.astro';
 ---
 
@@ -182,21 +176,32 @@ import Base from '../layouts/Base.astro';
       const FLIP_DELTA = 100;
       const EXIT_DELTA = 100;
       let lastScrollY = window.scrollY;
+      // Track the section's previous top so the re-lock can detect the engage
+      // line being CROSSED between two scroll events. A position-band check is
+      // skipped by fast/momentum scrolling (the "won't reverse from far down"
+      // bug); a crossing check fires even when one event jumps over the band.
+      let prevTop = aboutMain.getBoundingClientRect().top;
+      const ENGAGE = 80; // section top at viewport top = the engaged position
 
       scrollHandler = () => {
         const sy = window.scrollY;
         const isScrollingUp = sy < lastScrollY;
         lastScrollY = sy;
         const rect = aboutMain.getBoundingClientRect();
+
         if (phase === 0) {
-          if (rect.top <= 80 && rect.bottom > window.innerHeight * 0.3) {
+          if (rect.top <= ENGAGE && rect.bottom > window.innerHeight * 0.3) {
             accumulated = 0; lockScroll(); phase = 1;
           }
         } else if (phase === 3 && isScrollingUp) {
-          if (rect.bottom >= window.innerHeight - 80 && rect.top < window.innerHeight * 0.7) {
+          // Re-arm when the section top crosses the engage line going up
+          // (was above it, now below it) — fires regardless of scroll speed.
+          if (prevTop < ENGAGE && rect.top >= ENGAGE) {
             accumulated = 0; lockScroll(); phase = 2;
           }
         }
+
+        prevTop = rect.top;
       };
 
       wheelHandler = (e: WheelEvent) => {
