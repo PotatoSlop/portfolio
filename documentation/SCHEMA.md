@@ -58,16 +58,19 @@ SubTag = "hardware" | "firmware" | "3d" | "illustration"
 
 ---
 
-## Photos — NOT a content collection
+## Photos / gallery — DEFERRED out of the portfolio (revised)
 
-Photos are a typed module at `src/data/photos.ts`, not a project collection.
-They are sub-items of ONE project — the gallery system, itself tagged
-`software` / `webdev`. The photography "category" is demoted from a top-level
-section to this single project (Phase 2.3).
+Revised decision: every project Dylan claims is a **standalone GitHub repo**, so
+the "gallery system" must not be an embedded portfolio-only artifact masquerading
+as a project. It becomes its **own repo + deployed demo** (the demo using the
+photography), linked from the portfolio like any other project (repo + live URL)
+once it exists. Out of scope this phase.
 
-- **Organizing axis = `location`** (reuse the field already present in the old
-  `gallery.js`). No subject-level tagging in Phase 0 — parked (PLAN.md parking lot).
-- Shape per photo (draft): `{ src, alt, location, width, height }`.
+Consequently: **no `src/data/photos.ts`** and no photo data port now; `gallery.js`
+is left untouched. The photo set + `location` organization travel with the future
+standalone gallery repo. (Known heads-up for that future port: `gallery.js` has a
+bug — three photos use `orientation: 'portrait-short-gallery'` but the renderer
+only matches `'portrait-short'`, so they never render.)
 
 ---
 
@@ -114,8 +117,8 @@ export const collections = { projects };
 
 - [x] Schema drafted (this file)
 - [x] Discipline rule written down (≥1 discipline per project)
-- [x] Photo axis decided (`location`, typed module) — owned by a standalone
-      `photo-gallery` project (`software`/`webdev`)
+- [x] Photos/gallery DEFERRED — the gallery system becomes its own repo + demo,
+      linked as a project later; not part of the portfolio data model.
 - [x] Validated against real projects in 0.2 (see INVENTORY.md). Surfaced gaps,
       now fixed here: added `links`, made `cover` optional for stubs.
 

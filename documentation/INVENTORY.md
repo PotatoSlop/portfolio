@@ -27,26 +27,23 @@ that gets the R3F teardown deep-dive in Phase 3.
 - **Low-Poly Boat** was Design-only → now **design + software** (it's a game-engine asset).
 - **Photography** is gone as a top-level category (see below).
 
-## Photos → folded into one software project
+## Photography / gallery → DEFERRED (future standalone repo)
 
-The old "Photography" dropdown is **not** a discipline. Per CLAUDE.md, the 22
-photos become a typed module (`src/data/photos.ts`) owned by one `software`/`webdev`
-project, organized by **`location`**. Locations present:
+The old "Photography" dropdown is **not** a discipline. Revised decision: a
+claimed project should be a **standalone repo**, like every other project here —
+so the "gallery system" is **not** built into the portfolio this phase. It
+becomes its **own repo + deployed demo** (using the photography), linked from the
+portfolio as a project (repo + live) once it exists.
 
-> Taiwan (Jiufen, Taipei), New York (Queens, Manhattan, Brooklyn), Boston,
-> Seattle, Tokyo (Shibuya, Asakusa), Singapore
-
-✅ **Decided:** photos are owned by a **standalone `photo-gallery` project**
-(`software` / `webdev`) — "the gallery system." Portfolioslop stays about site
-architecture; the gallery is its own project.
-
-| id | title | status | disciplines | subTags | external link |
-|---|---|---|---|---|---|
-| `photo-gallery` | Photo Gallery | shipped | software | webdev | — |
-
-> Note: `gallery.js` has a data bug — three photos use `orientation:
-> 'portrait-short-gallery'` but the renderer only matches `'portrait-short'`,
-> so they silently never render. Worth fixing when porting (not now).
+- **No `photo-gallery` project in the portfolio now**; no `src/data/photos.ts`.
+- `gallery.js` stays untouched; the 22 photos + `location` organization travel
+  with the future gallery repo. Locations present, for that future port:
+  > Taiwan (Jiufen, Taipei), New York (Queens, Manhattan, Brooklyn), Boston,
+  > Seattle, Tokyo (Shibuya, Asakusa), Singapore
+- The Playground does **not** fold in photos for now (revisit once the repo exists).
+- Heads-up for the future port: `gallery.js` has a bug — three photos use
+  `orientation: 'portrait-short-gallery'` but the renderer only matches
+  `'portrait-short'`, so they never render.
 
 ## Incoming projects (Phase 5 — stubs only, not built yet)
 

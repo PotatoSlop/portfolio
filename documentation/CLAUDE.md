@@ -34,7 +34,7 @@ Photography / Programming) — with a structured, project-centered Astro site.
 - **Breadcrumbs + a persistent anchor** (name + amber identity tick) on every
   page (e.g. Sketchbook / Engineering / Nob).
 - **Playground** = the sketch-layer: a raw gallery of ALL projects in the neutral
-  doodle aesthetic (the unrendered origin). Folds in the photo gallery.
+  doodle aesthetic (the unrendered origin). (Photo gallery DEFERRED — see data model.)
 
 ## Data model (the keystone — `src/content.config.ts`)
 - One MDX file per project. Frontmatter = queryable metadata; MDX body = the
@@ -44,8 +44,9 @@ Photography / Programming) — with a structured, project-centered Astro site.
   discipline views without duplicating the file).
 - `subTags` from a fixed enum; `hero`, `order`, and `related` (validated
   references, pointed across disciplines).
-- Photos are a typed module (`src/data/photos.ts`), not a collection — they're
-  sub-items of one project (the gallery system, tagged `software`/webdev).
+- Photos/gallery are DEFERRED out of this repo: the gallery system becomes its
+  own standalone repo + demo (linked as a project later), not an embedded
+  portfolio module. No `src/data/photos.ts` this phase.
 
 ## Design system
 - Shared skeleton — layout grid, type scale, spacing, motion timing,
