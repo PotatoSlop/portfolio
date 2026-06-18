@@ -65,6 +65,7 @@
 
 .real-photo {
   transform: rotateY(180deg);
+  object-position: center 5%;
 }
 
 .about-text-stack {

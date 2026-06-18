@@ -13,9 +13,14 @@ import '../../styles/main.css';
 interface Props {
   title?: string;
   description?: string;
+  showFooter?: boolean;
 }
 
-const { title = 'Dylan Chen', description = 'Dylan Chen — portfolio' } = Astro.props;
+const {
+  title = 'Dylan Chen',
+  description = 'Dylan Chen — portfolio',
+  showFooter = true,
+} = Astro.props;
 ---
 
 <!doctype html>
@@ -40,7 +45,8 @@ const { title = 'Dylan Chen', description = 'Dylan Chen — portfolio' } = Astro
   <body>
     <Nav />
     <slot />
-    <Footer />
+    {/* Contact page opts out — a "Get in Touch" footer CTA there is circular. */}
+    {showFooter && <Footer />}
 
     <script>
       // Ported verbatim from page-effects.js, with one required change: it runs

@@ -1,0 +1,426 @@
+---
+// Faithful port of contact.html + contact.js. Classes/IDs unchanged so
+// styles/components/form.css (loaded globally) applies as-is.
+//
+// Notes:
+//  - showFooter=false: the original contact page has no footer (a "Get in
+//    Touch" CTA on the contact page is circular).
+//  - EmailJS kept as-is per CLAUDE.md: same CDN SDK, same PUBLISHABLE ids
+//    (public key + service/template) that already ship in the live site. These
+//    are publishable client identifiers, not secrets. No new npm dependency.
+//  - The SDK is loaded once via a small loader and the form is wired on
+//    astro:page-load so it survives View Transition navigations.
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Contact — Dylan Chen" showFooter={false}>
+  <header class="page-header container">
+    <h1>Let's Connect!</h1>
+  </header>
+
+  <main class="container">
+    <div
+      id="form-messages"
+      class="form-messages"
+      role="alert"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+    </div>
+
+    <form id="contact-form" novalidate>
+      <div class="form-group">
+        <label for="name">
+          Full Name <span class="required" aria-label="required">*</span>
+        </label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          required
+          aria-describedby="name-hint name-error"
+          autocomplete="name"
+        />
+        <div id="name-hint" class="field-hint">Enter your first and last name</div>
+        <div id="name-error" class="error-message" role="alert" aria-live="polite"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">
+          Email Address <span class="required" aria-label="required">*</span>
+        </label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          required
+          aria-describedby="email-hint email-error"
+          autocomplete="email"
+        />
+        <div id="email-hint" class="field-hint">I'll use this to respond to your message</div>
+        <div id="email-error" class="error-message" role="alert" aria-live="polite"></div>
+      </div>
+
+      <input type="hidden" id="from_field" name="from_field" />
+
+      <div class="form-group">
+        <label for="phone">
+          Phone Number <span class="optional">(optional)</span>
+        </label>
+        <input
+          type="tel"
+          id="phone"
+          name="phone"
+          pattern="\(\d{3}\) \d{3}-\d{4}"
+          aria-describedby="phone-hint phone-error"
+          autocomplete="tel"
+        />
+        <div id="phone-hint" class="field-hint">(123) 456-7890</div>
+        <div id="phone-error" class="error-message" role="alert" aria-live="polite"></div>
+      </div>
+
+      <div class="form-group message-group">
+        <label for="message">
+          Message <span class="required" aria-label="required">*</span>
+        </label>
+        <textarea
+          id="message"
+          name="message"
+          required
+          aria-describedby="message-hint message-error message-counter"
+          placeholder="Give me your best project ideas!"></textarea>
+        <div class="message-footer">
+          <div id="message-hint" class="field-hint">Drop your message here</div>
+          <div id="message-counter" class="character-counter" aria-live="polite">0/50</div>
+        </div>
+        <div id="message-error" class="error-message" role="alert" aria-live="polite"></div>
+      </div>
+
+      <button type="submit" class="submit-button">
+        <span class="button-text">Send Message</span>
+        <span class="button-spinner" aria-hidden="true"></span>
+      </button>
+    </form>
+  </main>
+
+  <script>
+    // ---- EmailJS (publishable client ids; kept as-is per CLAUDE.md) ----
+    const EMAILJS_PUBLIC_KEY = 'wkDWKazXq616KcvRf';
+    const EMAILJS_SERVICE = 'service_48b6ao1';
+    const EMAILJS_TEMPLATE = 'template_rn6shkd';
+    const EMAILJS_SDK = 'https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js';
+
+    // Load the SDK once (and init); resolves to the global emailjs object.
+    let emailjsReady: Promise<any> | null = null;
+    function loadEmailJS(): Promise<any> {
+      if (emailjsReady) return emailjsReady;
+      emailjsReady = new Promise((resolve, reject) => {
+        const existing = (window as any).emailjs;
+        if (existing) {
+          existing.init(EMAILJS_PUBLIC_KEY);
+          resolve(existing);
+          return;
+        }
+        const s = document.createElement('script');
+        s.src = EMAILJS_SDK;
+        s.onload = () => {
+          (window as any).emailjs.init(EMAILJS_PUBLIC_KEY);
+          resolve((window as any).emailjs);
+        };
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      return emailjsReady;
+    }
+
+    // ---- Validation + UI helpers (ported from contact.js) ----
+    const val = (id: string) =>
+      (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | null)?.value ?? '';
+
+    function isValidEmail(email: string) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+    function isValidPhone(phone: string) {
+      return /^\(\d{3}\) \d{3}-\d{4}$/.test(phone);
+    }
+
+    function showError(fieldId: string, message: string) {
+      const field = document.getElementById(fieldId);
+      const errorDiv = document.getElementById(fieldId + '-error');
+      if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+      }
+      field?.classList.add('error-field');
+      field?.classList.remove('success-field');
+      field?.setAttribute('aria-invalid', 'true');
+    }
+    function clearError(fieldId: string) {
+      const errorDiv = document.getElementById(fieldId + '-error');
+      if (errorDiv) {
+        errorDiv.textContent = '';
+        errorDiv.style.display = 'none';
+      }
+      const field = document.getElementById(fieldId);
+      field?.classList.remove('error-field');
+      field?.setAttribute('aria-invalid', 'false');
+    }
+    function showSuccess(fieldId: string) {
+      const field = document.getElementById(fieldId);
+      field?.classList.add('success-field');
+      field?.classList.remove('error-field');
+      field?.setAttribute('aria-invalid', 'false');
+    }
+    function clearErrorMessages() {
+      document.querySelectorAll('.error-message').forEach((m) => {
+        m.textContent = '';
+        (m as HTMLElement).style.display = 'none';
+      });
+      document.querySelectorAll('.error-field').forEach((field) => {
+        field.classList.remove('error-field');
+        field.setAttribute('aria-invalid', 'false');
+      });
+    }
+    function resetFieldStates() {
+      document.querySelectorAll('input, textarea').forEach((field) => {
+        field.classList.remove('error-field', 'success-field');
+        field.setAttribute('aria-invalid', 'false');
+      });
+    }
+    function focusFirstErrorField() {
+      (document.querySelector('.error-field') as HTMLElement | null)?.focus();
+    }
+    function showFormMessage(message: string, type: 'success' | 'error') {
+      const messageDiv = document.getElementById('form-messages');
+      if (!messageDiv) return;
+      messageDiv.textContent = message;
+      messageDiv.className = 'form-messages ' + type;
+      messageDiv.style.display = 'block';
+      messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    function clearFormMessages() {
+      const messageDiv = document.getElementById('form-messages');
+      if (!messageDiv) return;
+      messageDiv.style.display = 'none';
+      messageDiv.className = 'form-messages';
+    }
+    function setButtonLoading(button: HTMLButtonElement, isLoading: boolean) {
+      const text = button.querySelector('.button-text');
+      if (isLoading) {
+        button.disabled = true;
+        button.classList.add('loading');
+        if (text) text.textContent = 'Sending...';
+      } else {
+        button.disabled = false;
+        button.classList.remove('loading');
+        if (text) text.textContent = 'Send Message';
+      }
+    }
+    function updateMessageCounter() {
+      const messageField = document.getElementById('message') as HTMLTextAreaElement | null;
+      const counter = document.getElementById('message-counter');
+      if (!messageField || !counter) return;
+      const currentLength = messageField.value.length;
+      const minLength = 50;
+      const maxLength = 2000;
+      counter.textContent = currentLength + '/' + minLength;
+      counter.classList.remove('warning', 'valid');
+      if (currentLength >= minLength) {
+        counter.classList.add('valid');
+        counter.textContent = currentLength + '/' + maxLength;
+      } else if (currentLength > minLength * 0.8) {
+        counter.classList.add('warning');
+      }
+    }
+
+    async function sendEmail(event: SubmitEvent) {
+      event.preventDefault();
+      const form = event.target as HTMLFormElement;
+
+      const name = val('name').trim();
+      const email = val('email').trim();
+      const phone = val('phone').trim();
+      const message = val('message').trim();
+
+      clearErrorMessages();
+      clearFormMessages();
+
+      let hasErrors = false;
+      if (!name) {
+        hasErrors = true;
+        showError('name', 'Full name is required');
+      } else if (name.length < 2) {
+        hasErrors = true;
+        showError('name', 'Name must be at least 2 characters long');
+      }
+      if (!email) {
+        hasErrors = true;
+        showError('email', 'Email address is required');
+      } else if (!isValidEmail(email)) {
+        hasErrors = true;
+        showError('email', 'Please enter a valid email address');
+      }
+      if (phone && !isValidPhone(phone)) {
+        hasErrors = true;
+        showError('phone', 'Please enter a valid phone number in format: (555) 123-4567');
+      }
+      if (!message) {
+        hasErrors = true;
+        showError('message', 'Message is required');
+      } else if (message.length < 50) {
+        hasErrors = true;
+        showError('message', `Message must be at least 50 characters long. ${50 - message.length} characters remaining.`);
+      } else if (message.length > 2000) {
+        hasErrors = true;
+        showError('message', `Message is too long. Please reduce by ${message.length - 2000} characters.`);
+      }
+
+      if (hasErrors) {
+        focusFirstErrorField();
+        showFormMessage('Please correct the errors below and try again.', 'error');
+        return;
+      }
+
+      const fromField = document.getElementById('from_field') as HTMLInputElement | null;
+      if (fromField) fromField.value = name + ' <' + email + '>';
+
+      const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+      setButtonLoading(submitButton, true);
+
+      try {
+        const emailjs = await loadEmailJS();
+        await emailjs.sendForm(EMAILJS_SERVICE, EMAILJS_TEMPLATE, form);
+        showFormMessage(
+          "Thank you! Your message has been sent successfully. I'll get back to you soon.",
+          'success'
+        );
+        form.reset();
+        clearErrorMessages();
+        updateMessageCounter();
+        resetFieldStates();
+      } catch (error) {
+        console.error('EmailJS Error:', error);
+        showFormMessage(
+          'Sorry, there was a problem sending your message. Please try again or contact me directly.',
+          'error'
+        );
+      } finally {
+        setButtonLoading(submitButton, false);
+      }
+    }
+
+    function setupRealTimeValidation() {
+      const nameField = document.getElementById('name') as HTMLInputElement | null;
+      const emailField = document.getElementById('email') as HTMLInputElement | null;
+      const phoneField = document.getElementById('phone') as HTMLInputElement | null;
+      const messageField = document.getElementById('message') as HTMLTextAreaElement | null;
+
+      nameField?.addEventListener('blur', function () {
+        const name = this.value.trim();
+        clearError('name');
+        if (name && name.length >= 2) showSuccess('name');
+        else if (name && name.length < 2) showError('name', 'Name must be at least 2 characters long');
+      });
+      nameField?.addEventListener('input', function () {
+        if (this.classList.contains('error-field')) clearError('name');
+      });
+
+      emailField?.addEventListener('blur', function () {
+        const email = this.value.trim();
+        clearError('email');
+        if (email && isValidEmail(email)) showSuccess('email');
+        else if (email && !isValidEmail(email)) showError('email', 'Please enter a valid email address');
+      });
+      emailField?.addEventListener('input', function () {
+        if (this.classList.contains('error-field')) clearError('email');
+      });
+
+      phoneField?.addEventListener('blur', function () {
+        const phone = this.value.trim();
+        clearError('phone');
+        if (phone && isValidPhone(phone)) showSuccess('phone');
+        else if (phone && !isValidPhone(phone))
+          showError('phone', 'Please enter a valid phone number in format: (555) 123-4567');
+      });
+
+      messageField?.addEventListener('input', function () {
+        updateMessageCounter();
+        if (this.classList.contains('error-field')) clearError('message');
+      });
+      messageField?.addEventListener('blur', function () {
+        const message = this.value.trim();
+        clearError('message');
+        if (message && message.length >= 50) showSuccess('message');
+        else if (message && message.length < 50)
+          showError('message', `Message must be at least 50 characters long. ${50 - message.length} characters remaining.`);
+      });
+    }
+
+    function setupPhoneFormatting() {
+      const phoneInput = document.getElementById('phone') as HTMLInputElement | null;
+      phoneInput?.addEventListener('input', () => {
+        const x = phoneInput.value.replace(/\D/g, '').substring(0, 10);
+        let formatted = '';
+        if (x.length > 0) formatted = '(' + x.substring(0, 3);
+        if (x.length >= 4) formatted += ') ' + x.substring(3, 6);
+        if (x.length >= 7) formatted += '-' + x.substring(6, 10);
+        phoneInput.value = formatted;
+      });
+    }
+
+    function adjustTextareaHeight() {
+      const textarea = document.getElementById('message') as HTMLTextAreaElement | null;
+      if (!textarea) return;
+      const viewportHeight = window.innerHeight;
+      let minHeight: number, maxHeight: number, height: number;
+      if (window.innerWidth <= 768) {
+        minHeight = Math.max(120, Math.floor(viewportHeight * 0.25) - 80);
+        maxHeight = Math.max(180, Math.floor(viewportHeight * 0.35) - 80);
+        height = Math.max(150, Math.floor(viewportHeight * 0.3) - 80);
+      } else if (viewportHeight <= 600) {
+        minHeight = 120;
+        maxHeight = 180;
+        height = 150;
+      } else {
+        minHeight = Math.floor(viewportHeight * 0.3) - 100;
+        maxHeight = Math.floor(viewportHeight * 0.4) - 100;
+        height = Math.floor(viewportHeight * 0.35) - 100;
+      }
+      textarea.style.minHeight = minHeight + 'px';
+      textarea.style.maxHeight = maxHeight + 'px';
+      textarea.style.height = height + 'px';
+    }
+
+    // ---- Wire up (per astro:page-load; window resize cleaned on before-swap) ----
+    let resizeHandler: (() => void) | null = null;
+
+    function initContact() {
+      const form = document.getElementById('contact-form') as HTMLFormElement | null;
+      if (!form) return; // not on /contact
+      loadEmailJS(); // preload the SDK so submit is instant
+
+      form.addEventListener('submit', sendEmail as EventListener);
+      setupRealTimeValidation();
+      setupPhoneFormatting();
+      adjustTextareaHeight();
+      updateMessageCounter();
+
+      document
+        .querySelectorAll('input, textarea')
+        .forEach((input) => input.addEventListener('input', clearFormMessages));
+
+      resizeHandler = adjustTextareaHeight;
+      window.addEventListener('resize', resizeHandler);
+    }
+
+    function teardownContact() {
+      if (resizeHandler) {
+        window.removeEventListener('resize', resizeHandler);
+        resizeHandler = null;
+      }
+    }
+
+    document.addEventListener('astro:page-load', initContact);
+    document.addEventListener('astro:before-swap', teardownContact);
+  </script>
+</Base>

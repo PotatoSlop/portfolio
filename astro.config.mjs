@@ -8,4 +8,7 @@ import mdx from '@astrojs/mdx';
 export default defineConfig({
   site: 'https://dylanchen.me',
   integrations: [react(), mdx()],
+  // Dev-only: silence the dev toolbar (its chunk kept 504-ing as
+  // "Outdated Optimize Dep" and cluttering the console). No effect on builds.
+  devToolbar: { enabled: false },
 });
