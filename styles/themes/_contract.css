@@ -1,0 +1,45 @@
+/* ===== Themeable contract =====
+   The semantic layer that sits ON TOP of the primitive tokens in tokens.css.
+   Every discipline theme overrides ONLY these variables — never the primitives,
+   never the skeleton. Adding a new themeable surface? Add the var here with a
+   sketchbook default, then let each theme in themes/*.css override it.
+
+   Default values below = the SKETCHBOOK theme (landing + playground): the
+   neutral "unrendered origin" doodle look. Pages with no data-theme (or
+   data-theme="sketchbook") get these.
+
+   NOT in this contract on purpose: the nav/logo/name anchor tokens (--nav-*,
+   --color-primary used by the amber identity tick). Those ride through every
+   theme unchanged — that's the anchoring promise (see CLAUDE.md). */
+
+:root,
+[data-theme='sketchbook'] {
+  /* Surfaces */
+  --theme-bg: var(--color-white);
+  --theme-surface: var(--color-white);
+  --theme-border: var(--color-black);
+
+  /* Ink */
+  --theme-ink: var(--color-black);
+  --theme-ink-muted: var(--color-text-light);
+
+  /* Accent (distinct from the amber anchor; sketchbook reuses amber) */
+  --theme-accent: var(--color-primary);
+  --theme-accent-contrast: var(--color-black);
+
+  /* Background texture: blueprint/grid image or `none` */
+  --theme-grid: none;
+  --theme-grid-size: 24px;
+
+  /* Type + shape + motion feel */
+  --theme-font-display: var(--font-secondary);
+  --theme-font-body: var(--font-primary);
+  --theme-radius: var(--radius-medium);
+  --theme-motion-ease: var(--ease-smooth);
+
+  /* Idiom hooks — per-discipline interaction signature (see Step D).
+     Same component reads these; the discipline only swaps the values +
+     a data-idiom flag. */
+  --idiom-accent: var(--color-primary);
+  --idiom-rule: var(--color-black);
+}

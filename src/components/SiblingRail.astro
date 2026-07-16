@@ -1,0 +1,78 @@
+---
+// Discoverable affordance for the cross-discipline swipe (Step C). Shows the
+// two neighbouring disciplines as clickable links; clicking navigates via the
+// ClientRouter, which runs the directional slide. The ring is circular so both
+// neighbours always exist.
+type Discipline = 'engineering' | 'design' | 'software';
+interface Props {
+  discipline: Discipline;
+}
+const { discipline } = Astro.props;
+
+const ORDER: Discipline[] = ['engineering', 'design', 'software'];
+const idx = ORDER.indexOf(discipline);
+const prev = ORDER[(idx + ORDER.length - 1) % ORDER.length];
+const next = ORDER[(idx + 1) % ORDER.length];
+const label = (d: string) => d.charAt(0).toUpperCase() + d.slice(1);
+---
+
+<nav class="sibling-rail" aria-label="Switch discipline">
+  <a class="sibling-rail__link sibling-rail__prev" href={`/${prev}`}>
+    <span aria-hidden="true">&lsaquo;</span> {label(prev)}
+  </a>
+  <span class="sibling-rail__hint" aria-hidden="true">swipe</span>
+  <a class="sibling-rail__link sibling-rail__next" href={`/${next}`}>
+    {label(next)} <span aria-hidden="true">&rsaquo;</span>
+  </a>
+</nav>
+
+<style>
+  .sibling-rail {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap-medium);
+    max-width: 900px;
+    margin: var(--gap-xl) auto 0;
+    padding: 0 clamp(1rem, 4vw, 2rem);
+    font-family: var(--theme-font-body);
+  }
+
+  .sibling-rail__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.4em 1em;
+    border: var(--border-width-medium) solid var(--theme-border);
+    border-radius: var(--theme-radius);
+    color: var(--theme-ink);
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color var(--duration-fast) var(--theme-motion-ease),
+      color var(--duration-fast) var(--theme-motion-ease),
+      transform var(--duration-fast) var(--theme-motion-ease);
+  }
+
+  .sibling-rail__link:hover,
+  .sibling-rail__link:focus-visible {
+    background: var(--theme-accent);
+    color: var(--theme-accent-contrast);
+    outline: none;
+    transform: var(--transform-translate-up-small);
+  }
+
+  .sibling-rail__hint {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--theme-ink-muted);
+  }
+
+  /* The hint is desktop noise on touch where swiping is native; keep it but
+     it doubles as a label. On very small screens drop it to save room. */
+  @media (max-width: 480px) {
+    .sibling-rail__hint {
+      display: none;
+    }
+  }
+</style>

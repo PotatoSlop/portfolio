@@ -24,10 +24,20 @@ const projects = defineCollection({
       subTags: z.array(z.enum(SUBTAGS)).default([]),
       hero: z.boolean().default(false),
       order: z.number().default(0),
-      // Optional so frontmatter-only WIP stubs validate.
+      // Local asset resolved through the image pipeline (astro:assets). Path in
+      // frontmatter is relative to the .mdx file; optional so WIP stubs validate.
       cover: image().optional(),
+      // Per-project framing inside the tile mask. The tile is a fixed frame
+      // (overflow clipped); the cover is laid at the tile's top-left at full
+      // tile width, then moved by EXACT PIXELS and zoomed from that corner:
+      //   coverX → px right (negative = left)
+      //   coverY → px down  (negative = up)
+      //   coverScale → zoom multiplier (1 = image spans the tile width)
+      coverX: z.number().default(0),
+      coverY: z.number().default(0),
+      coverScale: z.number().default(1),
       glb: z.string().optional(),
-      gallery: z.array(image()).default([]),
+      gallery: z.array(z.string()).default([]),
       // Outbound CTAs — most light projects are primarily a card + one of these.
       links: z
         .object({

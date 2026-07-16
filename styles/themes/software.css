@@ -1,0 +1,27 @@
+/* ===== Software theme — editor / terminal =====
+   Cool editor-dark backdrop, mono type, syntax/caret accent. Differentiated
+   from Engineering's warm charcoal by a blue-tinged dark + green caret accent.
+   Overrides ONLY the contract vars. */
+
+[data-theme='software'] {
+  --theme-bg: #16181f;
+  --theme-surface: #1e212b;
+  --theme-border: #2c3140;
+
+  --theme-ink: #d6dbe6;
+  --theme-ink-muted: #7a8294;
+
+  /* Caret/syntax green */
+  --theme-accent: #5ad6a0;
+  --theme-accent-contrast: #0c0e13;
+
+  --theme-grid: none;
+
+  --theme-font-display: var(--font-primary);
+  --theme-radius: var(--radius-small);
+  --theme-motion-ease: var(--ease-smooth);
+
+  /* Idiom: caret/typing (stub — wired in a later pass) */
+  --idiom-accent: #5ad6a0;
+  --idiom-rule: #2c3140;
+}

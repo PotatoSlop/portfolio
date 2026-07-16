@@ -1,0 +1,180 @@
+---
+// Custom site-wide scrollbar. The native scrollbar is hidden in base.css; this
+// renders a compact rounded "slot" centred on the right edge — a scaled-down
+// track (~25% of the viewport height) whose thumb maps the full document
+// scroll into that short slot. Draggable, hides when the page doesn't overflow,
+// and re-syncs on View Transitions + content-size changes. Kept vertically
+// centred and short on purpose so it no longer collides with the pull-tabs.
+---
+
+<div class="scrollbar" aria-hidden="true">
+  <div class="scrollbar__thumb"></div>
+</div>
+
+<style>
+  .scrollbar {
+    /* Short, centred slot — the track itself, not just an invisible rail. */
+    position: fixed;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 18vh;
+    z-index: 1000;
+    border-radius: var(--radius-pill, 999px);
+    background: color-mix(in srgb, var(--theme-ink, #1e1e14) 14%, transparent);
+    pointer-events: none; /* only the thumb is interactive */
+    opacity: 0;
+    transition: opacity var(--duration-medium) var(--ease-default),
+      width var(--duration-fast) var(--ease-default);
+  }
+  .scrollbar.is-visible {
+    opacity: 1;
+  }
+  /* Widen the whole slot when the thumb is grabbed/hovered. */
+  .scrollbar:has(.scrollbar__thumb:hover),
+  .scrollbar:has(.scrollbar__thumb.is-dragging) {
+    width: 12px;
+  }
+
+  .scrollbar__thumb {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    min-height: 26px;
+    border-radius: var(--radius-pill, 999px);
+    background: linear-gradient(var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    transform: translateY(var(--sb-y, 0px));
+    pointer-events: auto;
+    cursor: grab;
+    transition: background-color var(--duration-fast) var(--ease-default);
+  }
+  .scrollbar__thumb:hover,
+  .scrollbar__thumb.is-dragging {
+    background: var(--color-primary-dark);
+    cursor: grabbing;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scrollbar {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Bound ONCE (window/document persist across View Transitions); everything
+  // queries the thumb fresh so it survives Base.astro re-rendering per page.
+  const TRACK_FRACTION = 0.18; // slot height as a fraction of the viewport
+
+  let dragging = false;
+  let dragStartY = 0;
+  let dragStartScroll = 0;
+  let raf = 0;
+
+  // The About-page flip locks the body (position:fixed) and drives scroll via
+  // wheel/touch; a custom scrollbar can't act on a frozen body, so we hide it
+  // for the duration and restore it the moment the flip unlocks.
+  const isFlipLocked = () => document.documentElement.dataset.flipLocked === '1';
+
+  const metrics = () => {
+    const scrollH = document.documentElement.scrollHeight;
+    const clientH = window.innerHeight;
+    return {
+      scrollH,
+      clientH,
+      trackH: clientH * TRACK_FRACTION,
+      maxScroll: Math.max(scrollH - clientH, 0),
+    };
+  };
+
+  function update() {
+    const bar = document.querySelector('.scrollbar') as HTMLElement | null;
+    const thumb = document.querySelector('.scrollbar__thumb') as HTMLElement | null;
+    if (!bar || !thumb) return;
+    if (isFlipLocked()) {
+      bar.classList.remove('is-visible');
+      return;
+    }
+    const { scrollH, clientH, trackH, maxScroll } = metrics();
+    if (maxScroll <= 1) {
+      bar.classList.remove('is-visible');
+      return;
+    }
+    bar.classList.add('is-visible');
+    // Thumb size proportional to the visible fraction, mapped into the short
+    // slot instead of the full viewport height.
+    const thumbH = Math.max((clientH / scrollH) * trackH, 26);
+    const travel = trackH - thumbH;
+    const y = maxScroll > 0 ? (window.scrollY / maxScroll) * travel : 0;
+    thumb.style.height = `${thumbH}px`;
+    thumb.style.setProperty('--sb-y', `${y}px`);
+  }
+
+  function scheduleUpdate() {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(update);
+  }
+
+  window.addEventListener('scroll', scheduleUpdate, { passive: true });
+  window.addEventListener('resize', scheduleUpdate);
+
+  // Drag the thumb to scroll. Bypass smooth-scroll during the drag so the page
+  // tracks the pointer 1:1. Motion is amplified by the slot ratio so a short
+  // drag still spans the whole document.
+  document.addEventListener('pointerdown', (e) => {
+    if (isFlipLocked()) return; // no dragging while the flip owns scroll
+    const t = e.target as Element;
+    if (!t.closest('.scrollbar__thumb')) return;
+    const thumb = document.querySelector('.scrollbar__thumb') as HTMLElement;
+    dragging = true;
+    dragStartY = e.clientY;
+    dragStartScroll = window.scrollY;
+    thumb.classList.add('is-dragging');
+    document.documentElement.style.scrollBehavior = 'auto';
+    try {
+      thumb.setPointerCapture(e.pointerId);
+    } catch {}
+    e.preventDefault();
+  });
+
+  document.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const thumb = document.querySelector('.scrollbar__thumb') as HTMLElement | null;
+    if (!thumb) return;
+    const { trackH, maxScroll } = metrics();
+    const thumbH = thumb.getBoundingClientRect().height;
+    const travel = trackH - thumbH;
+    const dy = e.clientY - dragStartY;
+    const next = dragStartScroll + (travel > 0 ? (dy / travel) * maxScroll : 0);
+    window.scrollTo(0, next);
+  });
+
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    document.querySelector('.scrollbar__thumb')?.classList.remove('is-dragging');
+    document.documentElement.style.scrollBehavior = '';
+  }
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
+
+  // Recompute when content height changes (images, footer reveal, etc.).
+  const ro = new ResizeObserver(() => scheduleUpdate());
+  if (document.body) ro.observe(document.body);
+
+  // The flip lock toggles a <html data-flip-locked> attribute (no scroll event
+  // fires while the body is frozen), so watch it directly to hide/show in sync.
+  new MutationObserver(scheduleUpdate).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-flip-locked'],
+  });
+
+  document.addEventListener('astro:page-load', () => {
+    if (document.body) ro.observe(document.body);
+    update();
+  });
+
+  update();
+</script>

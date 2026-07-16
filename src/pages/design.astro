@@ -1,17 +1,14 @@
 ---
 import Base from '../layouts/Base.astro';
+import PullTabs from '../components/PullTabs.astro';
+import DisciplinePage from '../components/DisciplinePage.astro';
 ---
 
-<Base title="Design — Dylan Chen">
-  <main class="discipline-stub">
-    <h1>Design</h1>
-    <p>Discipline page — coming in a later phase.</p>
-  </main>
-
-  <style>
-    .discipline-stub {
-      padding: clamp(1.5rem, 6vw, 4rem);
-      min-height: 60vh;
-    }
-  </style>
+<Base title="Design — Dylan Chen" theme="design">
+  <DisciplinePage
+    discipline="design"
+    tagline="Industrial, visual, and interaction design work."
+  />
 </Base>
+
+<PullTabs discipline="design" />

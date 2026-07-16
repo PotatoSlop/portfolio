@@ -1,30 +1,27 @@
 ---
-// Shared HTML shell. The skeleton (anchor, breadcrumbs, tokens) gets built out
-// in Phase 3; for now it just wires the document + View Transitions.
 import { ClientRouter } from 'astro:transitions';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-
-// Migration Step 1: reuse the existing modular stylesheet as-is, kept global.
-// styles/ stays at the repo root (single source of truth); the bundler inlines
-// its @import chain. No CSS rewrite — this is a faithful carry-over.
+import Scrollbar from '../components/Scrollbar.astro';
 import '../../styles/main.css';
 
 interface Props {
   title?: string;
   description?: string;
   showFooter?: boolean;
+  theme?: 'sketchbook' | 'engineering' | 'design' | 'software';
 }
 
 const {
   title = 'Dylan Chen',
   description = 'Dylan Chen — portfolio',
   showFooter = true,
+  theme = 'sketchbook',
 } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme={theme}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -35,7 +32,7 @@ const {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&family=Nunito:wght@400;800&family=Syne:wght@600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="https://use.typekit.net/nnb5nol.css" />
@@ -43,16 +40,58 @@ const {
     <ClientRouter />
   </head>
   <body>
-    <Nav />
+    <div id="nav-curtain" class="nav-curtain" transition:persist aria-hidden="true">
+      <span class="nav-curtain__label"></span>
+    </div>
+
+    <style>
+      * {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .nav-curtain {
+        position: fixed;
+        inset: 0;
+        z-index: 3000; /* above all page chrome (nav, scrollbar, tabs) while covering */
+        display: grid;
+        place-items: center; /* label centred on the viewport midline, like the door */
+        background: var(--curtain-bg, transparent);
+        color: var(--curtain-ink, currentColor);
+        opacity: 0; /* idle: invisible */
+        pointer-events: none; /* purely visual — never intercepts input */
+      }
+      /* Armed by PullTabs at the moment the door has covered the screen. */
+      .nav-curtain.is-covering {
+        opacity: 1;
+      }
+      /* Revealed by Base once the new page has mounted behind it. */
+      .nav-curtain.is-covering.is-lifting {
+        transition: opacity 0.4s var(--ease-smooth, ease);
+        opacity: 0;
+      }
+      .nav-curtain__label {
+        font-family: 'Syne', sans-serif;
+        font-weight: 800;
+        font-size: clamp(3rem, 12vw, 12rem);
+        letter-spacing: -0.02em;
+        line-height: normal;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .nav-curtain.is-covering.is-lifting {
+          transition: none;
+        }
+      }
+    </style>
+
+    <Nav theme={theme} />
+    <Scrollbar />
     <slot />
     {/* Contact page opts out — a "Get in Touch" footer CTA there is circular. */}
     {showFooter && <Footer />}
 
     <script>
-      // Ported verbatim from page-effects.js, with one required change: it runs
-      // on `astro:page-load` (fires on first load AND after each View Transition
-      // navigation) instead of DOMContentLoaded, which wouldn't re-fire once
-      // ClientRouter is enabled.
+      import { inView } from 'motion';
+
       function initPageEffects() {
         const footer = document.querySelector('.contact-footer') as HTMLElement | null;
         const cursorEffect = document.querySelector('.cursor-effects') as HTMLElement | null;
@@ -92,18 +131,113 @@ const {
             root.style.setProperty(key, value);
           }
         };
-        const observer = new IntersectionObserver(
-          (entries) => {
-            entries.forEach((entry) => {
-              applyNavTheme(entry.isIntersecting ? footerTheme : defaultTheme);
-            });
+        // Recolor while the footer is in view; restore on leave. Not a tween —
+        // a two-way token toggle — so we use inView's enter/leave callbacks
+        // directly rather than reveal().
+        inView(
+          footer,
+          () => {
+            applyNavTheme(footerTheme);
+            return () => applyNavTheme(defaultTheme);
           },
-          { root: null, rootMargin: '0px 0px -95% 0px', threshold: 0 }
+          { margin: '0px 0px -95% 0px' }
         );
-        observer.observe(footer);
       }
 
       document.addEventListener('astro:page-load', initPageEffects);
     </script>
+
+    <script>
+      import { navigate } from 'astro:transitions/client';
+
+      const DISCIPLINE_ORDER = ['/engineering', '/design', '/software'];
+      const normalize = (p: string) => (p.replace(/\/$/, '') || '/');
+      const indexOfRoute = (p: string) => DISCIPLINE_ORDER.indexOf(normalize(p));
+
+      document.addEventListener('astro:before-swap', (e) => {
+        const root = e.newDocument.documentElement;
+
+        if (document.documentElement.dataset.doorNav) {
+          delete document.documentElement.dataset.doorNav;
+          root.removeAttribute('data-slide');
+          return;
+        }
+        const fromIdx = indexOfRoute(e.from.pathname);
+        const toIdx = indexOfRoute(e.to.pathname);
+        if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) {
+          root.removeAttribute('data-slide'); // non-sibling → default fade
+          return;
+        }
+        // Every discipline hop reads as "pulling the next page in from the
+        // right", so the new page always enters right-to-left — never the
+        // reverse, regardless of list order.
+        root.setAttribute('data-slide', 'forward');
+      });
+
+
+      document.addEventListener('astro:page-load', () => {
+        const curtain = document.getElementById('nav-curtain');
+        if (!curtain || !curtain.classList.contains('is-covering')) return;
+        const reset = () => curtain.classList.remove('is-covering', 'is-lifting');
+        // Next frame so the browser has painted the covering state before the
+        // opacity transition starts (otherwise it can be skipped).
+        requestAnimationFrame(() => curtain.classList.add('is-lifting'));
+        curtain.addEventListener(
+          'transitionend',
+          (ev) => {
+            if (ev.propertyName === 'opacity') reset();
+          },
+          { once: true }
+        );
+        // Fallback so the classes always clear (reduced-motion = no transition =
+        // no transitionend; or an interrupted transition).
+        window.setTimeout(reset, 700);
+      });
+
+      // ----- Swipe / drag to the neighbouring discipline -----
+      const SWIPE_THRESHOLD = 70; // px of horizontal travel to commit
+      let startX = 0;
+      let startY = 0;
+      let tracking = false;
+
+      const onDiscipline = () => indexOfRoute(window.location.pathname) !== -1;
+
+      const goNeighbour = (dir: 1 | -1) => {
+        const idx = indexOfRoute(window.location.pathname);
+        if (idx === -1) return;
+        const target = DISCIPLINE_ORDER[(idx + dir + DISCIPLINE_ORDER.length) % DISCIPLINE_ORDER.length];
+        navigate(target);
+      };
+
+      const beginSwipe = (x: number, y: number) => {
+        if (!onDiscipline()) return;
+        startX = x;
+        startY = y;
+        tracking = true;
+      };
+      const endSwipe = (x: number, y: number) => {
+        if (!tracking) return;
+        tracking = false;
+        const dx = x - startX;
+        const dy = y - startY;
+        // Require a dominant horizontal gesture so vertical scrolls don't trigger.
+        if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        goNeighbour(dx < 0 ? 1 : -1); // swipe left → next (forward), right → prev
+      };
+
+      // TOUCH ONLY (mobile). Desktop uses the pull-tab door handles, not a
+      // free-swipe, so there's no pointer/mouse drag-to-navigate here.
+      document.addEventListener(
+        'touchstart',
+        (e) => beginSwipe(e.changedTouches[0].clientX, e.changedTouches[0].clientY),
+        { passive: true }
+      );
+      document.addEventListener(
+        'touchend',
+        (e) => endSwipe(e.changedTouches[0].clientX, e.changedTouches[0].clientY),
+        { passive: true }
+      );
+    </script>
+
   </body>
 </html>

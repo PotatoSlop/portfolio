@@ -1,0 +1,504 @@
+---
+import { Icon } from 'astro-icon/components';
+
+type Discipline = 'engineering' | 'design' | 'software';
+interface Props {
+  discipline: Discipline;
+}
+const { discipline } = Astro.props;
+
+const ORDER: Discipline[] = ['engineering', 'design', 'software'];
+
+const THEME: Record<Discipline, { bg: string; ink: string }> = {
+  engineering: { bg: '#ffffff', ink: '#1e1e14' },
+  design: { bg: '#f7f4ee', ink: '#211f1a' },
+  software: { bg: '#16181f', ink: '#d6dbe6' },
+};
+
+const cap = (discipline: string) => discipline.charAt(0).toUpperCase() + discipline.slice(1);
+const others = ORDER.filter((d) => d !== discipline);
+---
+
+{/* Doors live in their OWN layer, painted beneath the rail. That keeps every
+    grip (in the rail above) visible at all times — a hovered door's full-height
+    strip can never cover a sibling tab's grip. Grip and door are matched by
+    data-disc and moved together in JS so they read as one object. */}
+<div class="pull-doors" aria-hidden="true">
+  {
+    others.map((d) => (
+      <a class="pull__door" href={`/${d}`} data-disc={d} style={`--door-bg:${THEME[d].bg}; --door-ink:${THEME[d].ink}`}>
+        <span class="pull__door-label">{cap(d)}</span>
+      </a>
+    ))
+  }
+</div>
+
+<div class="pull-rail">
+  {
+    others.map((d) => (
+      <div class="pull-tab" data-disc={d} style={`--door-bg:${THEME[d].bg}; --door-ink:${THEME[d].ink}`}>
+        <a class="pull-tab__link" href={`/${d}`} aria-label={`Go to ${cap(d)}`}>
+          <span class="pull-tab__grip">
+            <Icon name="mdi:chevron-left" width="24" height="24" />
+            <span class="pull-tab__label">{cap(d)}</span>
+          </span>
+        </a>
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  /* ----- Rail: fixed right-edge column, anchored to the top ----- */
+  .pull-rail {
+    position: fixed;
+    top: 1vh;
+    right: 0;
+    z-index: 2100;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 14px;
+    pointer-events: none; /* only the grips/doors inside are interactive */
+  }
+
+  .pull-tab {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  /* Lift the hovered/held tab so its grip paints over the sibling. */
+  .pull-tab.is-hover,
+  .pull-tab.is-dragging {
+    z-index: 2;
+  }
+
+  .pull-tab__link {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    cursor: grab;
+    touch-action: pan-y;
+    pointer-events: auto;
+    text-decoration: none;
+  }
+
+  /* ----- Grip: visible handle on the right edge ----- */
+  .pull-tab__grip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.9rem 0.72rem;
+    background: var(--door-bg);
+    color: var(--door-ink);
+    border-radius: 10px 0 0 10px;
+    /* Shadow cast only to the LEFT (onto the page) so the grip's right edge
+       stays a clean seam where it meets the door strip. */
+    box-shadow: -5px 0 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .pull-tab__label {
+    writing-mode: vertical-rl;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--door-ink);
+  }
+
+  /* ----- Doors: full-screen panels the grips appear carved out of ----- */
+  .pull-doors {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    pointer-events: none; /* the panels themselves opt back in */
+  }
+  .pull__door {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: var(--door-bg);
+    color: var(--door-ink);
+    /* The exposed strip is hover- AND drag-able. At rest the door sits fully
+       off-screen right, so it never intercepts page input. */
+    pointer-events: auto;
+    transform: translateX(100%);
+    cursor: grab;
+  }
+  /* Promote to a GPU layer only while actually moving, not permanently. */
+  .pull-tab.is-hover .pull-tab__grip,
+  .pull-tab.is-dragging .pull-tab__grip,
+  .pull-tab.is-magnet .pull-tab__grip,
+  .pull__door.is-magnet,
+  .pull__door.is-dragging {
+    will-change: transform;
+  }
+
+  .pull__door-label {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(3rem, 12vw, 12rem);
+    letter-spacing: -0.02em;
+  }
+
+  /* ----- Motion: grip + door move (and fade) as one assembly ----- */
+  .pull-tab__grip,
+  .pull__door {
+    transition: transform 0.34s var(--ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)), 
+                opacity 0.28s var(--ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+  }
+  .pull-tab.is-magnet .pull-tab__grip,
+  .pull__door.is-magnet {
+    transition: transform 0.14s var(--ease-smooth), opacity 0.28s var(--ease-smooth);
+  }
+  /* Active drag: 1:1 with the pointer, no easing. */
+  .pull-tab.is-dragging .pull-tab__grip,
+  .pull__door.is-dragging {
+    transition: none;
+  }
+
+  /* While one tab is being dragged, the others recede so only the pulled
+     door + its grip remain on screen. */
+  .pull-tab.is-suppressed .pull-tab__grip,
+  .pull__door.is-suppressed {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @media (max-width: 768px) {
+    .pull-rail,
+    .pull-doors {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pull-tab__grip,
+    .pull__door,
+    .pull-tab.is-magnet .pull-tab__grip,
+    .pull__door.is-magnet {
+      transition: none;
+    }
+  }
+
+  /* ----- Entrance: tabs slide in from the right on every page load, one after
+     another, mirroring the wordmark's staggered cadence. On a door-driven
+     navigation this lands just after the curtain lifts, so the tabs arrive
+     "after the door". Engineering's first load defers to its longer intro
+     choreography (overridden below). ----- */
+  @keyframes tabFlyInRight {
+    from { transform: translateX(72px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .pull-rail .pull-tab {
+      animation: tabFlyInRight 0.5s var(--ease-smooth) backwards;
+    }
+    .pull-rail .pull-tab:nth-child(1) {
+      animation-delay: 0.45s;
+    }
+    .pull-rail .pull-tab:nth-child(2) {
+      animation-delay: calc(0.45s + var(--eng-intro-step, 0.12s));
+    }
+
+    /* Engineering intro: hold the tabs until the wordmark ripple finishes. */
+    :global([data-theme='engineering']) .pull-rail .pull-tab:nth-child(1) {
+      animation-delay: calc(var(--eng-intro-after, 1.8s) + 2 * var(--eng-intro-step, 0.12s));
+    }
+    :global([data-theme='engineering']) .pull-rail .pull-tab:nth-child(2) {
+      animation-delay: calc(var(--eng-intro-after, 1.8s) + 3 * var(--eng-intro-step, 0.12s));
+    }
+  }
+</style>
+
+<script>
+  import { navigate } from 'astro:transitions/client';
+
+  const HOVER_OFFSET = 64; // px the assembly reaches out when the tab is hovered
+  const MAGNET_MAX = 12; // px the resting grip reaches toward a nearby cursor
+  const MAGNET_RANGE = 96; // horizontal px to the left of the grip where the pull begins
+  const MAGNET_VPAD = 6; // px of slack above/below the tab's own height
+  const COMMIT_FRACTION = 0.25; // share of the viewport a drag must cross to navigate
+
+  // Within the doors layer: the active door sits in front; a door that was just
+  // swapped OFF sits ABOVE even that, so its grip stays attached to it while it
+  // springs home. It only drops back once the return has finished.
+  const DOOR_Z_ACTIVE = '2';
+  const DOOR_Z_RETREAT = '3';
+  const RETREAT_MS = 360; // must outlast the grip/door spring-back (0.34s)
+
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+  // Grip's right edge always meets the door's left edge, so the two read as a
+  // single object being pulled off the right side of the screen.
+  function place(grip: HTMLElement, door: HTMLElement, shift: number) {
+    grip.style.transform = `translateX(${-shift}px)`;
+    door.style.transform = `translateX(${window.innerWidth - shift}px)`;
+  }
+
+  // Bring a door to the active layer immediately (and cancel any pending drop).
+  function raiseDoor(tab: Tab) {
+    if (tab.retreatTimer) {
+      clearTimeout(tab.retreatTimer);
+      tab.retreatTimer = 0;
+    }
+    tab.door.style.zIndex = DOOR_Z_ACTIVE;
+  }
+
+  // A door that was just deactivated stays ABOVE the newly-active sibling until
+  // its grip has sprung back to neutral, so the returning tab never appears to
+  // float free of its door. Only then does it drop back into the base layer.
+  function lowerDoorAfterReturn(tab: Tab) {
+    tab.door.style.zIndex = DOOR_Z_RETREAT;
+    if (tab.retreatTimer) clearTimeout(tab.retreatTimer);
+    tab.retreatTimer = window.setTimeout(() => {
+      tab.door.style.zIndex = '';
+      tab.retreatTimer = 0;
+    }, RETREAT_MS);
+  }
+
+  function armCurtain(door: HTMLElement, label: string) {
+    const curtain = document.getElementById('nav-curtain');
+    if (!curtain) return;
+    const cs = getComputedStyle(door);
+    curtain.style.setProperty('--curtain-bg', cs.backgroundColor);
+    curtain.style.setProperty('--curtain-ink', cs.color);
+    const lbl = curtain.querySelector('.nav-curtain__label');
+    if (lbl) lbl.textContent = label;
+    curtain.classList.add('is-covering');
+  }
+
+  type Tab = {
+    disc: string;
+    el: HTMLElement; // .pull-tab (grip container)
+    link: HTMLElement;
+    grip: HTMLElement;
+    door: HTMLElement; // matching .pull__door in the doors layer
+    href: string;
+    hover: boolean;
+    magnet: number; // current magnetic reach while resting (0..MAGNET_MAX)
+    retreatTimer: number; // pending "drop this door's z" timer (0 = none)
+  };
+
+  type Drag = {
+    tab: Tab;
+    startX: number;
+    baseline: number; // reach at the moment the drag began (usually HOVER_OFFSET)
+    pulled: number; // extra px dragged past the baseline
+    moved: boolean;
+  };
+
+  let drag: Drag | null = null;
+  let tabs: Tab[] = [];
+  let isNavigating: Boolean = false;
+
+  function collectTabs(): Tab[] {
+    const out: Tab[] = [];
+    document.querySelectorAll<HTMLElement>('.pull-tab').forEach((el) => {
+      const disc = el.dataset.disc ?? '';
+      const link = el.querySelector<HTMLElement>('.pull-tab__link');
+      const grip = el.querySelector<HTMLElement>('.pull-tab__grip');
+      const door = document.querySelector<HTMLElement>(`.pull__door[data-disc="${disc}"]`);
+      if (!link || !grip || !door) return;
+      out.push({ disc, el, link, grip, door, href: link.getAttribute('href') || '/', hover: false, magnet: 0, retreatTimer: 0 });
+    });
+    return out;
+  }
+
+  const discOf = (node: EventTarget | null) =>
+    node instanceof Element ? (node.closest('[data-disc]') as HTMLElement | null)?.dataset.disc ?? null : null;
+
+  const tabFromEvent = (e: Event) => {
+    const el = (e.target as Element).closest('.pull-tab__link, .pull__door');
+    if (!el) return null;
+    const disc = discOf(el);
+    return tabs.find((t) => t.disc === disc) ?? null;
+  };
+
+  // ---- Hover: the deliberate reach that reveals the label + door strip ----
+  function setHover(tab: Tab, on: boolean) {
+    if (drag || isNavigating) return; // a drag owns the assembly until it settles
+    if (on) {
+      // Hover is exclusive — any other reaching tab retreats so the state can
+      // swap cleanly from one tab to the next.
+      for (const other of tabs) if (other !== tab && other.hover) setHover(other, false);
+      raiseDoor(tab);
+    } else {
+      lowerDoorAfterReturn(tab);
+    }
+    tab.hover = on;
+    tab.el.classList.toggle('is-hover', on);
+    tab.el.classList.remove('is-magnet');
+    tab.door.classList.remove('is-magnet');
+    place(tab.grip, tab.door, on ? HOVER_OFFSET : tab.magnet);
+  }
+
+  // ---- Magnetic snap: a resting tab reaches for a cursor within its band ----
+  function applyMagnet(tab: Tab, x: number, y: number) {
+    if (tab.hover || drag || isNavigating) return;
+    const r = tab.grip.getBoundingClientRect();
+    const inBand = y >= r.top - MAGNET_VPAD && y <= r.bottom + MAGNET_VPAD;
+    const gap = r.left - x; // >0 when cursor sits to the left of the grip
+    let reach = 0;
+    if (inBand && x <= r.right && gap <= MAGNET_RANGE) {
+      reach = MAGNET_MAX * clamp(1 - Math.max(0, gap) / MAGNET_RANGE, 0, 1);
+    }
+    if (Math.abs(reach - tab.magnet) < 0.5) return;
+    tab.magnet = reach;
+    tab.el.classList.toggle('is-magnet', reach > 0);
+    tab.door.classList.toggle('is-magnet', reach > 0);
+    place(tab.grip, tab.door, reach);
+  }
+
+  let pending: { x: number; y: number } | null = null;
+  let frame = 0;
+  function scheduleMagnet(x: number, y: number) {
+    pending = { x, y };
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      if (!pending) return;
+      const { x, y } = pending;
+      for (const tab of tabs) applyMagnet(tab, x, y);
+    });
+  }
+
+  // ---- Suppress the other tabs while one is being dragged ----
+  function suppressOthers(active: Tab, on: boolean) {
+    for (const t of tabs) {
+      if (t === active) continue;
+      t.el.classList.toggle('is-suppressed', on);
+      t.door.classList.toggle('is-suppressed', on);
+    }
+  }
+
+  // ---- Drag: reference-point pull that opens or cancels the transition ----
+  function startDrag(tab: Tab, x: number, target: Element, pointerId: number) {
+    if (isNavigating) return;
+    const baseline = tab.hover ? HOVER_OFFSET : tab.magnet || 0;
+    drag = { tab, startX: x, baseline, pulled: 0, moved: false };
+    tab.el.classList.add('is-dragging');
+    tab.door.classList.add('is-dragging');
+    tab.el.classList.remove('is-magnet');
+    tab.door.classList.remove('is-magnet');
+    raiseDoor(tab);
+    suppressOthers(tab, true);
+    try {
+      (target as HTMLElement).setPointerCapture(pointerId);
+    } catch {}
+  }
+
+  function settle(commit: boolean) {
+    if (!drag) return;
+    const { tab, moved, pulled, baseline } = drag;
+    const vw = window.innerWidth;
+
+    tab.link.dataset.justDragged = moved ? '1' : '0';
+    tab.door.dataset.justDragged = moved ? '1' : '0';
+
+    tab.el.classList.remove('is-dragging');
+    tab.door.classList.remove('is-dragging');
+    // Commit the drag's final transform under the now-restored transition
+    // before setting the completion target, so the door eases to its
+    // destination instead of snapping there in the same style recalc.
+
+    void tab.grip.offsetWidth;
+    void tab.door.offsetWidth;
+
+    if (commit && pulled >= vw * COMMIT_FRACTION) {
+      isNavigating = true;
+      raiseDoor(tab); // keep the committing door on top through the sweep
+      // Carry through: the door finishes sliding across the viewport, then we
+      // hand off to the curtain and cross-fade into the new page.
+      place(tab.grip, tab.door, vw);
+      const { href, door } = tab;
+      window.setTimeout(() => {
+        const label = door.querySelector('.pull__door-label')?.textContent?.trim() ?? '';
+        armCurtain(door, label);
+        document.documentElement.dataset.doorNav = '1';
+        navigate(href);
+      }, 380);
+    } else {
+      // Cancel: the pulled tab springs back and the suppressed siblings return.
+      tab.magnet = 0;
+      place(tab.grip, tab.door, tab.hover ? HOVER_OFFSET : 0);
+      suppressOthers(tab, false);
+      // If it's springing all the way home, keep its door on top until it lands.
+      if (!tab.hover) lowerDoorAfterReturn(tab);
+    }
+    drag = null;
+  }
+
+  // ---- Listeners ----
+  document.addEventListener('pointerover', (e) => {
+    const tab = tabFromEvent(e);
+    if (tab) setHover(tab, true);
+  });
+
+  document.addEventListener('pointerout', (e) => {
+    const tab = tabFromEvent(e);
+    if (!tab) return;
+    // Ignore moves that stay within the same tab (grip ⇄ door) so the state
+    // doesn't flicker at the seam.
+    if (discOf((e as PointerEvent).relatedTarget) === tab.disc) return;
+    setHover(tab, false);
+  });
+
+  document.addEventListener('pointermove', (e) => {
+    if (drag) {
+      const vw = window.innerWidth;
+      const dist = clamp(drag.startX - e.clientX, 0, vw - drag.baseline);
+      drag.pulled = dist;
+      if (dist > 4) drag.moved = true;
+      place(drag.tab.grip, drag.tab.door, drag.baseline + dist);
+      return;
+    }
+    scheduleMagnet(e.clientX, e.clientY);
+  });
+
+  document.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || e.pointerType === 'touch') return;
+    const target = (e.target as Element).closest('.pull-tab__link, .pull__door') as HTMLElement | null;
+    if (!target) return;
+    const tab = tabs.find((t) => t.disc === discOf(target));
+    if (!tab) return;
+    startDrag(tab, e.clientX, target, e.pointerId);
+    e.preventDefault();
+  });
+
+  document.addEventListener('pointerup', () => drag && settle(true));
+  document.addEventListener('pointercancel', () => drag && settle(false));
+
+  // Swallow the click that follows a real drag off the grip link.
+  document.addEventListener(
+    'click',
+    (e) => {
+      const target = (e.target as Element).closest('.pull-tab__link, .pull__door') as HTMLElement | null;
+      if (target && target.dataset.justDragged === '1') {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        target.dataset.justDragged = '0';
+      }
+    },
+    true
+  );
+
+  // (Re)bind on first load and after every client-side navigation.
+  const init = () => {
+    tabs = collectTabs();
+    drag = null;
+    isNavigating = false; // a door-nav sets this true; the new page must clear it
+  };
+  document.addEventListener('astro:page-load', init);
+  init();
+</script>

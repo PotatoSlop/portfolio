@@ -42,8 +42,11 @@
   pointer-events: auto;
 }
 
-/* Sidebar close button — first <li> is the close icon */
-.sidebar li:first-child {
+/* Sidebar close button — first <li> is the close icon.
+   NOTE: the row selectors below are scoped to DIRECT children (`> li`) so the
+   nested Projects submenu (.sidebar-submenu li) gets its own styling instead of
+   inheriting the full-width pill rows. */
+.sidebar > li:first-child {
   position: absolute;
   top: calc((clamp(60px, 10vh, 80px) - clamp(38px, 9vw, 48px)) / 2);
   right: 1rem;
@@ -54,8 +57,8 @@
   padding: 0;
 }
 
-.sidebar li:first-child a,
-.sidebar li:first-child button {
+.sidebar > li:first-child a,
+.sidebar > li:first-child button {
   /* UA reset so a <button> renders identically to the original <a> */
   appearance: none;
   -webkit-appearance: none;
@@ -77,13 +80,14 @@
   text-decoration: none;
 }
 
-.sidebar li:first-child a:hover,
-.sidebar li:first-child button:hover {
+.sidebar > li:first-child a:hover,
+.sidebar > li:first-child button:hover {
   background-color: var(--color-primary);
 }
 
-/* Sidebar links — every <li> after the first is a nav row */
-.sidebar li:not(:first-child) {
+/* Sidebar links — every direct <li> after the first is a nav row.
+   The Projects group is excluded; it's a container styled separately below. */
+.sidebar > li:not(:first-child):not(.sidebar-group) {
   width: 100%;
   list-style: none;
   border: var(--border-width-medium) solid var(--color-black);
@@ -97,7 +101,7 @@
   flex-shrink: 0;
 }
 
-.sidebar li:not(:first-child)::before {
+.sidebar > li:not(:first-child):not(.sidebar-group)::before {
   content: '';
   position: absolute;
   left: 0;
@@ -112,8 +116,108 @@
   transition: transform var(--duration-smooth) var(--ease-smooth);
 }
 
-.sidebar li:hover::before {
+.sidebar > li:not(.sidebar-group):hover::before {
   transform: scaleX(1);
+}
+
+/* ===== Mobile "Projects" group (accordion) =====
+   The group <li> is a container, not a link — neutralize the generic pill row
+   it would otherwise inherit, then style its trigger as a pill and reveal the
+   submenu on .open. */
+.sidebar-group {
+  width: 100%;
+  border: none;
+  background: transparent;
+  overflow: visible;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-small);
+}
+
+.sidebar-group::before {
+  display: none;
+}
+
+.sidebar-group-trigger {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0.3em 1.2em;
+  border: var(--border-width-medium) solid var(--color-black);
+  background: var(--color-white);
+  border-radius: var(--radius-pill);
+  color: var(--color-black);
+  font-family: var(--font-primary);
+  font-weight: 300;
+  font-size: 1rem;
+  transition: background-color var(--duration-medium) var(--ease-default);
+}
+
+.sidebar-group-trigger:hover,
+.sidebar-group.open .sidebar-group-trigger {
+  background-color: var(--color-primary);
+}
+
+.sidebar-group-trigger .nav-caret {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid currentColor;
+  transition: transform var(--duration-medium) var(--ease-default);
+}
+
+.sidebar-group.open .nav-caret {
+  transform: rotate(180deg);
+}
+
+.sidebar-submenu {
+  list-style: none;
+  margin: 0;
+  padding-left: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-small);
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height var(--duration-medium) var(--ease-smooth),
+    opacity var(--duration-medium) var(--ease-default);
+}
+
+.sidebar-group.open .sidebar-submenu {
+  max-height: 320px;
+  opacity: 1;
+}
+
+.sidebar-submenu li {
+  list-style: none;
+  position: relative;
+  overflow: hidden;
+  border: var(--border-width-medium) solid var(--color-black);
+  background: var(--color-white);
+  border-radius: var(--radius-pill);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-submenu a:hover,
+.sidebar-submenu a[aria-current='page'] {
+  background: var(--color-primary);
+}
+
+.sidebar-submenu a {
+  width: 100%;
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-pill);
 }
 
 .sidebar a {
@@ -133,5 +237,69 @@
 }
 
 .sidebar li:hover a {
+  color: var(--color-black);
+}
+
+/* ===== Engineering sidebar skin =====*/
+[data-theme='engineering'] .sidebar {
+  background-color: var(--color-black);
+  /* No horizontal padding → each row's fill spans the full drawer width. */
+  padding: 5rem 0 2rem 0;
+  gap: 0;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Strip the pill chrome from each nav row; the fill becomes a flush rectangle. */
+[data-theme='engineering'] .sidebar > li:not(:first-child):not(.sidebar-group) {
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  padding: 0;
+  min-height: 0;
+}
+[data-theme='engineering'] .sidebar > li:not(:first-child):not(.sidebar-group)::before {
+  border-radius: 0;
+}
+
+/* Link label: Roboto uppercase, white over black, generous full-width tap row.
+   The text keeps a left inset while the amber fill behind it stays full-bleed. */
+[data-theme='engineering'] .sidebar a {
+  font-family: 'Roboto', sans-serif;
+  font-weight: 300;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-white);
+  padding: 1rem 1.5rem;
+  min-height: 52px;
+}
+
+/* Flip the label dark for contrast once the amber fill is under it. */
+[data-theme='engineering'] .sidebar > li:hover a,
+[data-theme='engineering'] .sidebar a[aria-current='page'] {
+  color: var(--color-black);
+  font-weight: 500;
+}
+[data-theme='engineering'] .sidebar > li:has(a[aria-current='page'])::before {
+  transform: scaleX(1);
+}
+
+/* Align the close (X) with the hamburger it replaces: the engineering nav pins
+   the hamburger flush to the top edge (top:0, height calc(18px + 1.7rem)), so
+   match that box exactly instead of the default vertically-centered offset. */
+[data-theme='engineering'] .sidebar > li:first-child {
+  top: 0;
+  height: calc(18px + 1.7rem);
+  width: clamp(48px, 9vw, 64px);
+}
+
+/* Close (X) button → white icon on black; amber disc on hover. The glyph's path
+   is `fill="currentColor"`, so it follows `color`, not `fill` — recolor via
+   `color`. */
+[data-theme='engineering'] .sidebar > li:first-child button {
+  color: var(--color-white);
+}
+[data-theme='engineering'] .sidebar > li:first-child button:hover {
+  background-color: var(--color-primary);
   color: var(--color-black);
 }

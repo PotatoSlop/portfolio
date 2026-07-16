@@ -1,0 +1,62 @@
+[data-theme='engineering'] {
+  --theme-bg: #ffffff;
+  --theme-surface: #ffffff;
+  --theme-border: #1e1e14;
+
+  --theme-ink: #1e1e14;
+  --theme-ink-muted: #6b6b63;
+
+  --theme-accent: var(--color-primary);
+  --theme-accent-contrast: var(--color-black);
+
+  --theme-grid: radial-gradient(
+    circle,
+    rgba(30, 30, 20, 0.1) 1.6px,
+    transparent 2.1px
+  );
+  --theme-grid-size: 22px;
+
+  --theme-font-display: 'Syne', sans-serif;
+  --theme-font-body: 'Roboto', sans-serif;
+  --theme-radius: 0px;
+  --theme-motion-ease: var(--ease-aggressive);
+
+  --idiom-accent: var(--color-primary);
+  --idiom-rule: rgba(30, 30, 20, 0.55);
+
+  /* Intro choreography: the breadcrumb + nav rise first; the wordmark glyphs +
+     arrow ripple in (Wordmark.astro BASE 600ms → ~1.8s to finish); THEN the
+     pull-tab, SEE PROJECTS CTA, and chevron animate in. Shared so PullTabs.astro
+     and engineering.astro stay in lockstep — bump Wordmark's BASE/STEP and this
+     together. */
+  --eng-intro-after: 1.8s;
+  /* Slight cascade between the after-title elements (CTA → chevron → pull-tab). */
+  --eng-intro-step: 0.12s;
+
+  /*Logo + Nav Breadcrumb*/
+  --eng-edge-shift: 0px;
+
+  --eng-wm-x: -20px;
+
+  /* SEE PROJECTS Button */
+  --eng-cta-x: -0.08rem;
+  --eng-cta-y: clamp(-7.75rem, 2vw, -3.25rem);
+}
+
+@media (max-width: 700px) {
+  [data-theme='engineering'] {
+    /* Remove negative wordmark offset — at small viewports the -20px left margin
+       overflows the ~8px hero padding and clips the wordmark off-screen. */
+    --eng-wm-x: 0px;
+    /* Reduce CTA overlap — the wordmark is much shorter on mobile so the full
+       -3.25rem pull-up would bury the button inside or behind the letterforms. */
+    --eng-cta-y: -1.25rem;
+    --eng-cta-x: 0rem;
+  }
+}
+
+@media (max-width: 400px) {
+  [data-theme='engineering'] {
+    --eng-cta-y: -0.5rem;
+  }
+}

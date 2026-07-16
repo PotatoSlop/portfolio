@@ -1,7 +1,10 @@
 /* ===== Navigation =====
    Top sticky nav, logo, and pill-style nav links with sliding fill on hover. */
 
-nav {
+/* Scoped to the site nav (direct child of body) so it doesn't capture other
+   semantic <nav>s like the breadcrumb or the sibling rail (which must NOT be
+   sticky and should scroll away with the page). */
+body > nav {
   background: transparent;
   padding: clamp(0.5rem, 2vh, 1rem) 0;
   position: sticky;
@@ -12,7 +15,7 @@ nav {
   align-items: center;
 }
 
-nav ul {
+body > nav ul {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -90,4 +93,236 @@ nav ul {
 
 .nav-link:hover a {
   color: var(--color-black);
+}
+
+/* ===== Projects dropdown (desktop) =====
+   A disclosure button styled like the pill nav-links, with an absolutely
+   positioned menu. Opens on hover (pointer) and via click/keyboard (JS keeps
+   aria-expanded in sync). The menu is a sibling of the trigger inside the
+   .nav-dropdown <li>, so the trigger's own overflow never clips it. */
+
+.nav-dropdown {
+  position: relative;
+}
+
+.nav-dropdown-trigger {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.3em 1.2em;
+  border: var(--border-width-medium) solid var(--color-black);
+  background-color: var(--color-white);
+  border-radius: var(--radius-pill);
+  color: var(--color-black);
+  font-family: var(--font-secondary);
+  font-weight: 500;
+  transition: background-color var(--duration-medium), transform var(--duration-medium);
+}
+
+.nav-dropdown-trigger:hover,
+.nav-dropdown.open .nav-dropdown-trigger {
+  background-color: var(--color-primary);
+  transform: var(--transform-scale-hover-small);
+}
+
+/* Caret — a small triangle that flips when the menu is open. */
+.nav-caret {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  transition: transform var(--duration-medium) var(--ease-default);
+}
+
+.nav-dropdown.open .nav-caret {
+  transform: rotate(180deg);
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin: 0;
+  padding: 0.4rem;
+  min-width: 190px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: var(--color-white);
+  border: var(--border-width-medium) solid var(--color-black);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-card-hover);
+  z-index: var(--z-nav);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-6px);
+  transition: opacity var(--duration-medium) var(--ease-smooth),
+    transform var(--duration-medium) var(--ease-smooth),
+    visibility var(--duration-medium);
+}
+
+.nav-dropdown.open .nav-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.nav-dropdown-menu a {
+  display: block;
+  padding: 0.5em 0.9em;
+  border-radius: var(--radius-small);
+  font-family: var(--font-secondary);
+  font-weight: 500;
+  color: var(--color-black);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--duration-fast), color var(--duration-fast);
+}
+
+.nav-dropdown-menu a:hover,
+.nav-dropdown-menu a:focus-visible {
+  background: var(--color-primary);
+  color: var(--color-black);
+  outline: none;
+}
+
+.nav-dropdown-menu a[aria-current='page'] {
+  background: var(--color-primary-transparent);
+}
+
+/* ===== Engineering nav skin (Figma demo) =====
+   Black blocked-out buttons flush to the TOP edge, Roboto 18, butted together
+   with no gap, with a rectangular (not pill) sliding colour fill on hover.
+   The amber square + DYLAN CHEN text anchor sits beside them. */
+[data-theme='engineering'] body > nav {
+  align-items: flex-start;
+  height: auto;
+  padding: 0;
+}
+
+/* Intro: the top bar flies in from above the viewport, in step with the hero's
+   breadcrumb / CTA / chevron group on engineering.astro. */
+@keyframes navDrop {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-theme='engineering'] body > nav {
+    animation: navDrop 0.5s var(--ease-smooth) 0.05s backwards;
+  }
+}
+
+[data-theme='engineering'] body > nav > ul {
+  gap: 0;
+  align-items: flex-start;
+}
+
+[data-theme='engineering'] .nav-link {
+  /* Uniform box for every button (same size dimensionally) with generous
+     horizontal room; height comes from the link padding. */
+  width: 9rem;
+  height: auto;
+  border: none;
+  border-radius: 0;
+  background-color: var(--color-black);
+  overflow: hidden;
+}
+
+/* Rectangular fill — kill the inherited pill radius on the wipe layer. */
+[data-theme='engineering'] .nav-link::before {
+  border-radius: 0;
+}
+
+[data-theme='engineering'] .nav-link:hover {
+  transform: none; /* no per-button scale on a flush bar */
+}
+
+[data-theme='engineering'] .nav-link a {
+  padding: 0.85rem 1.25rem; /* more padding all around */
+  line-height: 1;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 200; /* slightly lighter */
+  font-size: 14px;
+  text-transform: uppercase;
+  color: var(--color-white);
+}
+
+/* Keep the sliding amber fill on hover; flip the label dark for contrast. */
+[data-theme='engineering'] .nav-link:hover a,
+[data-theme='engineering'] .nav-link a[aria-current='page'] {
+  color: var(--color-black);
+  font-weight: 500;
+}
+[data-theme='engineering'] .nav-link:has(a[aria-current='page'])::before {
+  transform: scaleX(1);
+}
+
+[data-theme='engineering'] .logo {
+  top: 0;
+  height: calc(18px + 1.7rem);
+  /* Flush to the page edge, matching the hero breadcrumb: hero padding
+     (clamp(1rem,3vw,2rem)) minus the shared -2.2rem edge pull. */
+  left: calc(clamp(1rem, 3vw, 2rem) - 2.2rem + var(--eng-edge-shift, 0px));
+  display: flex;
+  align-items: center;
+}
+.logo-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  transform-origin: left;
+  transition: transform var(--duration-medium) var(--ease-logo-hover);
+  background: var(--color-black);
+  paint-order: stroke fill;
+  padding: 0.3em 1.2em;
+}
+/* Small scale on hover. */
+.logo-text:hover {
+  transform: var(--transform-scale-hover-small);
+}
+.logo-chip {
+  width: 14px;
+  height: 14px;
+  background: var(--color-primary);
+  margin-top: -3px;
+}
+.logo-name {
+  /* Matches the main nav tabs ([data-theme='engineering'] .nav-link a):
+     Roboto 200 / 14px / uppercase, no tracking. */
+  font-family: 'Roboto', sans-serif;
+  font-weight: 200;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: uppercase;
+  color: var(--color-white);
+  white-space: nowrap;
+}
+.logo-chip {
+  width: clamp(11px, 3vw, 14px);
+  height: clamp(11px, 3vw, 14px);
+}
+
+[data-theme='engineering'] .menu-button {
+  top: 0;
+  transform: none;
+  height: calc(18px + 1.7rem);
+}
+
+/* Mobile: the hero breadcrumb is hidden and the wordmark drops its -2.2rem
+   pull, so the logo returns to a normal positive inset (the edge-flush pull
+   would otherwise push it off-screen left). */
+@media (max-width: 768px) {
+  [data-theme='engineering'] .logo {
+    left: clamp(0.5rem, 1vw, 2vw);
+  }
 }

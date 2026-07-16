@@ -1,0 +1,342 @@
+---
+// Engineering dot field + "connect-the-dots" trail, on one canvas.
+//
+// The grid itself is RENDERED HERE (not the CSS body background) so it can be
+// warped: a STATIC barrel "lens" bulge locked to the viewport centre, plus a
+// slight parallax drift that follows the cursor (the only mouse-driven part) —
+// so the field slides THROUGH a screen-locked lens. The trail (lines snapped to
+// the lattice as the cursor moves, oldest fading out) is drawn through the SAME
+// warp() so the orange lines stay glued to the distorted dots, and letter
+// lighting samples those same warped points so the wordmark lights where a line
+// visually crosses it.
+//
+// Rendered OUTSIDE <main> so the fixed canvas anchors to the viewport, not the
+// transform-animated <main>. z-index:-1 keeps it above the page background but
+// behind content; the intro reveal overlay (engineering.astro) sits just above
+// it and wipes away to expose the field. Reduced-motion users get the canvas
+// hidden and keep the plain CSS dot grid (themes/engineering.css) instead.
+---
+
+<canvas class="dot-lines" aria-hidden="true"></canvas>
+
+<style>
+  .dot-lines {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    z-index: -1;
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dot-lines {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---- tunables -----------------------------------------------------------
+  const DOT_BASE_R = 1.5;      // resting dot radius (px)
+  const DOT_ALPHA_CENTRE = 0.17; // dot opacity at the lens centre (darker)
+  const DOT_ALPHA_EDGE = 0.07;   // dot opacity at the rim (lighter)
+  const LENS_STRENGTH = 0.18;  // static barrel bulge at the viewport centre (0 disables)
+  const PARALLAX = -0.025;     // grid drift vs cursor-from-centre (negative = opposite, depth feel)
+  const SMOOTH = 0.07;         // parallax lerp toward target per frame (lower = more lag / lazier trailing)
+  const MARGIN = 72;           // draw dots this far past the viewport (warp slop)
+
+  const MAX_LINES = 30;
+  const LIFETIME_MS = 3000;    // a segment starts fading this long after it's drawn
+  const FADE_STEP = 0.01;      // alpha removed per frame once fading
+
+  type Line = {
+    x1: number; y1: number; x2: number; y2: number;
+    alpha: number; fading: boolean; born: number;
+  };
+
+  let canvas: HTMLCanvasElement | null = null;
+  let ctx: CanvasRenderingContext2D | null = null;
+  let dpr = 1;
+  let vw = 0;
+  let vh = 0;
+  let grid = 22;
+  let off = 11;
+  let dotColor = '#1e1e14';
+  let accent = '#F5A045';
+  let lensR = 240;       // barrel radius (covers the viewport)
+  let lcx = 0, lcy = 0;  // barrel centre — fixed at the viewport centre
+
+  // Parallax is the only mouse-driven part: it eases toward a target offset.
+  let parX = 0, parY = 0, tparX = 0, tparY = 0;
+
+  let lines: Line[] = [];
+  let last: { x: number; y: number; key: string } | null = null;
+  let raf = 0;
+  let running = false;
+
+  function readTokens() {
+    const cs = getComputedStyle(document.documentElement);
+    const g = parseFloat(cs.getPropertyValue('--theme-grid-size'));
+    if (!Number.isNaN(g) && g > 0) {
+      grid = g;
+      off = g / 2;
+    }
+    const ink = cs.getPropertyValue('--theme-ink').trim();
+    if (ink) dotColor = ink;
+    const a = cs.getPropertyValue('--theme-accent').trim();
+    if (a) accent = a;
+  }
+
+  function sizeCanvas() {
+    if (!canvas || !ctx) return;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    vw = window.innerWidth;
+    vh = window.innerHeight;
+    canvas.width = Math.round(vw * dpr);
+    canvas.height = Math.round(vh * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    lcx = vw / 2;
+    lcy = vh / 2;
+    // Cover the whole viewport (half-diagonal) so the bulge spans the field —
+    // strongest at the centre, tapering to zero at the corners — rather than
+    // being a local hotspot.
+    lensR = Math.hypot(vw, vh) / 2;
+  }
+
+  // Lattice point → displaced screen point, plus a radius scale (dots near the
+  // lens centre swell slightly). Parallax shifts the whole field; the barrel
+  // term magnifies within lensR of the (smoothed) cursor, tapering to nothing
+  // at the rim so there's no hard seam.
+  function warp(x: number, y: number): [number, number, number] {
+    // Parallax shifts the whole field; the static barrel then magnifies around
+    // the fixed viewport centre, so the field drifts THROUGH a screen-locked
+    // lens.
+    const X = x + parX;
+    const Y = y + parY;
+    const dx = X - lcx;
+    const dy = Y - lcy;
+    const dist = Math.hypot(dx, dy);
+    if (dist < lensR) {
+      const t = dist / lensR; // 0 centre → 1 rim
+      const f = 1 + LENS_STRENGTH * (1 - t * t);
+      return [lcx + dx * f, lcy + dy * f, 1 + (f - 1) * 0.6];
+    }
+    return [X, Y, 1];
+  }
+
+  // Inverse of warp(): screen point → lattice point. The barrel maps a radius r
+  // to g(r) = r·f(r) = r + S·r·(1 − r²/lensR²); g is monotonic for S < ~0.5, so a
+  // few Newton steps recover r from the on-screen radius, then we undo parallax.
+  // Used to snap the cursor to the dot that's VISUALLY nearest on the distorted
+  // grid, instead of snapping in the (mismatched) undistorted lattice space.
+  function unwarp(px: number, py: number): [number, number] {
+    const Dx = px - lcx;
+    const Dy = py - lcy;
+    const R = Math.hypot(Dx, Dy);
+    let sx = px;
+    let sy = py;
+    if (R > 0.001 && R < lensR) {
+      const L2 = lensR * lensR;
+      let r = R; // g(r) ≥ r, so the true radius is ≤ R — R is a fine seed
+      for (let i = 0; i < 6; i++) {
+        const gr = r + LENS_STRENGTH * r * (1 - (r * r) / L2);
+        const gp = 1 + LENS_STRENGTH * (1 - (3 * r * r) / L2);
+        r -= (gr - R) / gp;
+      }
+      const k = r / R;
+      sx = lcx + Dx * k;
+      sy = lcy + Dy * k;
+    }
+    return [sx - parX, sy - parY]; // back into lattice space
+  }
+
+  function drawDots() {
+    if (!ctx) return;
+    ctx.fillStyle = dotColor;
+    const i0 = Math.floor((-MARGIN - off) / grid);
+    const i1 = Math.ceil((vw + MARGIN - off) / grid);
+    const j0 = Math.floor((-MARGIN - off) / grid);
+    const j1 = Math.ceil((vh + MARGIN - off) / grid);
+    for (let i = i0; i <= i1; i++) {
+      for (let j = j0; j <= j1; j++) {
+        const [X, Y, s] = warp(i * grid + off, j * grid + off);
+        // t = 0 at the lens centre, 1 at the rim — lighter toward the edges
+        // to match the fisheye magnification (centre dots spread apart / look
+        // bolder visually, so we dim them; edge dots compress / look sparse,
+        // so we brighten them slightly).
+        const t = Math.min(Math.hypot(X - lcx, Y - lcy) / lensR, 1);
+        const alpha = DOT_ALPHA_CENTRE + (DOT_ALPHA_EDGE - DOT_ALPHA_CENTRE) * t;
+        ctx.globalAlpha = alpha;
+        const r = DOT_BASE_R * s;
+        ctx.beginPath();
+        ctx.arc(X, Y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawTrail(now: number) {
+    if (!ctx) return;
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const l = lines[i];
+      if (!l.fading && now - l.born >= LIFETIME_MS) l.fading = true;
+      if (l.fading) {
+        l.alpha -= FADE_STEP;
+        if (l.alpha <= 0) {
+          lines.splice(i, 1);
+          continue;
+        }
+      }
+      // Warp along the segment (not just the endpoints) so a line that spans the
+      // lens bows with the dots instead of cutting straight across them.
+      const steps = Math.max(1, Math.round(Math.hypot(l.x2 - l.x1, l.y2 - l.y1) / 8));
+      ctx.globalAlpha = l.alpha;
+      ctx.beginPath();
+      for (let k = 0; k <= steps; k++) {
+        const [X, Y] = warp(l.x1 + ((l.x2 - l.x1) * k) / steps, l.y1 + ((l.y2 - l.y1) * k) / steps);
+        if (k === 0) ctx.moveTo(X, Y);
+        else ctx.lineTo(X, Y);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // A letter stays lit while a live trail segment overlaps its ink; brightness
+  // follows the strongest overlapping segment's alpha. Sampled at the WARPED
+  // positions so lighting matches what's drawn on screen.
+  let litPrev = new Set<Element>();
+  function applyTrailLighting() {
+    const inkAt = (window as unknown as { __engInkAt?: (x: number, y: number) => Element | null })
+      .__engInkAt;
+    if (!inkAt) return;
+    const lit = new Map<Element, number>();
+    for (const l of lines) {
+      const steps = Math.max(1, Math.round(Math.hypot(l.x2 - l.x1, l.y2 - l.y1) / 6));
+      for (let k = 0; k <= steps; k++) {
+        const [X, Y] = warp(l.x1 + ((l.x2 - l.x1) * k) / steps, l.y1 + ((l.y2 - l.y1) * k) / steps);
+        const el = inkAt(X, Y);
+        if (el) lit.set(el, Math.max(lit.get(el) ?? 0, l.alpha));
+      }
+    }
+    for (const [el, a] of lit) {
+      (el as HTMLElement).style.color =
+        `color-mix(in srgb, var(--theme-accent) ${Math.round(a * 100)}%, var(--theme-ink))`;
+    }
+    for (const el of litPrev) if (!lit.has(el)) (el as HTMLElement).style.color = '';
+    litPrev = new Set(lit.keys());
+  }
+
+  function isSettled() {
+    return Math.abs(parX - tparX) < 0.5 && Math.abs(parY - tparY) < 0.5;
+  }
+
+  function frame() {
+    if (!canvas || !ctx) {
+      running = false;
+      return;
+    }
+    parX += (tparX - parX) * SMOOTH;
+    parY += (tparY - parY) * SMOOTH;
+
+    ctx.clearRect(0, 0, vw, vh);
+    drawDots();
+    drawTrail(performance.now());
+    applyTrailLighting();
+
+    // Keep animating until the parallax has eased to rest AND the trail has
+    // drained; then hold the last frame statically (no idle rAF burn).
+    if (!isSettled() || lines.length > 0) {
+      raf = requestAnimationFrame(frame);
+    } else {
+      running = false;
+    }
+  }
+
+  function ensureRunning() {
+    if (!running) {
+      running = true;
+      raf = requestAnimationFrame(frame);
+    }
+  }
+
+  function nearestNode(x: number, y: number) {
+    const nx = Math.round((x - off) / grid) * grid + off;
+    const ny = Math.round((y - off) / grid) * grid + off;
+    return { x: nx, y: ny, key: `${nx},${ny}` };
+  }
+
+  function onMove(x: number, y: number) {
+    tparX = (x - vw / 2) * PARALLAX;
+    tparY = (y - vh / 2) * PARALLAX;
+    // Snap in lattice space (via unwarp) so we pick the dot the cursor is
+    // visually over on the distorted grid — snapping the raw cursor would pick
+    // the wrong dot wherever the lens spreads them apart.
+    const [ux, uy] = unwarp(x, y);
+    const node = nearestNode(ux, uy);
+    if (!last) {
+      last = node;
+    } else if (node.key !== last.key) {
+      lines.push({ x1: last.x, y1: last.y, x2: node.x, y2: node.y, alpha: 1, fading: false, born: performance.now() });
+      if (lines.filter((l) => !l.fading).length > MAX_LINES) {
+        const oldest = lines.find((l) => !l.fading);
+        if (oldest) oldest.fading = true;
+      }
+      last = node;
+    }
+    ensureRunning();
+  }
+
+  function redrawStatic() {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, vw, vh);
+    drawDots();
+  }
+
+  function setup() {
+    canvas = document.querySelector('.dot-lines');
+    if (!canvas || reduced) {
+      ctx = null;
+      return;
+    }
+    ctx = canvas.getContext('2d');
+    readTokens();
+    // Take over the grid from the CSS body background so there's no double-up.
+    // Only engineering paints a grid, so leaving this `none` for the session is
+    // harmless on other themes; reduced-motion never gets here and keeps the CSS
+    // grid as its (motionless) fallback.
+    document.documentElement.style.setProperty('--theme-grid', 'none');
+    lines = [];
+    last = null;
+    sizeCanvas();
+    parX = parY = tparX = tparY = 0;
+    redrawStatic(); // barrel'd grid immediately (revealed by the intro overlay)
+  }
+
+  if (!reduced) {
+    window.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
+      onMove(e.clientX, e.clientY);
+    });
+    // Cursor leaves the window: recentre the parallax (barrel stays put).
+    window.addEventListener('pointerleave', () => {
+      tparX = 0;
+      tparY = 0;
+      ensureRunning();
+    });
+    window.addEventListener('resize', () => {
+      sizeCanvas();
+      if (running) return; // the loop will repaint
+      redrawStatic();
+    });
+  }
+
+  document.addEventListener('astro:page-load', setup);
+</script>

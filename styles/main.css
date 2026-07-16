@@ -12,6 +12,13 @@
 
 /* ---- Foundations ---- */
 @import url('./tokens.css');
+/* Themeable semantic contract (sketchbook defaults) + per-discipline overrides.
+   Contract first so :root defaults exist; theme files (equal specificity) come
+   after so [data-theme="..."] wins by source order. */
+@import url('./themes/_contract.css');
+@import url('./themes/engineering.css');
+@import url('./themes/design.css');
+@import url('./themes/software.css');
 @import url('./base.css');
 @import url('./typography.css');
 

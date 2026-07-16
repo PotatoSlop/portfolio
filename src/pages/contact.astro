@@ -27,6 +27,7 @@ import Base from '../layouts/Base.astro';
           id="name"
           name="name"
           required
+          minlength="2"
           aria-describedby="name-hint name-error"
           autocomplete="name"
         />
@@ -60,7 +61,7 @@ import Base from '../layouts/Base.astro';
           type="tel"
           id="phone"
           name="phone"
-          pattern="\(\d{3}\) \d{3}-\d{4}"
+          pattern={String.raw`\(\d{3}\) \d{3}-\d{4}`}
           aria-describedby="phone-hint phone-error"
           autocomplete="tel"
         />
@@ -76,6 +77,8 @@ import Base from '../layouts/Base.astro';
           id="message"
           name="message"
           required
+          minlength="50"
+          maxlength="2000"
           aria-describedby="message-hint message-error message-counter"
           placeholder="Give me your best project ideas!"></textarea>
         <div class="message-footer">
@@ -126,11 +129,29 @@ import Base from '../layouts/Base.astro';
     const val = (id: string) =>
       (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | null)?.value ?? '';
 
-    function isValidEmail(email: string) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    }
-    function isValidPhone(phone: string) {
-      return /^\(\d{3}\) \d{3}-\d{4}$/.test(phone);
+    // Native Constraint Validation is the source of truth (see the required /
+    // minlength / maxlength / type / pattern attributes on the fields). This maps
+    // a field's ValidityState to our custom copy so we keep the inline error UI.
+    function fieldError(field: HTMLInputElement | HTMLTextAreaElement): string {
+      const v = field.validity;
+      if (v.valid) return '';
+      if (v.valueMissing) {
+        if (field.id === 'email') return 'Email address is required';
+        if (field.id === 'message') return 'Message is required';
+        return 'Full name is required';
+      }
+      if (v.typeMismatch) return 'Please enter a valid email address';
+      if (v.patternMismatch)
+        return 'Please enter a valid phone number in format: (555) 123-4567';
+      if (v.tooShort) {
+        if (field.id === 'message') {
+          const remaining = field.minLength - field.value.length;
+          return `Message must be at least 50 characters long. ${remaining} characters remaining.`;
+        }
+        return 'Name must be at least 2 characters long';
+      }
+      if (v.tooLong) return 'Message is too long.';
+      return field.validationMessage;
     }
 
     function showError(fieldId: string, message: string) {
@@ -228,43 +249,18 @@ import Base from '../layouts/Base.astro';
 
       const name = val('name').trim();
       const email = val('email').trim();
-      const phone = val('phone').trim();
-      const message = val('message').trim();
 
       clearErrorMessages();
       clearFormMessages();
 
-      let hasErrors = false;
-      if (!name) {
-        hasErrors = true;
-        showError('name', 'Full name is required');
-      } else if (name.length < 2) {
-        hasErrors = true;
-        showError('name', 'Name must be at least 2 characters long');
-      }
-      if (!email) {
-        hasErrors = true;
-        showError('email', 'Email address is required');
-      } else if (!isValidEmail(email)) {
-        hasErrors = true;
-        showError('email', 'Please enter a valid email address');
-      }
-      if (phone && !isValidPhone(phone)) {
-        hasErrors = true;
-        showError('phone', 'Please enter a valid phone number in format: (555) 123-4567');
-      }
-      if (!message) {
-        hasErrors = true;
-        showError('message', 'Message is required');
-      } else if (message.length < 50) {
-        hasErrors = true;
-        showError('message', `Message must be at least 50 characters long. ${50 - message.length} characters remaining.`);
-      } else if (message.length > 2000) {
-        hasErrors = true;
-        showError('message', `Message is too long. Please reduce by ${message.length - 2000} characters.`);
-      }
-
-      if (hasErrors) {
+      // Let the browser check every constraint at once, then paint our own copy
+      // onto whichever fields it flagged.
+      if (!form.checkValidity()) {
+        form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea').forEach(
+          (field) => {
+            if (!field.validity.valid) showError(field.id, fieldError(field));
+          }
+        );
         focusFirstErrorField();
         showFormMessage('Please correct the errors below and try again.', 'error');
         return;
@@ -300,50 +296,26 @@ import Base from '../layouts/Base.astro';
       }
     }
 
+    // On blur: an empty field just clears (we don't nag "required" until submit);
+    // a filled field is marked success or shown its native validation error.
+    function validateFieldOnBlur(field: HTMLInputElement | HTMLTextAreaElement) {
+      clearError(field.id);
+      if (field.value.trim() === '') return;
+      if (field.validity.valid) showSuccess(field.id);
+      else showError(field.id, fieldError(field));
+    }
+
     function setupRealTimeValidation() {
-      const nameField = document.getElementById('name') as HTMLInputElement | null;
-      const emailField = document.getElementById('email') as HTMLInputElement | null;
-      const phoneField = document.getElementById('phone') as HTMLInputElement | null;
-      const messageField = document.getElementById('message') as HTMLTextAreaElement | null;
+      const fields = ['name', 'email', 'phone', 'message']
+        .map((id) => document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | null)
+        .filter((f): f is HTMLInputElement | HTMLTextAreaElement => f !== null);
 
-      nameField?.addEventListener('blur', function () {
-        const name = this.value.trim();
-        clearError('name');
-        if (name && name.length >= 2) showSuccess('name');
-        else if (name && name.length < 2) showError('name', 'Name must be at least 2 characters long');
-      });
-      nameField?.addEventListener('input', function () {
-        if (this.classList.contains('error-field')) clearError('name');
-      });
-
-      emailField?.addEventListener('blur', function () {
-        const email = this.value.trim();
-        clearError('email');
-        if (email && isValidEmail(email)) showSuccess('email');
-        else if (email && !isValidEmail(email)) showError('email', 'Please enter a valid email address');
-      });
-      emailField?.addEventListener('input', function () {
-        if (this.classList.contains('error-field')) clearError('email');
-      });
-
-      phoneField?.addEventListener('blur', function () {
-        const phone = this.value.trim();
-        clearError('phone');
-        if (phone && isValidPhone(phone)) showSuccess('phone');
-        else if (phone && !isValidPhone(phone))
-          showError('phone', 'Please enter a valid phone number in format: (555) 123-4567');
-      });
-
-      messageField?.addEventListener('input', function () {
-        updateMessageCounter();
-        if (this.classList.contains('error-field')) clearError('message');
-      });
-      messageField?.addEventListener('blur', function () {
-        const message = this.value.trim();
-        clearError('message');
-        if (message && message.length >= 50) showSuccess('message');
-        else if (message && message.length < 50)
-          showError('message', `Message must be at least 50 characters long. ${50 - message.length} characters remaining.`);
+      fields.forEach((field) => {
+        field.addEventListener('blur', () => validateFieldOnBlur(field));
+        field.addEventListener('input', () => {
+          if (field.id === 'message') updateMessageCounter();
+          if (field.classList.contains('error-field')) clearError(field.id);
+        });
       });
     }
 

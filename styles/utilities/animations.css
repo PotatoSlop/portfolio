@@ -16,6 +16,17 @@ body:not(:has(.landing)) .page-header {
   animation: pageFadeIn 0.45s var(--ease-out) both;
 }
 
+/* Design page has NO entrance animation. Its hero is pinned to the pull-tab
+   door label's fixed viewport centre, and the door commit hard-navigates here
+   (no view transition). Any pageFadeIn — even a pure opacity fade — would replay
+   on top of the door's matching frame and read as a "flash light first". So the
+   page paints instantly; inter-page motion for normal (click) navigations is
+   still supplied by the view-transition slide, which captures it at full
+   opacity. */
+html[data-theme='design'] body:not(:has(.landing)) main {
+  animation: none;
+}
+
 @keyframes cardSlideIn {
   from { opacity: 0; transform: translateY(28px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -48,6 +59,43 @@ body:not(:has(.landing)) .page-header {
 }
 
 
+/* ===== Cross-discipline directional slide (View Transitions) =====
+   Sibling discipline routes (engineering / design / software) slide
+   horizontally. Base.astro sets `data-slide` on <html> from the index delta
+   (forward = moving right through the list, backward = left). Non-sibling
+   navigations have no data-slide and fall back to Astro's default fade.
+   `root` is the UA-assigned view-transition-name for the whole-page snapshot. */
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes slide-out-left {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(-30%); opacity: 0; }
+}
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes slide-out-right {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(30%); opacity: 0; }
+}
+
+html[data-slide='forward']::view-transition-old(root) {
+  animation: slide-out-left var(--duration-smooth) var(--ease-smooth) both;
+}
+html[data-slide='forward']::view-transition-new(root) {
+  animation: slide-in-right var(--duration-smooth) var(--ease-smooth) both;
+}
+html[data-slide='backward']::view-transition-old(root) {
+  animation: slide-out-right var(--duration-smooth) var(--ease-smooth) both;
+}
+html[data-slide='backward']::view-transition-new(root) {
+  animation: slide-in-left var(--duration-smooth) var(--ease-smooth) both;
+}
+
 /* ----- Wave-text utility -----
    Wraps each character in a span and assigns staggered animation delays. */
 .wave-text span {
@@ -68,18 +116,18 @@ body:not(:has(.landing)) .page-header {
 .wave-text span:nth-child(12) { animation-delay: 0.63s; }
 
 /* ----- Category-select wave delays ----- */
-.categorySelect span:nth-child(1) {
+.category-select span:nth-child(1) {
   animation-delay: 0s, 0s;
 }
 
-.categorySelect span:nth-child(2) {
+.category-select span:nth-child(2) {
   animation-delay: calc(var(--wave-delay-base) * 1), 0s;
 }
 
-.categorySelect span:nth-child(3) {
+.category-select span:nth-child(3) {
   animation-delay: calc(var(--wave-delay-base) * 2), 0s;
 }
 
-.categorySelect span:nth-child(4) {
+.category-select span:nth-child(4) {
   animation-delay: calc(var(--wave-delay-base) * 3), 0s;
 }

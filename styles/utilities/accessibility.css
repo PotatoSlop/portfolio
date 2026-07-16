@@ -46,6 +46,13 @@
   .timeline-item .timeline-dot {
     animation: none;
   }
+
+  /* Cross-discipline slide: drop to a plain cut/fade. The swipe gesture still
+     navigates (it's JS) — only the motion is removed. */
+  html[data-slide]::view-transition-old(root),
+  html[data-slide]::view-transition-new(root) {
+    animation: none !important;
+  }
 }
 
 .sr-only {

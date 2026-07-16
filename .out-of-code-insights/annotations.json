@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 2,
+  "annotations": [
+    {
+      "fileUri": "file:///c%3A/Users/dylan/Documents/GitHub/portfolio/src/pages/engineering.astro",
+      "file": "src/pages/engineering.astro",
+      "origin": {
+        "kind": "manual"
+      },
+      "message": "id the hero project -> assume its the first in the list",
+      "timestamp": "2026-06-29T03:37:44.700Z",
+      "languageId": "astro",
+      "id": "a80f26d0-88a2-4159-8a4b-aeb75c9bdbc4",
+      "schemaVersion": 2,
+      "startOffset": 642,
+      "endOffset": 680,
+      "lineHash": "d18baebc",
+      "contextBefore": [
+        "const projects = tagged.sort((a, b) => a.data.order - b.data.order);",
+        "const outboundHref = (p: (typeof projects)[number]) => p.data.links?.live ?? p.data.links?.repo ?? p.data.links?.download ?? null;",
+        ""
+      ],
+      "contextAfter": [
+        "// accordion holds everyone else.",
+        "const featured = projects.find((p) => p.data.hero) ?? projects[0] ?? null;",
+        "const rest = projects.filter((p) => p !== featured);"
+      ],
+      "state": "active"
+    }
+  ]
+}

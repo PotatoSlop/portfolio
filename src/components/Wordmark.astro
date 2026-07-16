@@ -1,0 +1,427 @@
+---
+import { Icon } from 'astro-icon/components';
+
+const L1_DESK = 'ENGINEER';
+const L2_DESK = 'ING';
+
+const L1_MOB = 'ENGI';
+const L2_MOB = 'NEER';
+const L3_MOB = 'ING';
+
+// Per-line position in USER units
+const L1_X = -0.5; // left offset for E
+const L2_X = -2;   // left offset for I
+
+// Line baselines (74px line spacing)
+const L1_Y = 92;
+const L2_Y = 166;
+const L3_Y = 240; // 3rd line for mobile layout
+
+// --- Diagonal arrow geometry --------------------
+const ARROW = {
+  tipX: 33,
+  tipY: 34.5,
+  stemLen: 16,
+  headLen: 15,
+  stemW: 3.6,
+  headW: 3.6,
+};
+const ARROW_STEM_D =
+  `M${ARROW.tipX - ARROW.stemLen} ${ARROW.tipY - ARROW.stemLen} L${ARROW.tipX} ${ARROW.tipY}`;
+const ARROW_HEAD_D =
+  `M${ARROW.tipX} ${ARROW.tipY - ARROW.headLen} L${ARROW.tipX} ${ARROW.tipY} L${ARROW.tipX - ARROW.headLen} ${ARROW.tipY}`;
+
+// --- Intro crop reveal -----------------------------------------------------
+const CLIP_TOP = -120;
+const CLIP_EPS = 3;
+const CLIP_X = -120;
+const CLIP_W = 900;
+const clipH = (baseline: number) => baseline + CLIP_EPS - CLIP_TOP;
+---
+
+<svg
+  class="eng-wordmark"
+  role="img"
+  aria-label="Engineering"
+  viewBox="0 0 600 200"
+  preserveAspectRatio="xMinYMid meet"
+>
+  <defs>
+    <clipPath id="eng-wm-clip-1" clipPathUnits="userSpaceOnUse">
+      <rect x={CLIP_X} y={CLIP_TOP} width={CLIP_W} height={clipH(L1_Y)}></rect>
+    </clipPath>
+    <clipPath id="eng-wm-clip-2" clipPathUnits="userSpaceOnUse">
+      <rect x={CLIP_X} y={CLIP_TOP} width={CLIP_W} height={clipH(L2_Y)}></rect>
+    </clipPath>
+    <clipPath id="eng-wm-clip-3" clipPathUnits="userSpaceOnUse">
+      <rect x={CLIP_X} y={CLIP_TOP} width={CLIP_W} height={clipH(L3_Y)}></rect>
+    </clipPath>
+  </defs>
+
+  <g class="eng-wm-content eng-wm-desktop">
+    <text class="eng-wm-line" x={L1_X} y={L1_Y} clip-path="url(#eng-wm-clip-1)">
+      {L1_DESK.split('').map((c) => <tspan class="eng-hero__char">{c}</tspan>)}
+    </text>
+
+    <text class="eng-wm-line" data-last-line="true" x={L2_X} y={L2_Y} clip-path="url(#eng-wm-clip-2)">
+      {L2_DESK.split('').map((c) => <tspan class="eng-hero__char">{c}</tspan>)}
+    </text>
+
+    <g class="eng-hero__arrow" data-arrow={JSON.stringify(ARROW)}>
+      <g class="eng-hero__arrow-rise">
+        <Icon name="mdi:arrow-bottom-right" width="46" height="46" class="eng-svg-icon" />
+      </g>
+    </g>
+  </g>
+
+  <g class="eng-wm-content eng-wm-mobile">
+    <text class="eng-wm-line" x={L1_X} y={L1_Y} clip-path="url(#eng-wm-clip-1)">
+      {L1_MOB.split('').map((c) => <tspan class="eng-hero__char">{c}</tspan>)}
+    </text>
+
+    <text class="eng-wm-line" x={L1_X} y={L2_Y} clip-path="url(#eng-wm-clip-2)">
+      {L2_MOB.split('').map((c) => <tspan class="eng-hero__char">{c}</tspan>)}
+    </text>
+
+    <text class="eng-wm-line" data-last-line="true" x={L2_X} y={L3_Y} clip-path="url(#eng-wm-clip-3)">
+      {L3_MOB.split('').map((c) => <tspan class="eng-hero__char">{c}</tspan>)}
+    </text>
+
+    <g class="eng-hero__arrow" data-arrow={JSON.stringify(ARROW)}>
+      <g class="eng-hero__arrow-rise">
+        <Icon name="mdi:arrow-bottom-right-thick" width="46" height="46" class="eng-svg-icon" />
+      </g>
+    </g>
+  </g>
+</svg>
+
+<noscript>
+  <style>.eng-wordmark { opacity: 1 !important; }</style>
+</noscript>
+
+<style>
+  .eng-wm-mobile {
+    display: none;
+  }
+
+  .eng-svg-icon {
+  fill: currentColor;
+  display: inline-block;
+  overflow: visible;
+  }
+
+  .eng-wordmark {
+    position: relative;
+    display: block;
+    width: 100%; 
+    max-width: 1280px;
+    height: auto;
+    /* The exact desktop constant offset you requested */
+    margin: 0 0 0 -2.2rem; 
+    overflow: visible;
+    color: var(--theme-ink);
+    pointer-events: none;
+  }
+
+  /* Tablet & down: drop the -2.2rem desktop pull. At narrow widths that negative
+     margin overflows the hero padding and clips the leading glyphs off-screen. */
+  @media (max-width: 768px) {
+    .eng-wordmark {
+      margin-left: 0;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .eng-wm-desktop { display: none; }
+    .eng-wm-mobile { display: inline; }
+
+    .eng-wordmark {
+      width: 80vw;
+      /* Force override the negative desktop margin to perfectly center */
+      margin: 0 auto !important;
+    }
+  }
+
+  .eng-wm-line {
+    font-family: var(--theme-font-display);
+    font-weight: 700;
+    font-size: 100px;
+    letter-spacing: -3px;
+  }
+  .eng-hero__char {
+    fill: currentColor;
+    transition: color var(--duration-fast) var(--theme-motion-ease);
+  }
+  .eng-hero__arrow {
+    color: var(--theme-ink);
+  }
+  .eng-hero__arrow path {
+    transition: color var(--duration-fast) var(--theme-motion-ease);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .eng-wordmark {
+      opacity: 0;
+      transition: opacity var(--duration-medium) var(--ease-out);
+    }
+    .eng-wordmark.intro-ready {
+      opacity: 1;
+    }
+  }
+</style>
+
+<script>
+  import { animate } from 'motion';
+  import { durations, eases, springs } from '../lib/motion/tokens';
+  import { prefersReducedMotion } from '../lib/motion/reduced-motion';
+
+  const THRESHOLD = 90;
+  const MASK_DY = -2;
+  const DEBUG = false;
+  const reduced = prefersReducedMotion();
+
+  type GMask = { el: Element; x: number; y: number; w: number; h: number; a: Uint8ClampedArray };
+  type ArrowCfg = {
+    tipX: number; tipY: number; stemLen: number; headLen: number; stemW: number; headW: number;
+  };
+
+  let svg: SVGSVGElement | null = null;
+  let arrowEl: SVGGElement | null = null;
+  let arrowCfg: ArrowCfg | null = null;
+  let chars: SVGGraphicsElement[] = [];
+  let tmp: HTMLCanvasElement | null = null;
+  let tctx: CanvasRenderingContext2D | null = null;
+  let gmasks: GMask[] = [];
+  let maskDirty = true;
+  let dbg: HTMLCanvasElement | null = null;
+  let introStarted = false;
+
+  // Helper to strictly grab whichever layout block CSS is currently showing
+  function getActiveGroup() {
+    if (!svg) return null;
+    const isMobile = window.matchMedia('(max-width: 400px)').matches;
+    return svg.querySelector(isMobile ? '.eng-wm-mobile' : '.eng-wm-desktop');
+  }
+
+  function fitWordmark() {
+    if (!svg) return;
+    const content = getActiveGroup();
+    if (!content) return;
+
+    const lastLine = content.querySelector('[data-last-line]') as SVGTextElement | null;
+    arrowEl = content.querySelector('.eng-hero__arrow') as SVGGElement | null;
+    
+    if (lastLine && arrowEl) {
+      try {
+        const ingLen = lastLine.getComputedTextLength();
+        const l2y = parseFloat(lastLine.getAttribute('y') || '176');
+        const tipY = arrowCfg?.tipY ?? 34.5;
+        arrowEl.setAttribute('transform', `translate(${ingLen + 12}, ${l2y - tipY})`);
+      } catch {}
+    }
+    
+    const b = (content as SVGGElement).getBBox();
+    const pad = 3;
+    svg.setAttribute('viewBox', `${b.x} ${b.y - pad} ${b.width + pad} ${b.height + pad * 2}`);
+    maskDirty = true;
+  }
+
+  function buildMasks() {
+    if (!svg) return;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) {
+      gmasks = [];
+      return;
+    }
+    
+    const content = getActiveGroup();
+    if (!content) return;
+
+    chars = Array.from(content.querySelectorAll<SVGGraphicsElement>('.eng-hero__char'));
+    
+    if (!tmp) {
+      tmp = document.createElement('canvas');
+      tctx = tmp.getContext('2d', { willReadFrequently: true });
+    }
+    if (!tctx) return;
+    
+    tmp.width = window.innerWidth;
+    tmp.height = window.innerHeight;
+    tctx.textBaseline = 'alphabetic';
+    tctx.font = `700 ${100 * ctm.a}px 'Syne', sans-serif`;
+    tctx.fillStyle = '#fff';
+    tctx.strokeStyle = '#fff';
+
+    const pt = svg.createSVGPoint();
+    gmasks = [];
+
+    const capture = (el: Element, rect: DOMRect, drawFn: () => void) => {
+      if (!tctx || !tmp) return;
+      tctx.clearRect(0, 0, tmp.width, tmp.height);
+      drawFn();
+      const x0 = Math.max(0, Math.floor(rect.left) - 2);
+      const y0 = Math.max(0, Math.floor(rect.top) - 2);
+      const w = Math.min(tmp.width - x0, Math.ceil(rect.width) + 4);
+      const h = Math.min(tmp.height - y0, Math.ceil(rect.height) + 4);
+      if (w <= 0 || h <= 0) return;
+      const img = tctx.getImageData(x0, y0, w, h).data;
+      const a = new Uint8ClampedArray(w * h);
+      for (let k = 0; k < w * h; k++) a[k] = img[k * 4 + 3];
+      gmasks.push({ el, x: x0, y: y0 + MASK_DY, w, h, a });
+    };
+
+    for (const ch of chars) {
+      let s;
+      try {
+        s = (ch as unknown as SVGTextContentElement).getStartPositionOfChar(0);
+      } catch {
+        continue;
+      }
+      pt.x = s.x;
+      pt.y = s.y;
+      const p = pt.matrixTransform(ctm);
+      capture(ch, ch.getBoundingClientRect(), () => tctx!.fillText(ch.textContent || '', p.x, p.y));
+    }
+
+    if (arrowEl && arrowCfg) {
+      const actm = arrowEl.getScreenCTM();
+      if (actm) {
+        capture(arrowEl, arrowEl.getBoundingClientRect(), () => {
+          // Rather than manually tracing lines with variables, we let the script
+          // capture the bounding rectangle context natively for pixel intersection matching.
+          tctx!.fillStyle = '#fff';
+          const r = arrowEl!.getBoundingClientRect();
+          const svgRect = svg!.getBoundingClientRect();
+          const scaleX = tmp!.width / svgRect.width;
+          const scaleY = tmp!.height / svgRect.height;
+          
+          tctx!.fillRect(
+            (r.left - svgRect.left) * scaleX,
+            (r.top - svgRect.top) * scaleY,
+            r.width * scaleX,
+            r.height * scaleY
+          );
+        });
+      }
+    }
+    maskDirty = false;
+  }
+
+  function inkAt(cx: number, cy: number): Element | null {
+    if (maskDirty) buildMasks();
+    const x = Math.round(cx);
+    const y = Math.round(cy);
+    let best: Element | null = null;
+    let bestA = 0;
+    for (const g of gmasks) {
+      const lx = x - g.x;
+      const ly = y - g.y;
+      if (lx < 0 || ly < 0 || lx >= g.w || ly >= g.h) continue;
+      const a = g.a[ly * g.w + lx];
+      if (a > bestA) {
+        bestA = a;
+        best = g.el;
+      }
+    }
+    return bestA >= THRESHOLD ? best : null;
+  }
+
+  (window as unknown as { __engInkAt?: (x: number, y: number) => Element | null }).__engInkAt =
+    (x, y) => inkAt(x, y);
+
+  if (!reduced) {
+    window.addEventListener('resize', () => {
+      fitWordmark();
+      maskDirty = true;
+    });
+    window.addEventListener('scroll', () => { maskDirty = true; }, { passive: true });
+  }
+
+  function runIntro() {
+    if (!svg || reduced || introStarted) return;
+    introStarted = true;
+
+    const content = getActiveGroup();
+    if (!content) return;
+
+    // Rise distance. Glyphs offset their SVG `y` attribute by D user-units; the
+    // arrow (a real <g>) rides D CSS px on transform — matching the original,
+    // which mixed the two units and read fine because the SVG scales.
+    const D = 82;
+    const STEP = 0.055; // per-glyph stagger, seconds
+
+    const glyphs = Array.from(content.querySelectorAll<SVGTextContentElement>('.eng-hero__char'));
+    const restY = glyphs.map((g) => parseFloat(g.closest('text')?.getAttribute('y') || '0'));
+    const arrowRise = content.querySelector<SVGGElement>('.eng-hero__arrow-rise');
+
+    // Arm the hidden start state synchronously so there's no flash of the
+    // resting layout before intro-ready reveals the SVG.
+    glyphs.forEach((g, i) => g.setAttribute('y', (restY[i] + D).toFixed(2)));
+    if (arrowRise) {
+      arrowRise.style.transform = `translateY(${D}px)`;
+      arrowRise.style.opacity = '0';
+    }
+    svg.classList.add('intro-ready');
+
+    // tspans honor neither CSS transforms nor Motion's CSS `y` geometry prop, so
+    // we animate a plain numeric offset and write the SVG `y` ATTRIBUTE ourselves
+    // each frame via onUpdate (what the original rAF loop did). Manual stagger
+    // loop because each glyph rises to its own rest `y`.
+    const spring = { type: 'spring' as const, ...springs.snappy };
+    const anims = glyphs.map((g, i) =>
+      animate(D, 0, {
+        ...spring,
+        delay: i * STEP,
+        onUpdate: (offset) => g.setAttribute('y', (restY[i] + offset).toFixed(2)),
+      }),
+    );
+    if (arrowRise)
+      anims.push(
+        animate(
+          arrowRise,
+          { transform: [`translateY(${D}px)`, 'translateY(0px)'], opacity: [0, 1] },
+          { duration: durations.slow, ease: eases.smooth, delay: glyphs.length * STEP },
+        ),
+      );
+
+    // On completion, drop the inline overrides so CSS resting layout takes over,
+    // then flag the ink hit-mask stale so it rebuilds against final positions.
+    Promise.all(anims.map((a) => a.finished))
+      .then(() => {
+        glyphs.forEach((g) => g.removeAttribute('y'));
+        if (arrowRise) {
+          arrowRise.style.transform = '';
+          arrowRise.style.opacity = '';
+        }
+        maskDirty = true;
+      })
+      .catch(() => {});
+  }
+
+  function setup() {
+    svg = document.querySelector('.eng-wordmark');
+    if (!svg || reduced) return;
+    
+    // Parse arrow dataset initially from the dom
+    const initialArrow = svg.querySelector('.eng-hero__arrow') as SVGGElement | null;
+    try {
+      arrowCfg = initialArrow?.dataset.arrow ? JSON.parse(initialArrow.dataset.arrow) : null;
+    } catch {
+      arrowCfg = null;
+    }
+    
+    introStarted = false;
+    maskDirty = true;
+    fitWordmark();
+    buildMasks();
+    if (document.fonts?.ready)
+      document.fonts.ready.then(() => {
+        fitWordmark();
+        buildMasks();
+        runIntro();
+      });
+    else runIntro();
+  }
+
+  document.addEventListener('astro:page-load', setup);
+</script>

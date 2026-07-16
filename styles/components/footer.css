@@ -114,3 +114,53 @@
   margin: 0;
   font-size: 0.875rem;
 }
+
+/* ===== Engineering footer skin (Figma demo) =====
+   Boxy + rectangular to match the page; Syne/Roboto shared fonts; squared CTA
+   with a sliding fill instead of the pill cross-fade. */
+[data-theme='engineering'] .contact-footer {
+  border-radius: 0;
+  filter: none;
+  font-family: var(--theme-font-body);
+  /* Smaller — shrink to content instead of the tall 90dvh reveal. */
+  height: auto;
+  min-height: 0;
+  padding-top: 2.5rem;
+}
+[data-theme='engineering'] .footer-title {
+  font-family: var(--theme-font-display);
+  font-size: clamp(1.75rem, 5vw, 3rem);
+  margin-bottom: 0.75rem;
+}
+[data-theme='engineering'] .footer-content-wrapper {
+  padding: 1.5rem 1rem;
+}
+[data-theme='engineering'] .footer-cta-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 0;
+  font-family: var(--theme-font-body);
+  transition: color var(--duration-fast) var(--theme-motion-ease);
+}
+[data-theme='engineering'] .footer-cta-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--color-white);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-smooth) var(--theme-motion-ease);
+}
+[data-theme='engineering'] .footer-cta-button:hover {
+  background: var(--color-black);
+  color: var(--color-black);
+  transform: none;
+}
+[data-theme='engineering'] .footer-cta-button:hover::before {
+  transform: scaleX(1);
+}
+[data-theme='engineering'] .footer-bottom-bar {
+  font-family: var(--theme-font-body);
+}

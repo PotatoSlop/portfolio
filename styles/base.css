@@ -9,17 +9,34 @@
 
 html {
   scroll-behavior: smooth;
+  /* The mobile nav drawer (.sidebar) lives off-canvas via translateX(100%), so
+     its box extends one viewport-width past the right edge. That phantom width
+     doubles the document's scrollWidth — at ≤400px (where the drawer is
+     width:100%) the page reports a 2×-wide scroll area, the mobile viewport
+     shrink-fits it, and the whole layout looks scaled down with a gap on the
+     right. `overflow-x: clip` (NOT hidden) trims that overflow WITHOUT creating
+     a scroll container, so the sticky nav keeps working. Needs to be on both
+     html and body to fully contain the fixed descendant's overflow. */
+  overflow-x: clip;
 }
 
 body {
   width: 100%;
   margin: 0;
   padding: 0;
-  background: var(--color-white);
+  overflow-x: clip;
+  /* Themed surfaces — sketchbook defaults resolve to white/charcoal via
+     the contract in themes/_contract.css. The grid layer paints over the
+     background-color (it's `none` for sketchbook). */
+  background-color: var(--theme-bg);
+  background-image: var(--theme-grid);
+  background-size: var(--theme-grid-size) var(--theme-grid-size);
   min-height: 100dvh;
   font-family: var(--font-primary);
   font-size: 1rem;
-  color: var(--color-black);
+  color: var(--theme-ink);
+  transition: background-color var(--duration-slow) var(--ease-in-out),
+    color var(--duration-slow) var(--ease-in-out);
 }
 
 body.no-scroll {
@@ -39,19 +56,19 @@ body.fade-out {
   padding: var(--gap-xl);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar-track {
-  background: transparent;
+/* Scrollbar — the native scrollbar is fully hidden site-wide; a custom
+   draggable thumb (components/Scrollbar.astro) is the scroll indicator. Hiding
+   it also frees the viewport edge so edge-anchored UI (pull-tabs) sits flush. */
+html {
+  scrollbar-width: none; /* Firefox */
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--color-primary);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary-dark);
+body {
+  -ms-overflow-style: none; /* legacy Edge/IE */
 }
 
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 0;
+  height: 0;
+  display: none;
 }

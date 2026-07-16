@@ -1,5 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
+import { Image } from 'astro:assets';
+import headshot from '../assets/irlHeadshot.jpg';
 ---
 
 <Base title="About — Dylan Chen">
@@ -13,10 +15,13 @@ import Base from '../layouts/Base.astro';
               src="/Assets/wavingDude.gif"
               alt="Doodle of Dylan Chen"
             />
-            <img
+            <Image
               class="headshot-face real-photo"
-              src="/Assets/irlHeadshot.jpg"
+              src={headshot}
               alt="Dylan Chen Headshot"
+              widths={[400, 800]}
+              sizes="(max-width: 700px) 400px, 800px"
+              format="webp"
             />
           </div>
         </div>
@@ -41,8 +46,8 @@ import Base from '../layouts/Base.astro';
               always willing to help out!
             </p>
             <a
-              href="/Assets/Dylan Chen Resume - 9_8_25.pdf"
-              download="Dylan Chen Resume 2025"
+              href="/Assets/Dylan Chen Resume - Hardware 7_26.pdf"
+              download="Dylan Chen Resume 2026"
               class="resume-btn">Download Resume</a
             >
           </div>
@@ -131,6 +136,7 @@ import Base from '../layouts/Base.astro';
       document.body.style.left = '0';
       document.body.style.right = '0';
       document.body.style.overflowY = 'scroll';
+      document.documentElement.dataset.flipLocked = '1'; // Scrollbar hides on this
       _isLocked = true;
     }
     function unlockScroll() {
@@ -141,6 +147,7 @@ import Base from '../layouts/Base.astro';
       document.body.style.right = '';
       document.body.style.overflowY = '';
       window.scrollTo({ top: _lockY, behavior: 'instant' });
+      delete document.documentElement.dataset.flipLocked;
       _isLocked = false;
     }
 
@@ -182,6 +189,9 @@ import Base from '../layouts/Base.astro';
       // bug); a crossing check fires even when one event jumps over the band.
       let prevTop = aboutMain.getBoundingClientRect().top;
       const ENGAGE = 80; // section top at viewport top = the engaged position
+      // Set once the timeline is built; lets the flip's scroll handler re-arm
+      // the (now idle-when-settled) draw loop without depending on it existing.
+      let timelineKick: (() => void) | null = null;
 
       scrollHandler = () => {
         const sy = window.scrollY;
@@ -202,6 +212,7 @@ import Base from '../layouts/Base.astro';
         }
 
         prevTop = rect.top;
+        timelineKick?.(); // re-arm the timeline draw on any real scroll
       };
 
       wheelHandler = (e: WheelEvent) => {
@@ -343,7 +354,8 @@ import Base from '../layouts/Base.astro';
       const tick = () => {
         const targetOffset = totalLength * (1 - getScrollFraction());
         currentOffset += (targetOffset - currentOffset) * 0.08;
-        if (Math.abs(currentOffset - targetOffset) < 0.5) currentOffset = targetOffset;
+        const settled = Math.abs(currentOffset - targetOffset) < 0.5;
+        if (settled) currentOffset = targetOffset;
         pathEl.style.strokeDashoffset = String(currentOffset);
         const drawnFraction = 1 - currentOffset / totalLength;
         revealFracs.forEach((frac, i) => {
@@ -351,19 +363,28 @@ import Base from '../layouts/Base.astro';
           dots[i].classList.toggle('dot-visible', visible);
           timelineItems[i].classList.toggle('reveal', visible);
         });
-        rafId = requestAnimationFrame(tick);
+        // Idle once the draw has caught up — a fresh scroll re-arms it below —
+        // instead of burning a 60fps loop while the page sits still.
+        rafId = settled ? null : requestAnimationFrame(tick);
       };
+      const kickTick = () => {
+        if (rafId === null) rafId = requestAnimationFrame(tick);
+      };
+      timelineKick = kickTick; // now the scroll handler can re-arm the loop
 
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
           buildPath();
-          if (rafId === null) rafId = requestAnimationFrame(tick);
+          kickTick();
         })
       );
 
       resizeHandler = () => {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(buildPath, 120);
+        resizeTimer = setTimeout(() => {
+          buildPath();
+          kickTick();
+        }, 120);
       };
       window.addEventListener('resize', resizeHandler);
     }

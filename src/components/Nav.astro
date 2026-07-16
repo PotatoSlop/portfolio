@@ -1,39 +1,128 @@
+---
+import { Icon } from 'astro-icon/components';
+
+// Project routes shared by the desktop dropdown and the mobile sidebar group,
+// so the two stay in sync from one source.
+const projectLinks = [
+  { href: '/engineering', label: 'Engineering' },
+  { href: '/design', label: 'Design' },
+  { href: '/software', label: 'Software' },
+  { href: '/playground', label: 'Playground' },
+];
+
+interface Props {
+  theme?: 'sketchbook' | 'engineering' | 'design' | 'software';
+}
+const { theme = 'sketchbook' } = Astro.props;
+
+// On discipline pages the side pull-tabs are the discipline switcher, so the
+// Projects dropdown is redundant — show Home / About / Contact instead. Other
+// pages keep the Projects ▾ dropdown.
+const isDiscipline = theme === 'engineering' || theme === 'design' || theme === 'software';
+---
+
 <nav>
   <ul class="sidebar">
     <li>
       <button id="close-sidebar" type="button" aria-label="Close menu">
         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
-          <path
-            d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"
-          ></path>
-        </svg>
+          <Icon name="at-icons:cross"/>
       </button>
     </li>
     <li><a href="/">Home</a></li>
-    <li><a href="/playground">Projects</a></li>
+    {
+      !isDiscipline && (
+        <li class="sidebar-group">
+          <button
+            type="button"
+            class="sidebar-group-trigger"
+            aria-expanded="false"
+            aria-controls="sidebar-projects"
+          >
+            Projects
+            <span class="nav-caret" aria-hidden="true" />
+          </button>
+          <ul class="sidebar-submenu" id="sidebar-projects">
+            {projectLinks.map((link) => (
+              <li>
+                <a href={link.href}>{link.label}</a>
+              </li>
+            ))}
+          </ul>
+        </li>
+      )
+    }
     <li><a href="/about">About</a></li>
     <li><a href="/contact">Contact</a></li>
   </ul>
   <ul>
     <li class="logo">
-      <a href="/">
-        <img src="/Assets/boilingName.gif" alt="Dylan Chen Portfolio Home" class="logo-img" />
-      </a>
+      {
+        theme === 'engineering' ? (
+          <a href="/" class="logo-text" aria-label="Dylan Chen Portfolio Home">
+            <span class="logo-chip" aria-hidden="true" />
+            <span class="logo-name">DYLAN CHEN</span>
+          </a>
+        ) : (
+          <a href="/">
+            <img src="/Assets/boilingName.gif" alt="Dylan Chen Portfolio Home" class="logo-img" />
+          </a>
+        )
+      }
     </li>
-    <li class="hideOnMobile nav-link"><a href="/playground">Projects</a></li>
+    {
+      isDiscipline ? (
+        <li class="hideOnMobile nav-link"><a href="/">Home</a></li>
+      ) : (
+        <li class="hideOnMobile nav-item nav-dropdown">
+          <button
+            id="projects-trigger"
+            type="button"
+            class="nav-dropdown-trigger"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="projects-menu"
+          >
+            Projects
+            <span class="nav-caret" aria-hidden="true" />
+          </button>
+          <ul class="nav-dropdown-menu" id="projects-menu" role="menu" aria-labelledby="projects-trigger">
+            {projectLinks.map((link) => (
+              <li role="none">
+                <a role="menuitem" href={link.href}>{link.label}</a>
+              </li>
+            ))}
+          </ul>
+        </li>
+      )
+    }
     <li class="hideOnMobile nav-link"><a href="/about">About</a></li>
     <li class="hideOnMobile nav-link"><a href="/contact">Contact</a></li>
     <li class="menu-button">
       <button id="hamburger-menu" type="button" aria-label="Open menu">
-        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
-          <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z"></path>
-        </svg>
+        <Icon 
+        name="tabler:menu-2" 
+        class="hamburger-icon"
+        stroke-width="2.5"
+        />
       </button>
     </li>
   </ul>
 </nav>
 
 <div class="sidebar-overlay"></div>
+
+<style>
+  .hamburger-icon {
+    width: 24px;
+    height: 24px;
+    display: block;
+
+    stroke-width: 2.5px;
+  }
+
+
+</style>
 
 <script>
   function showSidebar() {
@@ -59,6 +148,25 @@
     }, 300);
   }
 
+  // ---- Desktop "Projects" dropdown ----
+  function openDropdown() {
+    const dd = document.querySelector('.nav-dropdown');
+    const trigger = document.getElementById('projects-trigger');
+    dd?.classList.add('open');
+    trigger?.setAttribute('aria-expanded', 'true');
+  }
+  function closeDropdown(returnFocus = false) {
+    const dd = document.querySelector('.nav-dropdown');
+    const trigger = document.getElementById('projects-trigger');
+    if (!dd?.classList.contains('open')) return;
+    dd.classList.remove('open');
+    trigger?.setAttribute('aria-expanded', 'false');
+    if (returnFocus) (trigger as HTMLElement | null)?.focus();
+  }
+  function dropdownItems(): HTMLElement[] {
+    return Array.from(document.querySelectorAll<HTMLElement>('#projects-menu a[role="menuitem"]'));
+  }
+
   // closest() handles clicks landing on the inner <svg>/<path> of the buttons.
   document.addEventListener('click', (e) => {
     const t = e.target as Element;
@@ -70,16 +178,81 @@
       hideSidebar();
     } else if (t.closest('.sidebar-overlay')) {
       hideSidebar();
+    } else if (t.closest('#projects-trigger')) {
+      e.preventDefault();
+      const dd = document.querySelector('.nav-dropdown');
+      dd?.classList.contains('open') ? closeDropdown() : openDropdown();
+    } else if (t.closest('.sidebar-group-trigger')) {
+      e.preventDefault();
+      const trigger = t.closest('.sidebar-group-trigger') as HTMLElement;
+      const group = trigger.closest('.sidebar-group');
+      const open = group?.classList.toggle('open');
+      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    } else if (!t.closest('.nav-dropdown')) {
+      // Click outside the dropdown closes it.
+      closeDropdown();
     }
   });
 
-  // Escape closes; resizing to desktop closes. Both query the sidebar fresh
+  // Pointer hover opens the dropdown on desktop (kept in sync with aria).
+  document.addEventListener('pointerover', (e) => {
+    const dd = (e.target as Element).closest?.('.nav-dropdown');
+    if (dd) openDropdown();
+  });
+  document.addEventListener('pointerout', (e) => {
+    const from = (e.target as Element).closest?.('.nav-dropdown');
+    const to = (e.relatedTarget as Element | null)?.closest?.('.nav-dropdown');
+    if (from && !to) closeDropdown();
+  });
+
+  // Keyboard: Escape closes (sidebar or dropdown); arrows move within the menu.
   document.addEventListener('keydown', (e) => {
     const sidebar = document.querySelector('.sidebar');
-    if (e.key === 'Escape' && sidebar?.classList.contains('active')) hideSidebar();
+    if (e.key === 'Escape') {
+      if (sidebar?.classList.contains('active')) return hideSidebar();
+      return closeDropdown(true);
+    }
+
+    const inMenu = (e.target as Element).closest?.('.nav-dropdown');
+    if (!inMenu) return;
+    const items = dropdownItems();
+    if (items.length === 0) return;
+    const idx = items.indexOf(document.activeElement as HTMLElement);
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      openDropdown();
+      items[idx < 0 ? 0 : Math.min(idx + 1, items.length - 1)]?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (idx <= 0) return closeDropdown(true);
+      items[idx - 1]?.focus();
+    }
   });
+
   window.addEventListener('resize', () => {
     const sidebar = document.querySelector('.sidebar');
     if (window.innerWidth > 768 && sidebar?.classList.contains('active')) hideSidebar();
   });
+
+  // Per-navigation: reset open states and mark the current route. Runs on first
+  // load AND after each View Transition (ClientRouter re-renders the nav).
+  function syncNavState() {
+    closeDropdown();
+    document
+      .querySelectorAll('.sidebar-group.open')
+      .forEach((g) => g.classList.remove('open'));
+    document
+      .querySelectorAll('.sidebar-group-trigger[aria-expanded="true"]')
+      .forEach((t) => t.setAttribute('aria-expanded', 'false'));
+
+    const path = window.location.pathname.replace(/\/$/, '') || '/';
+    document.querySelectorAll('nav a[href]').forEach((a) => {
+      const href = (a as HTMLAnchorElement).getAttribute('href') || '';
+      const norm = href.replace(/\/$/, '') || '/';
+      if (norm === path) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    });
+  }
+  document.addEventListener('astro:page-load', syncNavState);
 </script>

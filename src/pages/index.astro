@@ -1,5 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
+import { Icon } from 'astro-icon/components';
+import { animate, scroll } from "motion"
 ---
 
 <Base title="Dylan Chen - Engineering, Developer, and Design Portfolio">
@@ -22,21 +24,7 @@ import Base from '../layouts/Base.astro';
 
   <div class="scroll-down-text wave-text">
     <span class="arrow-icon" aria-hidden="true">
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style="vertical-align:middle;"
-      >
-        <path
-          d="M12 5v14m0 0l-6-6m6 6l6-6"
-          stroke="#666"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"></path>
-      </svg>
+      <Icon name="tabler:arrow-down">
     </span>
 
     <span>S</span><span>c</span><span>r</span><span>o</span><span>l</span><span>l</span>
@@ -45,7 +33,7 @@ import Base from '../layouts/Base.astro';
   </div>
 
   <div
-    class="categorySelect"
+    class="category-select"
     role="group"
     aria-label="Drag and drop job roles"
     id="role-instructions"
@@ -162,7 +150,7 @@ import Base from '../layouts/Base.astro';
       const title = document.getElementById('scroll-title');
       const scrollDown = document.querySelector('.scroll-down-text') as HTMLElement | null;
       const reveals = [
-        document.querySelector('.categorySelect'),
+        document.querySelector('.category-select'),
         document.getElementById('category-drop-zone'),
       ];
 
@@ -205,7 +193,7 @@ import Base from '../layouts/Base.astro';
     function wireDrag() {
       const typewriter = document.querySelector('.typewriter-animation') as HTMLElement | null;
       const dropZone = document.getElementById('category-drop-zone');
-      const categorySelect = document.querySelector('.categorySelect');
+      const categorySelect = document.querySelector('.category-select');
       const placeholder = document.querySelector('.placeholder-text') as HTMLElement | null;
       const items = Array.from(document.querySelectorAll<HTMLElement>('.draggable-item'));
       if (!typewriter || !dropZone || !categorySelect || !placeholder || items.length === 0) return;

@@ -1,13 +1,13 @@
 /* ===== Touch device hint =====
-   On touch-only devices, drag-and-drop is unavailable, so the categorySelect
+   On touch-only devices, drag-and-drop is unavailable, so the category-select
    shows a "tap to select" hint and disables hover-only styling. */
 
 @media (hover: none) and (pointer: coarse) {
-  .categorySelect {
+  .category-select {
     cursor: pointer;
   }
 
-  .categorySelect::after {
+  .category-select::after {
     content: 'tap to select';
     display: block;
     width: 100%;
@@ -19,7 +19,7 @@
     opacity: 0.7;
   }
 
-  .categorySelect span[draggable="true"]:hover {
+  .category-select span[draggable="true"]:hover {
     animation: wave 2s ease-in-out infinite;
     border: var(--border-width-medium) solid var(--color-black);
     border-radius: var(--radius-pill);

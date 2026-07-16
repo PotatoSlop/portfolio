@@ -1,8 +1,3 @@
-/* ===== Cursor effects =====
-   Two related cursor-followers, both driven by JS:
-     - .cursor-effects   — large white dot inside the footer
-     - .card-cursor      — small "View" pill that appears over project cards */
-
 .cursor-effects {
   opacity: 0;
   transform: scale(0);
@@ -17,24 +12,12 @@
   pointer-events: none;
 }
 
-/* ----- Project card "View" cursor pill -----
-   Appears when the cursor is over any .project-card. Reinforces the
-   whole-card-click affordance — without an explicit button on the card
-   anymore, this is the clearest visual cue that clicking does something.
-
-   Position: top/left are set inline by a JS rAF lerp loop (smooth lag
-   following the cursor). The translate(-50%, -50%) in transform centers
-   the pill on its top/left coordinate, so the pill's center follows the
-   cursor directly. Scale lives in the same transform so the show/hide
-   bounce-up still works via CSS transition. */
-.card-cursor {
+.card-cursor { /* Hover CTA for cursor over projects*/
   position: fixed;
   top: 0;
   left: 0;
   z-index: 9999;
   pointer-events: none;
-
-  /* Pill shape */
   padding: 0.55em 1.4em;
   background: var(--color-primary);
   color: var(--color-black);
@@ -47,8 +30,6 @@
   text-transform: uppercase;
   white-space: nowrap;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-
-  /* Hidden default — note the translate(-50%, -50%) for cursor-centering. */
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.6);
   transition:
@@ -58,13 +39,10 @@
 
 .card-cursor.visible {
   opacity: 1;
-  /* Same translate(-50%, -50%) so the centering anchor is unchanged
-     between hidden and visible — only scale changes. */
   transform: translate(-50%, -50%) scale(1);
 }
 
-/* On touch devices there's no hover state to drive the show/hide. */
-@media (hover: none) {
+@media (hover: none) { /* no hover state -> no CTA*/
   .card-cursor {
     display: none;
   }

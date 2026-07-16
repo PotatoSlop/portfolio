@@ -1,0 +1,27 @@
+/* ===== Design theme — editorial / gallery =====
+   Warm paper backdrop, generous whitespace, print-like display type, restrained
+   accent. Light where the other two rendered themes are dark — the contrast is
+   the point. Overrides ONLY the contract vars. */
+
+[data-theme='design'] {
+  --theme-bg: #f7f4ee;
+  --theme-surface: #ffffff;
+  --theme-border: #e3ddd1;
+
+  --theme-ink: #211f1a;
+  --theme-ink-muted: #6c675c;
+
+  /* Editorial accent — a deep terracotta, distinct from the amber anchor */
+  --theme-accent: #c8553d;
+  --theme-accent-contrast: #ffffff;
+
+  --theme-grid: none;
+
+  --theme-font-display: var(--font-secondary);
+  --theme-radius: var(--radius-medium);
+  --theme-motion-ease: var(--ease-smooth);
+
+  /* Idiom: editorial image reveal (stub — wired in a later pass) */
+  --idiom-accent: #c8553d;
+  --idiom-rule: #e3ddd1;
+}
