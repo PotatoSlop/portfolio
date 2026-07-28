@@ -26,7 +26,7 @@ nav ul {
 }
 
 .logo-img {
-  height: clamp(38px, 9vw, 48px);
+  height: clamp(50px, 12vw, 65px);
   width: auto;
   display: block;
   transition: transform var(--duration-medium) var(--ease-logo-hover),

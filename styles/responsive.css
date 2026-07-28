@@ -64,6 +64,44 @@
     width: auto;
     justify-content: center;
   }
+
+  /* Mobile project section improvements */
+  .project-section {
+    padding: 1.5rem 1rem;
+  }
+
+  .project-section::after {
+    right: 1rem;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .section-title {
+    font-size: clamp(1.5rem, 5vw, 2.5rem);
+  }
+
+  .project-list {
+    grid-template-columns: 1fr;
+    gap: var(--gap-medium);
+  }
+
+  .project-card {
+    max-width: 100%;
+    min-height: 300px;
+  }
+
+  .project-card-desc {
+    font-size: 0.9rem;
+  }
+
+  /* Mobile timeline improvements */
+  .timeline-item {
+    padding-left: 2rem;
+  }
+
+  .timeline-dot {
+    left: -8px;
+  }
 }
 
 /* ----- Small mobile sidebar ----- */

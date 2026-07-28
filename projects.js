@@ -1,12 +1,7 @@
-import { photos } from './gallery.js';
+// Removed gallery loading - photography section removed from projects page
+// import { photos } from './gallery.js';
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-// Preload images in photography section
-photos.forEach(photo => {
-    const img = new Image();
-    img.src = photo.imageURL;
-});
 
 document.querySelectorAll('details').forEach((details, i) => {
     if (prefersReducedMotion) return;
@@ -85,13 +80,11 @@ function animateClose(details) {
 function resetEntranceState(details) {
     const elements = [
         ...details.querySelectorAll('.project-card.card-visible'),
-        ...details.querySelectorAll('.gallery-item.item-visible'),
     ];
 
     elements.forEach(el => {
         el.getAnimations().forEach(anim => anim.cancel()); // Stop existing animations
         el.classList.remove('card-visible');
-        el.classList.remove('item-visible');
         el.style.transitionDelay = '';
     });
 }
@@ -114,7 +107,6 @@ document.querySelectorAll('details').forEach(details => {
 
 function triggerCardEntrances(details) {
     const cards = [...details.querySelectorAll('.project-card')];
-    const galleryItems = [...details.querySelectorAll('.gallery-item')];
 
     const ENTRANCE_KEYFRAMES = [
         { opacity: 0, transform: 'translateY(28px)' },
@@ -129,17 +121,6 @@ function triggerCardEntrances(details) {
             delay: (i+1) * 120,
             easing: 'cubic-bezier(0, 0, 0.2, 1)', // ease-out
             fill: 'backwards', // hold 'from' state during delay
-        });
-    });
-
-    galleryItems.forEach((item, i) => {
-        item.classList.add('item-visible');
-        if (prefersReducedMotion) return;
-        item.animate(ENTRANCE_KEYFRAMES, {
-            duration: 400,
-            delay: (i+1) * 90,
-            easing: 'cubic-bezier(0, 0, 0.2, 1)',
-            fill: 'backwards',
         });
     });
 }
@@ -158,68 +139,7 @@ addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// #region Gallery View Rendering
-const landscapeContainer = document.getElementById('landscape-gallery');
-const portraitContainer = document.getElementById('portrait-gallery');
-const portraitShortContainer = document.getElementById('portrait-short-gallery');
-
-function renderGallery() {
-    landscapeContainer.innerHTML = '';
-    portraitContainer.innerHTML = '';
-    portraitShortContainer.innerHTML = '';
-
-    photos.forEach(photo => {
-        const galleryItemHTML = createGalleryItemHTML(photo);
-        if (photo.orientation === 'landscape') {
-            landscapeContainer.innerHTML += galleryItemHTML;
-        } else if (photo.orientation === 'portrait') {
-            portraitContainer.innerHTML += galleryItemHTML;
-        } else if (photo.orientation === 'portrait-short') {
-            portraitShortContainer.innerHTML += galleryItemHTML;
-        }
-    });
-
-    const columns = getColumnCount();
-    addPlaceholders(landscapeContainer, columns);
-    addPlaceholders(portraitContainer, columns);
-    addPlaceholders(portraitShortContainer, columns);
-}
-
-function createGalleryItemHTML(photo) {
-    return `
-    <div class="gallery-item ${photo.orientation}">
-      <img src="${photo.imageURL}" alt="${photo.title}" loading="lazy"/>
-      <div class="gallery-overlay">
-        <div class="gallery-info">
-          <h4>${photo.title}</h4>
-          <p>${photo.location}</p>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function getColumnCount() {
-    const width = window.innerWidth;
-    if (width < 600) return 1;
-    if (width < 900) return 2;
-    return 3;
-}
-
-function addPlaceholders(container, columnCount) {
-    if (columnCount === 1) return;
-    const currentItems = container.children.length;
-    const placeholdersNeeded = currentItems % columnCount === 0
-        ? 0
-        : columnCount - (currentItems % columnCount);
-
-    for (let i = 0; i < placeholdersNeeded; i++) {
-        container.insertAdjacentHTML('beforeend', '<div class="gallery-placeholder"></div>');
-    }
-}
-
-window.addEventListener('resize', renderGallery);
-renderGallery();
+// Removed gallery rendering - photography section removed from projects page
 
 // #region Card Hover Cursor
 const cardCursor = document.querySelector('.card-cursor');
