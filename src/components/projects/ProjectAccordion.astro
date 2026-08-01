@@ -1,0 +1,50 @@
+---
+/*
+  ProjectAccordion — the horizontal accordion row (the "rest" of the projects,
+  i.e. everything but the hero). Pads the row with neutral "coming soon" slots so
+  a short roster still fills the strip. Real panels are ProjectCards; the padding
+  slots are inert (no data-case → not case-study triggers).
+
+  Styles: styles/components/project-card.css (`.acc`, `.acc__panel`, `--soon`).
+*/
+import type { CollectionEntry } from 'astro:content';
+import ProjectCard from './ProjectCard.astro';
+
+type Discipline = 'engineering' | 'design' | 'software';
+
+interface Props {
+  projects: CollectionEntry<'projects'>[];
+  current: Discipline;
+  /** Minimum panels shown; short rosters are padded with coming-soon slots. */
+  min?: number;
+}
+
+const { projects, current, min = 4 } = Astro.props;
+const panels = Array.from(
+  { length: Math.max(min, projects.length) },
+  (_, i) => projects[i] ?? null
+);
+---
+
+<ul class="acc">
+  {
+    panels.map((p, i) =>
+      p ? (
+        <ProjectCard project={p} current={current} variant="panel" />
+      ) : (
+        <li class="acc__panel acc__panel--soon">
+          <div class="acc__media">
+            <span class="ph ph--sm" aria-hidden="true">
+              {String(i + 1).padStart(2, '0')}
+            </span>
+          </div>
+          <span class="acc__spine" aria-hidden="true">Project</span>
+          <div class="acc__info feat__info">
+            <h3 class="acc__name">Project {String(i + 1).padStart(2, '0')}</h3>
+            <p class="feat__blurb">More coming soon.</p>
+          </div>
+        </li>
+      )
+    )
+  }
+</ul>

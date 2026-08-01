@@ -1,0 +1,126 @@
+---
+/*
+  ProjectCard — the reusable, STRUCTURAL project card (Engineering first, built to
+  be shared across disciplines). Renders both the hero (`feature`) and accordion
+  (`panel`) variants from one template so the info block isn't duplicated.
+
+  The card body is navigational only: timeline eyebrow → title → caption →
+  optional cross-discipline links → one solid "View Repo" button. The whole card
+  opens the case study (chip + FLIP wired by the page's motion modules); tech is
+  NOT rendered here — it rides on `data-tech` to the overlay's "Built with" list.
+
+  Media is DATA-DRIVEN from the project's frontmatter and resolves by priority:
+  a hover-scrubbed <video> (when `posterVideo` is set) → an <Image> `cover` → a
+  neutral glyph placeholder. A video card always renders `cover` as its <video
+  poster>, so the tile paints a real frame instantly on every navigation path
+  (fresh load AND ClientRouter SPA hop) rather than sitting blank until decode.
+  Styles live in styles/components/project-card.css.
+*/
+import { Image, getImage } from 'astro:assets';
+import { Icon } from 'astro-icon/components';
+import type { CollectionEntry } from 'astro:content';
+
+type Discipline = 'engineering' | 'design' | 'software';
+
+interface Props {
+  project: CollectionEntry<'projects'>;
+  current: Discipline;
+  variant?: 'feature' | 'panel';
+}
+
+const { project, current, variant = 'panel' } = Astro.props;
+const d = project.data;
+
+// A video card needs its poster still through the pipeline so we get an
+// optimized URL for the <video poster>. Only render as video when BOTH exist.
+const poster = d.posterVideo && d.cover ? await getImage({ src: d.cover, format: 'webp' }) : null;
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const timeline = `${d.started} – ${d.ended ?? 'Present'}`;
+// Cross-discipline = others-only: never surface the page's own discipline.
+const others = d.disciplines.filter((x) => x !== current);
+const repo = d.links?.repo ?? null;
+
+const isFeature = variant === 'feature';
+const Wrapper = isFeature ? 'article' : 'li';
+const mediaClass = isFeature ? 'feat__media' : 'acc__media';
+const phClass = isFeature ? 'ph' : 'ph ph--sm';
+---
+
+<Wrapper
+  class:list={[isFeature ? 'feat' : 'acc__panel', 'card']}
+  data-case
+  data-title={d.title}
+  data-tech={(d.tech ?? []).join('|')}
+  tabindex="0"
+  role="button"
+  aria-label={`Open ${d.title} case study`}
+>
+  <div class={mediaClass} data-media>
+    {
+      poster ? (
+        <video
+          class="feat__video"
+          data-scrub-video
+          src={d.posterVideo}
+          poster={poster.src}
+          muted
+          playsinline
+          preload="auto"
+          aria-hidden="true"
+        />
+      ) : d.cover ? (
+        <Image src={d.cover} alt="" format="webp" loading={isFeature ? 'eager' : 'lazy'} />
+      ) : (
+        <span class={phClass} aria-hidden="true">
+          {d.title.charAt(0)}
+        </span>
+      )
+    }
+  </div>
+
+  {!isFeature && <span class="acc__spine" aria-hidden="true">{d.title}</span>}
+
+  <div class:list={['feat__info', !isFeature && 'acc__info']}>
+    <p class="feat__eyebrow">{timeline}</p>
+    {isFeature ? <h2 class="feat__name">{d.title}</h2> : <h3 class="acc__name">{d.title}</h3>}
+    {d.overview && <p class="feat__blurb">{d.overview}</p>}
+
+    {
+      others.length > 0 && (
+        <p class="crossdisc">
+          Also in{' '}
+          {others.map((x, i, arr) => (
+            <Fragment>
+              <a class="crossdisc__link" href={`/${x}`} data-stop>
+                {cap(x)}
+              </a>
+              {i < arr.length - 1 ? ', ' : ''}
+            </Fragment>
+          ))}
+        </p>
+      )
+    }
+
+    {
+      repo && (
+        <div class="actions">
+          <a
+            class="cta cta--repo"
+            href={repo}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-stop
+            aria-label={`${d.title} repository`}
+          >
+            View Repo <Icon name="mdi:github" />
+          </a>
+        </div>
+      )
+    }
+  </div>
+
+  <span class="viewchip" data-chip aria-hidden="true">
+    <Icon name="mdi:cube-outline" /> View Project
+  </span>
+</Wrapper>

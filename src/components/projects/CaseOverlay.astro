@@ -1,0 +1,44 @@
+---
+/*
+  CaseOverlay — the shared SPA-style expand target a card morphs into (case study
+  / 3D preview stub). One instance per page; every card's media FLIPs into this
+  frame. Behaviour (open/close FLIP, tech injection, focus, Esc/backdrop close)
+  is owned by src/lib/motion/case-overlay.ts (mounted from the page).
+
+  Stand-in for a future real /engineering/[slug] route + Astro view transition.
+
+  Astro scoping note: the tech <li>s are created in JS, so they never get a
+  scoped cid — that's another reason the card system's CSS is global
+  (styles/components/project-card.css), where `.tags li` reaches them.
+*/
+import { Icon } from 'astro-icon/components';
+---
+
+<div class="caseov" id="caseov" aria-hidden="true">
+  <div class="caseov__frame" data-caseov-frame>
+    <div class="caseov__media">
+      <span class="ph" data-caseov-glyph aria-hidden="true"></span>
+    </div>
+    <div class="caseov__panel">
+      <p class="eyebrow">Case study · 3D teardown</p>
+      <h2 data-caseov-title>Project</h2>
+      <p class="caseov__lede">
+        The dedicated case study + interactive 3D preview render here. The card's
+        media morphs into this frame — the same shared-element move an Astro view
+        transition gives on a real <code>/engineering/[slug]</code> route.
+      </p>
+      <div class="caseov__stub">3D viewport</div>
+
+      {/* Technologies live HERE (case study), never on the card. Injected per
+          project from the card's data-tech; hidden when a project has none. */}
+      <div class="caseov__spec" data-caseov-spec hidden>
+        <span class="caseov__spec-label">Built with</span>
+        <ul class="tags tags--dark" data-caseov-tech></ul>
+      </div>
+
+      <button class="cta caseov__back" data-caseov-close type="button">
+        <Icon name="mdi:arrow-left" /> Back to projects
+      </button>
+    </div>
+  </div>
+</div>

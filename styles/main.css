@@ -37,6 +37,9 @@
 @import url('./pages/landing.css');
 @import url('./pages/projects.css');
 
+/* Reusable project-card system (Engineering; shareable across disciplines). */
+@import url('./components/project-card.css');
+
 /* ---- Modal lives between projects and form because the 3D viewer modal
         is opened from the projects page; keeping it after projects.css
         preserves any specificity ordering. ---- */

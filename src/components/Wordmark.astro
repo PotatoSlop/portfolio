@@ -288,19 +288,13 @@ const clipH = (baseline: number) => baseline + CLIP_EPS - CLIP_TOP;
       if (actm) {
         capture(arrowEl, arrowEl.getBoundingClientRect(), () => {
           // Rather than manually tracing lines with variables, we let the script
-          // capture the bounding rectangle context natively for pixel intersection matching.
+          // capture the bounding rectangle context natively for pixel intersection
+          // matching. The mask canvas is window-sized, so the arrow must be drawn
+          // in the SAME client-pixel space the glyphs use (and that `capture`
+          // reads back with getImageData) — not scaled relative to the SVG box.
           tctx!.fillStyle = '#fff';
           const r = arrowEl!.getBoundingClientRect();
-          const svgRect = svg!.getBoundingClientRect();
-          const scaleX = tmp!.width / svgRect.width;
-          const scaleY = tmp!.height / svgRect.height;
-          
-          tctx!.fillRect(
-            (r.left - svgRect.left) * scaleX,
-            (r.top - svgRect.top) * scaleY,
-            r.width * scaleX,
-            r.height * scaleY
-          );
+          tctx!.fillRect(r.left, r.top, r.width, r.height);
         });
       }
     }
@@ -375,13 +369,21 @@ const clipH = (baseline: number) => baseline + CLIP_EPS - CLIP_TOP;
         onUpdate: (offset) => g.setAttribute('y', (restY[i] + offset).toFixed(2)),
       }),
     );
+    // Drive the arrow the same way as the glyphs: a plain numeric offset written
+    // to style each frame. Motion's transform-string keyframes on an SVG <g>
+    // don't interpolate reliably (the arrow would just snap in), so we animate a
+    // number and set translateY/opacity ourselves — the proven glyph path.
     if (arrowRise)
       anims.push(
-        animate(
-          arrowRise,
-          { transform: [`translateY(${D}px)`, 'translateY(0px)'], opacity: [0, 1] },
-          { duration: durations.slow, ease: eases.smooth, delay: glyphs.length * STEP },
-        ),
+        animate(D, 0, {
+          duration: durations.slow,
+          ease: eases.smooth,
+          delay: glyphs.length * STEP,
+          onUpdate: (offset) => {
+            arrowRise.style.transform = `translateY(${offset.toFixed(2)}px)`;
+            arrowRise.style.opacity = (1 - offset / D).toFixed(3);
+          },
+        }),
       );
 
     // On completion, drop the inline overrides so CSS resting layout takes over,

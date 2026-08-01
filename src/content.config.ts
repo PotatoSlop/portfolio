@@ -19,14 +19,32 @@ const projects = defineCollection({
     z.object({
       title: z.string(),
       status: z.enum(['shipped', 'wip']),
+      // Concrete project timeline, shown as the card's eyebrow ("2025 – Present").
+      // `ended` omitted = still active → renders as "Present". Supersedes `status`
+      // for display; `status` is kept for any non-display logic.
+      started: z.string(),
+      ended: z.string().optional(),
+      // Descriptive tech stack. NEVER shown on the card — travels to the case
+      // study overlay's "Built with" spec list (injected from data-tech).
+      tech: z.array(z.string()).default([]),
       // Non-empty: every project belongs to ≥1 discipline. Multiple = cross-functional.
       disciplines: z.array(z.enum(DISCIPLINES)).min(1),
       subTags: z.array(z.enum(SUBTAGS)).default([]),
       hero: z.boolean().default(false),
       order: z.number().default(0),
-      // Local asset resolved through the image pipeline (astro:assets). Path in
-      // frontmatter is relative to the .mdx file; optional so WIP stubs validate.
+      // The card's RESTING FRAME — a still image resolved through the image
+      // pipeline (astro:assets): optimized, hashed, format-converted. Path is
+      // relative to the .mdx file; optional so WIP stubs validate. On a video
+      // card (`posterVideo` set) this same still is the <video poster>, so the
+      // tile always paints real content instantly — including after an SPA
+      // (ClientRouter) hop, where a bare <video> would otherwise sit blank.
       cover: image().optional(),
+      // Optional hover-scrub "boomerang" clip (forward footage + its own reverse
+      // in one file). ABSOLUTE PUBLIC PATH (e.g. /Assets/engineering/foo.mp4) —
+      // video has no astro:assets import, so it lives in public/ and is served
+      // verbatim. When set, the card upgrades from a static image to the
+      // hover-scrubbed <video>, using `cover` as its poster still.
+      posterVideo: z.string().optional(),
       // Per-project framing inside the tile mask. The tile is a fixed frame
       // (overflow clipped); the cover is laid at the tile's top-left at full
       // tile width, then moved by EXACT PIXELS and zoomed from that corner:

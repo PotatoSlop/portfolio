@@ -1,0 +1,505 @@
+/*
+  project-card.css — the reusable project-card system (Engineering first).
+  ------------------------------------------------------------------------
+  Graduated from the throwaway lab (was src/pages/lab/engineering-lab.astro).
+  Lives here (global) rather than as Astro-scoped styles because the card
+  system spans component boundaries: `.acc` (ProjectAccordion) coordinates
+  `.acc__panel` children (ProjectCard) AND the coming-soon panels the accordion
+  renders itself. A single global sheet keeps the whole cascade in one place
+  and sidesteps per-component scope IDs (incl. the JS-injected overlay <li>s,
+  which scoped `.tags li` rules would skip).
+
+  Card model (locked): STRUCTURAL only — timeline eyebrow → title → caption →
+  optional cross-discipline links → one solid "View Repo" button. The whole
+  card opens the case study (a "View Project" chip trails the pointer, driven by
+  src/lib/motion/pointer-follow.ts); tech travels to the overlay, never the card.
+
+  Media resolves per card: a hover-scrubbed <video> (hero), an <Image> cover, or
+  a neutral glyph placeholder — all cover-fit into the fixed frame.
+*/
+
+/* ---------- centred column (the constraint the full-bleed layout was missing) ---------- */
+.wrap {
+  max-width: 1600px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.35rem, 1vw, 0.7rem);
+  /* Subtle lift off the (white) page — shared by the hero crop + accordion cards. */
+  --card-shadow: 0 6px 22px -6px rgba(30, 30, 20, 0.22);
+}
+
+/* ---------- media (shared) ---------- */
+/* The frame is fixed (aspect on the hero, flex height on panels); every media
+   kind covers it with no letterbox. A subtle hover zoom on the whole card. */
+.feat__media,
+.acc__media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.feat__media img,
+.feat__media video,
+.acc__media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform-origin: center;
+  transform: scale(var(--cover-hover, 1));
+  transition: transform var(--duration-smooth) var(--ease-smooth);
+}
+.feat:hover .feat__media img,
+.feat:hover .feat__media video,
+.acc__panel:hover .acc__media img,
+.acc__panel:focus-within .acc__media img {
+  --cover-hover: 1.04;
+}
+/* Anchor the hero clip to the top: if the frame is ever a hair off the video's
+   ratio, any cover trim comes off the bottom, never the top edge. */
+.feat__media img,
+.feat__media video {
+  object-position: center top;
+}
+/* media settles back while the pointer is aiming at the Repo button */
+.feat:hover:has(.cta--repo:hover) .feat__media img,
+.feat:hover:has(.cta--repo:hover) .feat__media video {
+  --cover-hover: 1;
+}
+
+/* neutral glyph placeholder (coming-soon slots + covers not yet shot) */
+.ph {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-family: var(--theme-font-display);
+  font-weight: 800;
+  font-size: clamp(3rem, 9vw, 7rem);
+  color: rgba(30, 30, 20, 0.18);
+  background: #f0f0ec;
+}
+.ph--sm { font-size: clamp(2rem, 6vw, 3.4rem); }
+
+/* ---------- CTA system ----------
+   Two exits, two affordances: the whole card = case study (its cue is the
+   trailing chip); the ONLY button is View Repo, which stops propagation and
+   hides the chip on hover so the two never collide. */
+.actions { display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: center; }
+.cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.95rem;
+  font-family: var(--theme-font-body);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  border: 0;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--theme-motion-ease),
+    box-shadow var(--duration-fast) var(--theme-motion-ease),
+    background var(--duration-fast) var(--theme-motion-ease);
+}
+.cta svg { width: 1.02rem; height: 1.02rem; }
+
+/* Trailing "View Project" chip. pointer-follow.ts owns translate() (pointer
+   lag); CSS owns the reveal (opacity + scale on the non-overshoot SMOOTH ease —
+   the aggressive theme ease overshoots into a squishy bounce). */
+.viewchip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  background: var(--theme-accent);
+  color: var(--theme-accent-contrast);
+  font-family: var(--theme-font-body);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  will-change: transform;
+  opacity: 0;
+  scale: 0.9;
+  box-shadow: 0 6px 20px rgba(30, 30, 20, 0.28);
+  transition: opacity var(--duration-medium) var(--ease-smooth),
+    scale var(--duration-medium) var(--ease-smooth);
+}
+.viewchip svg { width: 1rem; height: 1rem; }
+.card.is-chip .viewchip { opacity: 1; scale: 1; }
+.card.is-chip.is-chip-off .viewchip { opacity: 0; scale: 0.9; }
+
+/* timeline eyebrow — framing label above the title (mono, industrial) */
+.feat__eyebrow {
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--theme-accent);
+  margin: 0 0 0.15rem;
+}
+
+/* technology spec row — flat mono text with middot separators, deliberately NOT
+   boxed so it never reads as buttons. Only shown inside the case-study overlay. */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 0.15rem;
+  list-style: none;
+  margin: 0.15rem 0 0.45rem;
+  padding: 0;
+}
+.tags li {
+  font-family: var(--font-primary);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+}
+.tags li:not(:first-child)::before {
+  content: '·';
+  margin: 0 0.5rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+/* dark-surface variant — used inside the light case-study overlay */
+.tags--dark li { color: var(--theme-ink); }
+.tags--dark li:not(:first-child)::before { color: rgba(30, 30, 20, 0.35); }
+
+/* cross-discipline links — routable, others-only. Own line under the caption:
+   muted "Also in" label + bright underlined links, reads interactable without
+   competing with the solid View Repo button. */
+.crossdisc {
+  margin: 0.05rem 0 0.15rem;
+  pointer-events: auto;
+  font-family: var(--theme-font-body);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.52);
+}
+.crossdisc__link {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+  transition: color var(--duration-fast) var(--ease-smooth),
+    box-shadow var(--duration-fast) var(--ease-smooth);
+}
+.crossdisc__link:hover,
+.crossdisc__link:focus-visible {
+  color: var(--theme-accent);
+  box-shadow: inset 0 -1px 0 var(--theme-accent);
+  outline: none;
+}
+
+/* the only button — solid + prominent, distinct from the flat spec row, using
+   the site's signature wipe-to-accent hover for CTA continuity. */
+.cta--repo {
+  color: var(--theme-ink);
+  background: #fff;
+  font-weight: 700;
+  padding: 0.62rem 1.1rem;
+}
+/* Accent wipe via clip-path, NOT transform: scaleX. A scaled pseudo-element is
+   promoted to its own composited layer and rasterized with anti-aliased edges;
+   against the white button its fractional box height leaves a hairline seam at
+   the bottom until the transform snaps back to identity. clip-path reveals a
+   pixel-snapped, full-height rectangle — the fill covers the whole edge the
+   entire way across. */
+.cta--repo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--theme-accent);
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--duration-slow) var(--ease-smooth);
+}
+.cta--repo:hover,
+.cta--repo:focus-visible { color: var(--theme-accent-contrast); outline: none; }
+.cta--repo:hover::before,
+.cta--repo:focus-visible::before { clip-path: inset(0 0 0 0); }
+
+/* ---------- HERO ---------- */
+.feat {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  /* Full column width (matches the accordion). Ratio matches the 21:9 (64:27)
+     hero clip so it fills edge-to-edge with no crop or distortion. */
+  aspect-ratio: 64 / 27;
+  background: #f0f0ec;
+  cursor: pointer;
+}
+.feat:focus-visible,
+.card:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 3px; }
+.feat__info {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  padding: clamp(0.85rem, 2.2vw, 1.35rem);
+  color: #fff;
+  background: linear-gradient(
+    to top,
+    rgba(30, 30, 20, 0.9) 0%,
+    rgba(30, 30, 20, 0.45) 34%,
+    rgba(30, 30, 20, 0) 72%
+  );
+  opacity: 0;
+  transition: opacity var(--duration-medium) var(--theme-motion-ease);
+  pointer-events: none;
+}
+.feat:hover .feat__info,
+.feat:focus-within .feat__info { opacity: 1; }
+.feat__info .actions,
+.feat__info .crossdisc { pointer-events: auto; }
+.feat__name {
+  font-family: var(--theme-font-display);
+  font-weight: 800;
+  font-size: clamp(1.7rem, 3.4vw, 2.8rem);
+  line-height: 1.03;
+  margin: 0;
+  color: var(--theme-accent);
+}
+.feat__blurb {
+  font-size: 0.98rem;
+  line-height: 1.5;
+  margin: 0 0 0.35rem;
+  max-width: 52ch;
+}
+
+/* ---------- ACCORDION (the rest) ---------- */
+.acc {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 4px;
+  height: clamp(300px, 42vh, 480px);
+}
+.acc__panel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  flex: 1 1 0;
+  min-width: 0;
+  cursor: pointer;
+  background: #f0f0ec;
+  box-shadow: var(--card-shadow);
+  transition: flex-grow var(--duration-smooth) var(--ease-smooth);
+}
+.acc__panel:first-child { flex-grow: 11; }
+.acc:hover .acc__panel:first-child,
+.acc:focus-within .acc__panel:first-child { flex-grow: 1; }
+.acc:hover .acc__panel:hover,
+.acc:focus-within .acc__panel:focus-within { flex-grow: 13; }
+
+.acc__media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(30, 30, 20, 0.9) 0%,
+    rgba(30, 30, 20, 0.5) 55%,
+    rgba(30, 30, 20, 0) 100%
+  );
+  opacity: 1;
+  transition: opacity var(--duration-medium) var(--ease-smooth);
+  pointer-events: none;
+}
+.acc__panel:first-child .acc__media::after { opacity: 0; }
+.acc:hover .acc__media::after,
+.acc:focus-within .acc__media::after { opacity: 1; }
+.acc__panel:hover .acc__media::after,
+.acc__panel:focus-within .acc__media::after { opacity: 0; }
+/* re-dim while the Repo button is the target, so it reads distinctly */
+.acc__panel:hover:has(.cta--repo:hover) .acc__media::after { opacity: 1; }
+
+.acc__spine {
+  position: absolute;
+  left: clamp(0.5rem, 1.2vw, 1rem);
+  bottom: 6%;
+  z-index: 2;
+  writing-mode: vertical-rl;
+  font-family: var(--theme-font-display);
+  font-weight: 800;
+  font-size: clamp(1.5rem, 3.6vh, 2.4rem);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--theme-accent);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity var(--duration-medium) var(--ease-smooth);
+}
+.acc__panel:first-child .acc__spine { opacity: 0; }
+.acc:hover .acc__spine,
+.acc:focus-within .acc__spine { opacity: 1; }
+.acc__panel:hover .acc__spine,
+.acc__panel:focus-within .acc__spine { opacity: 0; }
+
+/* accordion info reuses .feat__info; reveal only when the panel is expanded */
+.acc__info { justify-content: flex-end; }
+.acc__panel:first-child .acc__info { opacity: 1; }
+.acc:hover .acc__info,
+.acc:focus-within .acc__info { opacity: 0; }
+.acc__panel:hover .acc__info,
+.acc__panel:focus-within .acc__info { opacity: 1; }
+.acc__name {
+  font-family: var(--theme-font-display);
+  font-weight: 800;
+  font-size: clamp(1.3rem, 2vw, 1.9rem);
+  margin: 0;
+  color: var(--theme-accent);
+}
+.acc__panel--soon { cursor: default; }
+
+/* ---------- SPA case overlay ---------- */
+.caseov {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(30, 30, 20, 0);
+  visibility: hidden;
+  pointer-events: none;
+  transition: background var(--duration-medium) var(--ease-smooth);
+}
+.caseov.is-open {
+  visibility: visible;
+  pointer-events: auto;
+  background: rgba(30, 30, 20, 0.55);
+}
+.caseov__frame {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  background: var(--theme-bg);
+  will-change: transform;
+}
+.caseov__media { position: relative; overflow: hidden; background: #f0f0ec; }
+.caseov__panel {
+  padding: clamp(1.5rem, 5vw, 4rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  opacity: 0;
+  transition: opacity var(--duration-medium) var(--ease-smooth);
+}
+.caseov.is-open .caseov__panel { opacity: 1; transition-delay: 0.12s; }
+.caseov__panel .eyebrow {
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--theme-ink-muted);
+  margin: 0;
+}
+.caseov__panel h2 {
+  font-family: var(--theme-font-display);
+  font-weight: 800;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  margin: 0;
+}
+.caseov__lede {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--theme-ink-muted);
+  max-width: 48ch;
+  margin: 0;
+}
+.caseov__lede code { font-family: var(--font-primary); font-size: 0.9em; }
+.caseov__stub {
+  display: grid;
+  place-items: center;
+  height: 150px;
+  margin: 0.4rem 0;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(30, 30, 20, 0.04) 0 12px,
+    rgba(30, 30, 20, 0.08) 12px 24px
+  );
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--theme-ink-muted);
+}
+.caseov__spec { display: flex; flex-direction: column; gap: 0.4rem; }
+.caseov__spec[hidden] { display: none; }
+.caseov__spec-label {
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--theme-ink-muted);
+}
+.caseov__back {
+  align-self: flex-start;
+  color: var(--theme-ink);
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px rgba(30, 30, 20, 0.35);
+}
+.caseov__back:hover {
+  background: var(--theme-ink);
+  color: var(--theme-bg);
+  box-shadow: inset 0 0 0 1.5px var(--theme-ink);
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 820px) {
+  .acc { flex-direction: column; height: auto; }
+  .acc__panel,
+  .acc__panel:first-child,
+  .acc:hover .acc__panel:first-child,
+  .acc:hover .acc__panel:hover {
+    flex: 0 0 auto;
+    height: clamp(200px, 40vh, 300px);
+  }
+  .acc__spine { display: none; }
+  .acc__info,
+  .acc__panel:first-child .acc__info { opacity: 1; }
+  .acc__media::after,
+  .acc__panel:first-child .acc__media::after { opacity: 1; }
+  .feat__info { opacity: 1; } /* touch: no hover, keep info visible */
+  .caseov__frame { grid-template-columns: 1fr; grid-template-rows: 40vh 1fr; }
+}
+/* touch devices have no pointer to trail — the whole card is simply tappable */
+@media (hover: none) {
+  .viewchip { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acc__panel,
+  .acc__info,
+  .acc__spine,
+  .acc__media::after,
+  .viewchip,
+  .feat__info,
+  .feat__media img,
+  .feat__media video,
+  .acc__media img,
+  .cta,
+  .caseov,
+  .caseov__panel { transition: none; }
+}

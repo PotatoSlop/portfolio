@@ -293,7 +293,7 @@ body > nav ul {
   width: 14px;
   height: 14px;
   background: var(--color-primary);
-  margin-top: -3px;
+  margin-top: -1px;
 }
 .logo-name {
   /* Matches the main nav tabs ([data-theme='engineering'] .nav-link a):

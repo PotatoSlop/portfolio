@@ -3,26 +3,20 @@ import Base from '../layouts/Base.astro';
 import PullTabs from '../components/PullTabs.astro';
 import DotLines from '../components/DotLines.astro';
 import Wordmark from '../components/Wordmark.astro';
+import ProjectCard from '../components/projects/ProjectCard.astro';
+import ProjectAccordion from '../components/projects/ProjectAccordion.astro';
+import CaseOverlay from '../components/projects/CaseOverlay.astro';
 import { getCollection } from 'astro:content';
-import { Image } from 'astro:assets';
 import { Icon } from 'astro-icon/components';
 
-const tagged = await getCollection('projects', ({ data }) => data.disciplines.includes('engineering'));
-const projects = tagged.sort((a, b) => a.data.order - b.data.order);
-const outboundHref = (p: (typeof projects)[number]) => p.data.links?.live ?? p.data.links?.repo ?? p.data.links?.download ?? null;
+const CURRENT = 'engineering' as const;
 
-// The hero project keeps its own full-width feature block above the row; the
-// accordion holds everyone else.
+const tagged = await getCollection('projects', ({ data }) => data.disciplines.includes(CURRENT));
+const projects = tagged.sort((a, b) => a.data.order - b.data.order);
+
+// The hero keeps its own full-bleed feature block; the accordion holds the rest.
 const featured = projects.find((p) => p.data.hero) ?? projects[0] ?? null;
 const rest = projects.filter((p) => p !== featured);
-
-// Single-row accordion, padded with a couple of "coming soon" slots so the
-// collapsed row keeps some presence when the roster is short.
-const MIN_PANELS = 4;
-const panels = Array.from(
-  { length: Math.max(MIN_PANELS, rest.length) },
-  (_, i) => rest[i] ?? null
-);
 ---
 
 <Base title="Engineering — Dylan Chen" theme="engineering">
@@ -49,83 +43,26 @@ const panels = Array.from(
     </section>
 
     <section id="eng-gallery" class="eng-gallery" aria-label="Engineering projects">
-      {
-        featured && (
-          <div class="eng-feature-crop">
-            <div class="eng-feature">
-              {outboundHref(featured) ? (
-                <a class="eng-feature__link" href={outboundHref(featured)!} target="_blank" rel="noopener noreferrer" aria-label={`Open ${featured.data.title}`}/>
-                ) : null
-              }
-              <div class="eng-feature__media">
-                {featured.data.cover ? (
-                  <Image src={featured.data.cover} alt="" format="webp" loading="eager" style={
-                      `--cover-x:${featured.data.coverX}px;
-                      --cover-y:${featured.data.coverY}px;
-                      --cover-scale:${featured.data.coverScale}`
-                    }/>) : (
-                  <span class="eng-feature__placeholder" aria-hidden="true">
-                    {featured.data.title.charAt(0)}
-                  </span>
-                )}
-              </div>
-
-              <div class="eng-feature__info">
-                <h3>{featured.data.title}</h3>
-                {featured.data.overview && <p>{featured.data.overview}</p>}
-              </div>
+      <div class="wrap">
+        {
+          featured && (
+            <div class="eng-feature-crop">
+              <ProjectCard project={featured} current={CURRENT} variant="feature" />
             </div>
-          </div>
-        )
-      }
-
-      <ul class="eng-accordion">
-        {panels.map((p, i) => p ? (
-              <li class="eng-panel">
-                {outboundHref(p) ? (
-                  <a class="eng-panel__link" href={outboundHref(p)!} target="_blank" rel="noopener noreferrer" aria-label={`Open ${p.data.title}`}/>) : null}
-                
-                <div class="eng-panel__media">
-                  {p.data.cover ? (<Image src={p.data.cover} alt="" format="webp" loading="lazy" />) : 
-                  (
-                    <span class="eng-panel__placeholder" aria-hidden="true">
-                      {p.data.title.charAt(0)}
-                    </span>
-                  )}
-                </div>
-
-                <span class="eng-panel__spine" aria-hidden="true">{p.data.title}</span>
-                
-                <div class="eng-panel__info">
-                  <h3>{p.data.title}</h3>
-                  {p.data.overview && <p>{p.data.overview}</p>}
-                </div>
-              </li>
-            ) : (
-              <li class="eng-panel eng-panel--placeholder">
-                <div class="eng-panel__media">
-                  <span class="eng-panel__placeholder" aria-hidden="true">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                </div>
-                <span class="eng-panel__spine" aria-hidden="true">Coming soon</span>
-                <div class="eng-panel__info">
-                  <h3>Project {String(i + 1).padStart(2, '0')}</h3>
-                  <p>More Projects Coming Soon</p>
-                </div>
-              </li>
-            )
           )
         }
-      </ul>
+
+        <ProjectAccordion projects={rest} current={CURRENT} />
+      </div>
     </section>
   </main>
 
+  <CaseOverlay />
   <PullTabs discipline="engineering" />
   <DotLines />
   <div class="eng-grid-reveal" aria-hidden="true"></div>
 
- <style>
+  <style>
     * {
       -webkit-user-select: none;
       -webkit-user-drag: none;
@@ -248,6 +185,12 @@ const panels = Array.from(
       place-items: center;
       padding: 0.5rem;
       color: var(--theme-ink);
+      transition: transform var(--duration-fast) var(--theme-motion-ease);
+    }
+    .eng-chevron:hover,
+    .eng-chevron:focus-visible {
+      transform: scale(1.12);
+      outline: none;
     }
     .eng-chevron__crop {
       display: block;
@@ -260,265 +203,21 @@ const panels = Array.from(
       display: block;
     }
 
+    /* The projects gallery: a centred column (.wrap) with tight cinematic
+       gutters. The card system itself lives in styles/components/project-card.css. */
     .eng-gallery {
-      padding: 0;
+      padding: 0 clamp(0.5rem, 1.5vw, 1rem) clamp(2rem, 6vh, 4rem);
     }
-
-    /* HERO PROJECT SECTION */
+    /* Crop container for the hero reveal: overflow-clips the feature card while
+       reveal.ts rides it up from translateY(100%). Observe THIS (stationary) and
+       animate the child .feat — the motion-migration IntersectionObserver rule. */
     .eng-feature-crop {
       overflow: hidden;
       line-height: 0;
+      /* Subtle lift off the page (shared token from .wrap). The crop's own
+         shadow isn't clipped by its overflow — only its children are. */
+      box-shadow: var(--card-shadow);
     }
-    .eng-feature {
-      position: relative;
-      isolation: isolate;
-      overflow: hidden;
-      min-height: clamp(440px, 85vh, 880px);
-      background: #f0f0ec;
-    }
-    .eng-feature__link::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      z-index: 3;
-    }
-    .eng-feature__media {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-    }
-
-    .eng-feature__media img {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center;
-      transform-origin: center;
-      transform: scale(calc(var(--cover-scale, 1) * var(--cover-hover, 1)));
-      transition: transform var(--duration-smooth) var(--theme-motion-ease);
-    }
-    .eng-feature:hover .eng-feature__media img {
-      --cover-hover: 1.04;
-    }
-    .eng-feature__placeholder {
-      font-family: var(--theme-font-display);
-      font-size: clamp(3rem, 10vw, 6rem);
-      font-weight: 800;
-      color: rgba(30, 30, 20, 0.18);
-    }
-    .eng-feature__info {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      line-height: normal;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      gap: 0.5rem;
-      padding: 1.4rem;
-      color: var(--color-white);
-      background: linear-gradient(
-        to top,
-        rgba(30, 30, 20, 0.85) 0%,
-        rgba(30, 30, 20, 0.45) 15%,
-        rgba(30, 30, 20, 0) 100%
-      );
-      opacity: 0;
-      transition: opacity var(--duration-medium) var(--theme-motion-ease);
-    }
-    .eng-feature:hover .eng-feature__info,
-    .eng-feature:focus-within .eng-feature__info {
-      opacity: 1;
-    }
-    .eng-feature__info h3 {
-      font-family: var(--theme-font-display);
-      font-size: clamp(2rem, 4vw, 3rem);
-      line-height: 1.05;
-      margin: 0;
-      color: var(--theme-accent);
-    }
-    .eng-feature__info p {
-      font-family: var(--theme-font-body);
-      font-size: 0.95rem;
-      line-height: 1.45;
-      margin: 0;
-      max-width: 60ch;
-    }
-    @media (hover: none) {
-      .eng-feature__info {
-        opacity: 1;
-      }
-    }
-
-    .eng-accordion {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      gap: 0px;
-      height: clamp(440px, 72vh, 760px);
-      background: var(--theme-ink);
-    }
-    .eng-panel {
-      position: relative;
-      isolation: isolate;
-      flex: 1 1 0;
-      min-width: 0;
-      overflow: hidden;
-      background: #f0f0ec;
-      transition: flex-grow var(--duration-smooth) var(--ease-smooth);
-    }
-    .eng-panel:first-child { flex-grow: 6; }
-    .eng-accordion:hover .eng-panel:first-child,
-    .eng-accordion:focus-within .eng-panel:first-child { flex-grow: 1; }
-    .eng-accordion:hover .eng-panel:hover,
-    .eng-accordion:focus-within .eng-panel:focus-within { flex-grow: 8; }
-
-    .eng-panel__link::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      z-index: 3;
-    }
-    .eng-panel__media {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-    }
-    .eng-panel__media img {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center;
-      transform: scale(var(--cover-hover, 1));
-      transition: transform var(--duration-smooth) var(--ease-smooth);
-    }
-    .eng-panel:hover .eng-panel__media img,
-    .eng-panel:focus-within .eng-panel__media img {
-      --cover-hover: 1.04;
-    }
-
-    .eng-panel__media::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(
-        to top,
-        rgba(30, 30, 20, 0.95) 0%,
-        rgba(30, 30, 20, 0.72) 75%,
-        rgba(30, 30, 20, 0.0) 100%
-      );
-      opacity: 1;
-      transition: opacity var(--duration-medium) var(--ease-smooth);
-      pointer-events: none;
-    }
-    .eng-panel:first-child .eng-panel__media::after { opacity: 0; }
-    .eng-accordion:hover .eng-panel__media::after,
-    .eng-accordion:focus-within .eng-panel__media::after { opacity: 1; }
-    .eng-panel:hover .eng-panel__media::after,
-    .eng-panel:focus-within .eng-panel__media::after { opacity: 0; }
-    .eng-panel__placeholder {
-      font-family: var(--theme-font-display);
-      font-size: clamp(3rem, 10vw, 6rem);
-      font-weight: 800;
-      color: rgba(30, 30, 20, 0.18);
-    }
-
-    .eng-panel__spine {
-      position: absolute;
-      left: 50%;
-      bottom: 7%;
-      z-index: 2;
-      writing-mode: vertical-rl;
-      transform: translateX(-50%);
-      transform-origin: bottom center;
-      font-family: 'Roboto', sans-serif;
-      font-weight: 700;
-      font-size: clamp(1.85rem, 4.8vh, 3rem);
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--theme-accent);
-      text-shadow: 0 1px 10px rgba(0, 0, 0, 0.15);
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 1;
-      transition: opacity var(--duration-medium) var(--ease-smooth);
-    }
-    .eng-panel:first-child .eng-panel__spine { opacity: 0; }
-    .eng-accordion:hover .eng-panel__spine,
-    .eng-accordion:focus-within .eng-panel__spine { opacity: 1; }
-    .eng-panel:hover .eng-panel__spine,
-    .eng-panel:focus-within .eng-panel__spine { opacity: 0; }
-
-    .eng-panel__info {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      gap: 0.5rem;
-      min-width: 18rem;
-      padding: 1.4rem;
-      color: var(--color-white);
-      background: linear-gradient(
-        to top,
-        rgba(30, 30, 20, 0.72) 0%,
-        rgba(30, 30, 20, 0.32) 15%,
-        rgba(30, 30, 20, 0) 100%
-      );
-      opacity: 0;
-      transition: opacity var(--duration-medium) var(--theme-motion-ease);
-      pointer-events: none;
-    }
-    .eng-panel__info > * {
-      transform: translateY(12px);
-      transition: transform var(--duration-medium) var(--theme-motion-ease);
-    }
-    .eng-panel:first-child .eng-panel__info { opacity: 1; }
-    .eng-panel:first-child .eng-panel__info > * { transform: translateY(0); }
-    .eng-accordion:hover .eng-panel__info,
-    .eng-accordion:focus-within .eng-panel__info { opacity: 0; }
-    .eng-accordion:hover .eng-panel__info > *,
-    .eng-accordion:focus-within .eng-panel__info > * { transform: translateY(12px); }
-    .eng-panel:hover .eng-panel__info,
-    .eng-panel:focus-within .eng-panel__info { opacity: 1; }
-    .eng-panel:hover .eng-panel__info > *,
-    .eng-panel:focus-within .eng-panel__info > * { transform: translateY(0); }
-
-    .eng-panel__info h3 {
-      font-family: var(--theme-font-display);
-      font-size: clamp(1.5rem, 2.4vw, 2.4rem);
-      line-height: 1.05;
-      margin: 0;
-      color: var(--theme-accent);
-    }
-    .eng-panel__info p {
-      font-family: var(--theme-font-body);
-      font-size: 0.95rem;
-      line-height: 1.45;
-      margin: 0;
-      max-width: 42ch;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .eng-panel,
-      .eng-panel__info,
-      .eng-panel__info > *,
-      .eng-panel__spine,
-      .eng-panel__media img {
-        transition: none;
-      }
-    }
-
-  
 
     @media (max-width: 768px) {
       .eng-reveal--crumbs {
@@ -529,29 +228,6 @@ const panels = Array.from(
       }
       .eng-reveal--cta {
         margin: 2vh 0 0 0;
-      }
-
-      .eng-accordion {
-        flex-direction: column;
-        height: auto;
-      }
-      .eng-panel,
-      .eng-panel:first-child,
-      .eng-accordion:hover .eng-panel:first-child,
-      .eng-accordion:focus-within .eng-panel:first-child,
-      .eng-accordion:hover .eng-panel:hover,
-      .eng-accordion:focus-within .eng-panel:focus-within {
-        flex: 0 0 auto;
-        height: clamp(180px, 34vh, 300px);
-      }
-      .eng-panel__spine { display: none; }
-      .eng-panel__info,
-      .eng-panel:first-child .eng-panel__info {
-        opacity: 1;
-      }
-      .eng-panel__info > *,
-      .eng-panel:first-child .eng-panel__info > * {
-        transform: none;
       }
     }
 
@@ -582,20 +258,6 @@ const panels = Array.from(
       .eng-hero__cta {
         font-size: 20.5px;
         padding: 0.75rem 1.25rem;
-      }
-
-      .eng-panel {
-        height: clamp(160px, 30vh, 240px);
-      }
-      .eng-panel__info {
-        min-width: 0;
-        padding: 1.1rem;
-      }
-      .eng-panel__info h3 {
-        font-size: 1.3rem;
-      }
-      .eng-panel__info p {
-        font-size: 0.85rem;
       }
     }
 
@@ -646,13 +308,21 @@ const panels = Array.from(
   <script>
     import { reveal } from '../lib/motion/reveal';
     import { eases } from '../lib/motion/tokens';
+    import { mountVideoScrub, type VideoScrubHandle } from '../lib/motion/video-scrub';
+    import { mountChipTrail } from '../lib/motion/pointer-follow';
+    import { mountCaseOverlay } from '../lib/motion/case-overlay';
+
+    let videoScrub: VideoScrubHandle | null = null;
+    let destroyChip: (() => void) | null = null;
+    let destroyOverlay: (() => void) | null = null;
 
     document.addEventListener('astro:page-load', () => {
+      // Hero feature rides up from below its crop on first scroll into view.
       reveal(
-        '.eng-feature-crop .eng-feature',
-        { 
-          transform: ['translateY(100%)', 'translateY(0)'], 
-          opacity: [0.25, 1]
+        '.eng-feature-crop .feat',
+        {
+          transform: ['translateY(100%)', 'translateY(0)'],
+          opacity: [0.25, 1],
         },
         {
           observe: '.eng-feature-crop',
@@ -663,6 +333,26 @@ const panels = Array.from(
           margin: '0px 0px -8% 0px',
         }
       );
+
+      // Hover-scrubbed hero clip: the whole feature card drives playback.
+      const feature = document.querySelector<HTMLElement>('.feat');
+      const video = feature?.querySelector<HTMLVideoElement>('[data-scrub-video]');
+      if (feature && video) {
+        videoScrub = mountVideoScrub(feature, video);
+      }
+
+      // Trailing "View Project" chip + SPA case-study overlay.
+      destroyChip = mountChipTrail();
+      destroyOverlay = mountCaseOverlay();
+    });
+
+    document.addEventListener('astro:before-swap', () => {
+      videoScrub?.destroy();
+      videoScrub = null;
+      destroyChip?.();
+      destroyChip = null;
+      destroyOverlay?.();
+      destroyOverlay = null;
     });
   </script>
 </Base>
