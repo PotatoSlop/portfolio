@@ -1,0 +1,180 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+// All work — the master grid: a bold navy block holding every design piece,
+// filtered by tag chips. This is the functional-access backstop; each zone's
+// "view all" scrolls here and applies its filter (wired later). Client-side
+// filtering by category + game-asset tag.
+interface Props {
+  items: CollectionEntry<'design'>[];
+}
+const { items } = Astro.props;
+
+const FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: '3d', label: '3D' },
+  { key: 'uiux', label: 'UI/UX' },
+  { key: '2d', label: '2D' },
+  { key: 'game-asset', label: 'Game assets' },
+] as const;
+
+// Each tile carries its category + tags so the chips can filter without a fetch.
+const tileTags = (e: CollectionEntry<'design'>) =>
+  [e.data.category, ...(e.data.tags ?? [])].join(' ');
+---
+
+<div class="filters" role="group" aria-label="Filter work">
+  {
+    FILTERS.map((f, i) => (
+      <button type="button" class="chip" data-filter={f.key} aria-pressed={i === 0 ? 'true' : 'false'}>
+        {f.label}
+      </button>
+    ))
+  }
+</div>
+
+<div class="grid crop-tb">
+  {
+    items.map((it) => (
+      <a class="g-tile" href={it.data.href ?? '#'} data-tags={tileTags(it)}>
+        <div class="g-media" />
+        {it.data.tags?.includes('game-asset') && <span class="g-tag">game-asset</span>}
+        <span class="g-label">{it.data.title}</span>
+      </a>
+    ))
+  }
+</div>
+
+<style>
+  .filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 3vh;
+  }
+  .chip {
+    font-family: var(--dp-font-body);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 7px 16px;
+    border-radius: 5px;
+    border: 1px solid var(--navy-line);
+    /* Faint translucent face so the default state matches the cream-page buttons'
+       "border + semi-translucent fill" (here a light tint over the navy block). */
+    background: rgba(233, 226, 210, 0.05);
+    color: #e9e2d2;
+    cursor: pointer;
+    transition: background 0.3s, color 0.3s, border-color 0.3s;
+  }
+  /* Toggle hover — bright-amber border only (label stays cream on the navy). */
+  .chip:hover {
+    border-color: var(--dp-accent);
+  }
+  /* Toggled "on" — solid bright-amber fill; label flips to navy for contrast. */
+  .chip[aria-pressed='true'] {
+    background: var(--dp-accent);
+    color: var(--dp-ink);
+    border-color: var(--dp-accent);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    /* The crop-tb reveal leaves a clip-path: inset(0) on this grid, which clips
+       at the border box and would crop hover-scaled tiles at the outer rows /
+       columns. Pad the box and pull it back out so the clip region gains room
+       without shifting the layout. Sides + bottom follow the shared bleed token
+       (the tile shadow drops down + out); the top stays tight so the grid doesn't
+       ride up under the filter chips. */
+    padding: 20px var(--dp-bleed) var(--dp-bleed);
+    margin: -20px calc(-1 * var(--dp-bleed)) calc(-1 * var(--dp-bleed));
+  }
+  .g-tile {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid var(--navy-line);
+    background: #152541;
+    text-decoration: none;
+    transition: box-shadow 0.5s var(--dp-ease), transform 0.4s var(--dp-ease);
+  }
+  .g-tile[hidden] {
+    display: none;
+  }
+  .g-tile:hover {
+    box-shadow: 0 24px 44px -22px rgba(0, 0, 0, 0.7);
+    transform: scale(1.05);
+    z-index: 2;
+  }
+  .g-media {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(150deg, #1b2c4c, #122038);
+    transition: transform 0.6s var(--dp-ease);
+  }
+  .g-tile:hover .g-media {
+    transform: scale(1.06);
+  }
+  .g-label {
+    position: absolute;
+    left: 12px;
+    bottom: 10px;
+    z-index: 2;
+    font-family: var(--dp-font-title);
+    text-transform: uppercase;
+    font-size: 14px;
+    color: #e9e2d2;
+  }
+  .g-tag {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--dp-accent);
+  }
+
+  @media (max-width: 900px) {
+    .grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>
+
+<script>
+  // Chip filtering — toggles tile visibility by category / tag. Idempotent and
+  // re-bound per navigation (ClientRouter re-renders the section).
+  function initFilterGrid() {
+    const chips = document.querySelectorAll<HTMLButtonElement>('.chip[data-filter]');
+    const tiles = document.querySelectorAll<HTMLElement>('.g-tile[data-tags]');
+    if (chips.length === 0) return;
+
+    const applyFilter = (key: string) => {
+      chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.filter === key)));
+      tiles.forEach((t) => {
+        const tags = (t.dataset.tags || '').split(' ');
+        t.hidden = key !== 'all' && !tags.includes(key);
+      });
+    };
+
+    chips.forEach((chip) => {
+      chip.addEventListener('click', () => applyFilter(chip.dataset.filter || 'all'));
+    });
+
+    // Each zone's "view all" scrolls here and auto-applies that zone's filter —
+    // the keystone that unifies the curated showcase with the full browse.
+    document.querySelectorAll<HTMLElement>('[data-goto]').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        applyFilter(link.dataset.goto || 'all');
+        document.getElementById('s-grid')?.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+  }
+  document.addEventListener('astro:page-load', initFilterGrid);
+</script>

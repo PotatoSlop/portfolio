@@ -72,3 +72,14 @@ body {
   height: 0;
   display: none;
 }
+
+/* ===== Dark-scheme asset recolour =====
+   Raster GIFs/PNGs (line-art logos, doodles) can't inherit currentColor like an
+   inline SVG. Opt a raster asset into dark-mode recolouring with .asset-recolor:
+   brightness(0) flattens every pixel to black, invert(1) flips that to pure
+   white — rendering line-art white on the dark field. NOTE: this flattens any
+   colour in the asset to a white silhouette, so only apply it where that reads
+   right (the boiling-name logo + the doodle are line art, so it does). */
+[data-scheme='dark'] .asset-recolor {
+  filter: brightness(0) invert(1);
+}

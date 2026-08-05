@@ -43,6 +43,35 @@
   --eng-cta-y: clamp(-7.75rem, 2vw, -3.25rem);
 }
 
+/* ===== Engineering — DARK =====
+   Warm charcoal field (not the neutral --dark-bg — engineering's identity is
+   warm, so the dark tint carries a hint of the #1e1e14 charcoal), warm off-white
+   ink, amber toned down, and the blueprint dot grid flipped to a faint light
+   dot. Only the contract vars change; the --eng-* choreography/layout tokens
+   ride through unchanged. */
+[data-theme='engineering'][data-scheme='dark'] {
+  --theme-bg: #1a1813;
+  --theme-surface: #23201a;
+  --theme-border: #3a352c;
+
+  --theme-ink: #ece7dd;
+  --theme-ink-muted: #9c968a;
+
+  --theme-accent: var(--color-primary-muted);
+  --theme-accent-contrast: #1a1813;
+
+  --theme-glass: rgba(35, 32, 26, 0.72);
+
+  --theme-grid: radial-gradient(
+    circle,
+    rgba(236, 231, 221, 0.08) 1.6px,
+    transparent 2.1px
+  );
+
+  --idiom-accent: var(--color-primary-muted);
+  --idiom-rule: rgba(236, 231, 221, 0.5);
+}
+
 @media (max-width: 700px) {
   [data-theme='engineering'] {
     /* Remove negative wordmark offset — at small viewports the -20px left margin

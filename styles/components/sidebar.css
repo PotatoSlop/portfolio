@@ -9,7 +9,7 @@
   height: 100dvh;
   width: 250px;
   z-index: var(--z-sidebar);
-  background-color: var(--color-white);
+  background-color: var(--theme-surface);
   box-shadow: -10px 0 10px var(--color-shadow-light);
   display: flex;
   flex-direction: column;
@@ -82,7 +82,7 @@
 
 .sidebar > li:first-child a:hover,
 .sidebar > li:first-child button:hover {
-  background-color: var(--color-primary);
+  background-color: var(--theme-accent);
 }
 
 /* Sidebar links — every direct <li> after the first is a nav row.
@@ -90,8 +90,8 @@
 .sidebar > li:not(:first-child):not(.sidebar-group) {
   width: 100%;
   list-style: none;
-  border: var(--border-width-medium) solid var(--color-black);
-  background-color: var(--color-white);
+  border: var(--border-width-medium) solid var(--theme-border);
+  background-color: var(--theme-surface);
   border-radius: var(--radius-pill);
   padding: 0.3em 1.2em;
   position: relative;
@@ -108,7 +108,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  background: var(--color-primary);
+  background: var(--theme-accent);
   border-radius: var(--radius-pill);
   z-index: var(--z-base);
   transform: scaleX(0);
@@ -133,15 +133,50 @@
   display: flex;
   flex-direction: column;
   gap: var(--gap-small);
+  position: relative; /* anchors the chain rail (::before) */
 }
 
+/* One continuous hand-drawn "chain" rail tying Projects to its options. It's
+   painted BEHIND the pills (::before sits below the group's content in paint
+   order) along the options' centre line, so the opaque pills cover it and it
+   shows only through the equal gaps between them — every link, Projects→first
+   included, is therefore one dead-straight line by construction, with no per-
+   segment offset to drift out of alignment. Hidden until the group is open.
+   The 0.7rem nudge = half the submenu's 1.4rem indent, centring it on the
+   indented options. */
 .sidebar-group::before {
   display: none;
+}
+.sidebar-group.open::before {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% + 0.7rem);
+  transform: translateX(-50%);
+  width: 7px;
+  background: var(--theme-ink);
+  pointer-events: none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='14'%3E%3Cpath d='M3.5 0 C1.5 3.5 5.5 3.5 3.5 7 C1.5 10.5 5.5 10.5 3.5 14' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") center / 7px 14px repeat-y;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='14'%3E%3Cpath d='M3.5 0 C1.5 3.5 5.5 3.5 3.5 7 C1.5 10.5 5.5 10.5 3.5 14' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") center / 7px 14px repeat-y;
+  /* The wire is DRAWN BY JS (openSidebarGroup in Nav.astro): a single progress
+     value 0→1 drives this clip-path AND, from the options' real layout geometry,
+     the moment each one is revealed — so the front reaches every row exactly as
+     that row un-hides, guaranteed in sync however many options there are. This
+     is a direct port of the about-page timeline's drawn-fraction reveal,
+     replacing the old hardcoded animation-delays that could drift out of step.
+     Rest state (progress 0, no JS) clips the whole rail away. */
+  clip-path: inset(0 0 calc((1 - var(--rail-progress, 0)) * 100%) 0);
 }
 
 .sidebar-group-trigger {
   appearance: none;
   -webkit-appearance: none;
+  /* Positioned so it paints in the same step as (and, being later in the tree,
+     on top of) the group's ::before rail — otherwise a static trigger paints
+     first and the rail shows through its face. */
+  position: relative;
   width: 100%;
   text-align: left;
   cursor: pointer;
@@ -150,10 +185,10 @@
   justify-content: space-between;
   min-height: 48px;
   padding: 0.3em 1.2em;
-  border: var(--border-width-medium) solid var(--color-black);
-  background: var(--color-white);
+  border: var(--border-width-medium) solid var(--theme-border);
+  background: var(--theme-surface);
   border-radius: var(--radius-pill);
-  color: var(--color-black);
+  color: var(--theme-ink);
   font-family: var(--font-primary);
   font-weight: 300;
   font-size: 1rem;
@@ -162,7 +197,7 @@
 
 .sidebar-group-trigger:hover,
 .sidebar-group.open .sidebar-group-trigger {
-  background-color: var(--color-primary);
+  background-color: var(--theme-accent);
 }
 
 .sidebar-group-trigger .nav-caret {
@@ -181,50 +216,113 @@
 .sidebar-submenu {
   list-style: none;
   margin: 0;
-  padding-left: 0.75rem;
+  /* Indent the options in from the left only — their right edges stay flush with
+     the Projects trigger, so they read as an indented sub-selection of it. */
+  padding-left: 1.4rem;
   display: flex;
   flex-direction: column;
   gap: var(--gap-small);
   max-height: 0;
-  opacity: 0;
   overflow: hidden;
-  transition: max-height var(--duration-medium) var(--ease-smooth),
-    opacity var(--duration-medium) var(--ease-default);
+  /* The accordion snaps to full height FAST — quicker than the per-option
+     stagger below — so the options then pop into an already-open box (visible
+     empty slots make the 1→2→3→4 cascade legible). If the box grew over the
+     same window as the stagger, the two motions would blur into one smooth
+     unroll and the cascade would read as a single reveal. No opacity fade here:
+     each option owns its own fade, so nothing washes the stagger flat. */
+  transition: max-height var(--duration-fast) var(--ease-smooth);
 }
 
 .sidebar-group.open .sidebar-submenu {
   max-height: 320px;
-  opacity: 1;
 }
 
+/* Uniform full-width pills (never content-width), so the four project rows read
+   as one consistent stack instead of ragged, differently-sized capsules. */
 .sidebar-submenu li {
+  width: 100%;
+  flex-shrink: 0;
   list-style: none;
   position: relative;
-  overflow: hidden;
-  border: var(--border-width-medium) solid var(--color-black);
-  background: var(--color-white);
+  overflow: hidden; /* clip the ::before fill to the pill; also masks the rail behind */
+  border: var(--border-width-medium) solid var(--theme-border);
+  background: var(--theme-surface);
   border-radius: var(--radius-pill);
   min-height: 44px;
   display: flex;
   align-items: center;
+  /* Armed hidden state — each option rises into place the instant the wire front
+     (the drawing chain rail above) reaches its row. JS adds `.revealed` when the
+     rail's progress passes this option's measured centre, so the reveal is gated
+     on the line's real progress rather than a hardcoded delay. */
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity var(--duration-medium) var(--ease-smooth),
+    transform var(--duration-medium) var(--ease-smooth);
 }
 
-.sidebar-submenu a:hover,
-.sidebar-submenu a[aria-current='page'] {
-  background: var(--color-primary);
+/* Revealed by JS as the rail front passes the row — see openSidebarGroup in
+   Nav.astro. */
+.sidebar-submenu li.revealed {
+  opacity: 1;
+  transform: none;
 }
 
-.sidebar-submenu a {
-  width: 100%;
-  padding: 0.4rem 1rem;
+/* Reduced motion — skip the wire draw and the cascade; show the rail and every
+   option at rest.
+
+   NOTE: this deliberately keys ONLY off the true OS `prefers-reduced-motion`,
+   NOT the site's `html[data-sim-reduced]` flag. That flag is force-set on every
+   screen ≤768px (see SettingsToggles.astro) — and the hamburger submenu only
+   exists at those widths, so gating on it would mean this wire/stagger could
+   never run anywhere. Honouring the genuine accessibility preference while
+   letting the deliberate, user-initiated open animation play is the balance we
+   want here. (The desktop dropdown in nav.css still respects both, since its
+   reduced-motion flag can come from the manual corner toggle.) */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-group.open::before { clip-path: none; }
+  .sidebar-submenu li { opacity: 1; transform: none; }
+}
+
+/* Same left→right accent wipe as the top-level pill rows, so the submenu is the
+   same component family rather than a flat colour swap. */
+.sidebar-submenu li::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--theme-accent);
   border-radius: var(--radius-pill);
+  z-index: var(--z-base);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-smooth) var(--ease-smooth);
+}
+
+.sidebar-submenu li:hover::before,
+.sidebar-submenu li:has(a[aria-current='page'])::before {
+  transform: scaleX(1);
+}
+
+/* Higher specificity than `.sidebar a { padding: 0.5rem 0 }` so the option text
+   actually gets its left/right padding (the equal-specificity rule was winning
+   on source order and zeroing the horizontal padding). */
+.sidebar-submenu li a {
+  width: 100%;
+  padding: 0.4rem 1.1rem 0.4rem 1.5rem; /* extra left inset for the label */
+  border-radius: var(--radius-pill);
+  position: relative;
+  z-index: var(--z-content);
+}
+
+.sidebar-submenu li a[aria-current='page'] {
+  color: var(--theme-accent-contrast);
 }
 
 .sidebar a {
   width: 100%;
   padding: 0.5rem 0;
   text-decoration: none;
-  color: var(--color-black);
+  color: var(--theme-ink);
   font-family: var(--font-primary);
   font-weight: 300;
   position: relative;
@@ -237,12 +335,12 @@
 }
 
 .sidebar li:hover a {
-  color: var(--color-black);
+  color: var(--theme-accent-contrast);
 }
 
 /* ===== Engineering sidebar skin =====*/
 [data-theme='engineering'] .sidebar {
-  background-color: var(--color-black);
+  background-color: var(--theme-ink);
   /* No horizontal padding → each row's fill spans the full drawer width. */
   padding: 5rem 0 2rem 0;
   gap: 0;
@@ -269,15 +367,15 @@
   font-size: 15px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-white);
+  color: var(--theme-bg);
   padding: 1rem 1.5rem;
   min-height: 52px;
 }
 
-/* Flip the label dark for contrast once the amber fill is under it. */
+/* Flip the label to accent-contrast for legibility once the amber fill is under it. */
 [data-theme='engineering'] .sidebar > li:hover a,
 [data-theme='engineering'] .sidebar a[aria-current='page'] {
-  color: var(--color-black);
+  color: var(--theme-accent-contrast);
   font-weight: 500;
 }
 [data-theme='engineering'] .sidebar > li:has(a[aria-current='page'])::before {
@@ -293,13 +391,100 @@
   width: clamp(48px, 9vw, 64px);
 }
 
-/* Close (X) button → white icon on black; amber disc on hover. The glyph's path
+/* Close (X) button → white icon on black; amber fill on hover. The glyph's path
    is `fill="currentColor"`, so it follows `color`, not `fill` — recolor via
-   `color`. */
+   `color`.
+   The box is the flush-bar rectangle (64×45, non-square), so the inherited
+   999px pill radius rendered the amber hover as a stretched stadium that only
+   got longer as the window widened. Square it off (border-radius:0) to match the
+   engineering nav links' rectangular hover fills — on-brand and can't stretch. */
 [data-theme='engineering'] .sidebar > li:first-child button {
-  color: var(--color-white);
+  color: var(--theme-bg);
+  border-radius: 0;
 }
 [data-theme='engineering'] .sidebar > li:first-child button:hover {
-  background-color: var(--color-primary);
-  color: var(--color-black);
+  background-color: var(--theme-accent);
+  color: var(--theme-accent-contrast);
+}
+
+/* ===== Design sidebar skin =====
+   Reskins the mobile nav drawer into the design page's own language — the cream
+   paper backdrop, white card rows with a 5px radius + hairline border, Archivo
+   uppercase labels, and the floating-nav-island hover (a bright-amber fill
+   rising bottom→top). It reads as one piece with the design chrome rather than
+   the generic pill drawer. Discipline sidebars omit the Projects accordion, so
+   only the close button + the Home/About/Contact rows are styled here. */
+/* Match the close (X) to the design hamburger it replaces, as exactly as the two
+   glyphs allow: same 42px square box, pinned to the hamburger's exact right inset
+   (--dp-edge, not the default 1rem), zero padding, navy glyph, amber hover disc.
+   at-icons:cross fills more of its viewBox than tabler:menu-2, so at an equal
+   24px it read a touch larger and lower than the hamburger — trim it to 22px so
+   the two controls look the same size and sit on the same centre. */
+[data-theme='design'] .sidebar > li:first-child {
+  top: 16px;
+  right: var(--dp-edge);
+  width: 42px;
+  height: 42px;
+}
+[data-theme='design'] .sidebar > li:first-child button {
+  padding: 0;
+  color: var(--theme-ink);
+}
+[data-theme='design'] .sidebar .close-icon {
+  width: 22px;
+  height: 22px;
+}
+
+/* Rows adopt the design page's card language: white islands on the cream drawer
+   (navy islands on the deep-navy drawer in dark), a 1px hairline border, 5px
+   radius, soft drop shadow, and the floating-nav-island hover — a bright-amber
+   fill rising bottom→top with the label holding navy over it. Labels are Archivo
+   600 uppercase tracked, the same face as the nav islands, so the drawer reads as
+   one piece with the design chrome instead of the generic pill drawer. */
+[data-theme='design'] .sidebar {
+  background: var(--theme-bg);
+  box-shadow: -12px 0 34px -14px rgba(30, 24, 14, 0.4);
+}
+[data-theme='design'] .sidebar > li:not(:first-child):not(.sidebar-group) {
+  border: 1px solid var(--theme-border);
+  background: var(--theme-ink); /* navy button face (cream in dark, per the inversion) */
+  border-radius: var(--theme-radius);
+  box-shadow: 0 10px 26px -16px rgba(30, 24, 14, 0.45);
+  /* Zero the shared row padding so the amber fill is full-bleed and the <a>
+     owns the text inset (the nav-island model). */
+  padding: 0;
+  overflow: hidden;
+  transition: border-color var(--duration-medium) var(--ease-smooth);
+}
+[data-theme='design'] .sidebar > li:not(:first-child):not(.sidebar-group):hover,
+[data-theme='design'] .sidebar > li:has(a[aria-current='page']) {
+  border-color: var(--theme-accent);
+}
+/* Rising amber fill (bottom→top), replacing the shared left→right scaleX wipe. */
+[data-theme='design'] .sidebar > li:not(:first-child):not(.sidebar-group)::before {
+  border-radius: inherit;
+  background: var(--theme-accent);
+  transform: translateY(100%);
+  transform-origin: bottom;
+  transition: transform var(--duration-smooth) var(--ease-smooth);
+}
+[data-theme='design'] .sidebar > li:not(:first-child):not(.sidebar-group):hover::before,
+[data-theme='design'] .sidebar > li:has(a[aria-current='page'])::before {
+  transform: translateY(0);
+}
+[data-theme='design'] .sidebar a {
+  font-family: var(--theme-font-body);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--theme-bg); /* cream label on the navy button face */
+  padding: 0.75rem 1.1rem;
+}
+/* Navy label over the amber fill — --theme-accent-contrast is navy in both
+   schemes, so the amber-on-navy identity pairing holds in light AND dark (the
+   design 3-colour contrast rule). */
+[data-theme='design'] .sidebar li:hover a,
+[data-theme='design'] .sidebar a[aria-current='page'] {
+  color: var(--theme-accent-contrast);
 }

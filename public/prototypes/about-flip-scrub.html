@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>About flip — scroll-scrub prototype</title>
+    <style>
+      :root {
+        --ink: #141414;
+        --paper: #f4f1ea;
+        --muted: #5c574e;
+        --amber: #ffb020;
+        --runway: 80; /* vh of pin duration, driven by the slider */
+        --border-thick: 3px;
+      }
+
+      * { box-sizing: border-box; }
+
+      html { scroll-behavior: auto; }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .wrap { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+
+      /* ---- Filler so you scroll INTO and OUT OF the pinned section ---- */
+      .spacer {
+        min-height: 90vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: var(--muted);
+        font-size: 1.1rem;
+        letter-spacing: 0.02em;
+      }
+      .spacer p { max-width: 30ch; }
+
+      /* ============================================================
+         THE MECHANISM
+         .scrub-section is the tall "runway": 100vh (the pin) + Nvh
+         of extra scroll. .scrub-pin sticks at the top and stays
+         visually motionless while the page scrolls through the runway.
+         Progress 0..1 across that runway drives the flip + text.
+         ============================================================ */
+      .scrub-section {
+        position: relative;
+        height: calc(100vh + var(--runway) * 1vh);
+      }
+
+      .scrub-pin {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+      }
+
+      .stage {
+        display: flex;
+        align-items: center;
+        gap: 4rem;
+        width: 100%;
+      }
+
+      /* ---- Flipping headshot ---- */
+      .image-stack {
+        perspective: 1000px;
+        width: 32vh;
+        height: 32vh;
+        flex-shrink: 0;
+      }
+      .headshot {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+        transition: none; /* SCRUB mode: scroll drives it 1:1, no independent clock */
+        will-change: transform;
+      }
+      /* TRIGGER mode: the flip is a self-timed transition fired by crossing the
+         threshold — no distorted scrubbable in-between frames exist. */
+      body.trigger .headshot { transition: transform 0.65s cubic-bezier(0.65, 0, 0.35, 1); }
+      body.trigger .headshot.flipped { transform: rotateY(180deg); }
+      .headshot::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border: var(--border-thick) solid var(--ink);
+        border-radius: 50%;
+        backface-visibility: hidden;
+      }
+      .face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+      }
+      .face.doodle { object-position: calc(50% + 10px) center; }
+      .face.photo { transform: rotateY(180deg); object-position: center 5%; }
+
+      /* ---- Crossfaded text blocks ---- */
+      .text-stack { position: relative; flex: 1; min-height: 320px; }
+      .text-block {
+        position: absolute;
+        inset: 0;
+        max-width: 620px;
+        will-change: opacity, transform;
+      }
+      /* TRIGGER mode drives the text by class instead of per-frame opacity. */
+      body.trigger .text-block { opacity: 0; transition: opacity 0.3s ease-in; }
+      body.trigger .text-block.is-visible { opacity: 1; transition: opacity 0.4s ease-out 0.18s; }
+      .text-block h1 {
+        font-size: clamp(1.8rem, 5vw, 3rem);
+        font-weight: 600;
+        margin: 0 0 1rem;
+      }
+      .text-block p {
+        font-size: clamp(1rem, 2.2vw, 1.2rem);
+        line-height: 1.6;
+        color: var(--muted);
+        margin: 0;
+      }
+      .resume-btn {
+        display: inline-block;
+        margin-top: 1.75rem;
+        padding: 0.75em 1.25em;
+        border: 2px solid var(--ink);
+        border-radius: 999px;
+        font-weight: 600;
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      /* ============================================================
+         REDUCED MOTION / MOBILE fallback — no pin, no scrub, just
+         the final resting state (photo + "About Me"). Applied either
+         by the OS media query, the ≤768px width, or the manual class.
+         ============================================================ */
+      .static-fallback .scrub-section { height: auto; }
+      .static-fallback .scrub-pin { position: static; height: auto; padding: 6rem 0; }
+      .static-fallback .headshot { transform: rotateY(180deg) !important; }
+      .static-fallback .text-block.philosophy { display: none; }
+      .static-fallback .text-block.about { opacity: 1 !important; position: static; }
+
+      @media (prefers-reduced-motion: reduce), (max-width: 768px) {
+        .scrub-section { height: auto; }
+        .scrub-pin { position: static; height: auto; padding: 6rem 0; }
+        .headshot { transform: rotateY(180deg) !important; }
+        .text-block.philosophy { display: none; }
+        .text-block.about { opacity: 1 !important; position: static; }
+      }
+      @media (max-width: 768px) {
+        .stage { flex-direction: column; text-align: center; gap: 2.5rem; }
+        .text-stack { min-height: 0; }
+      }
+
+      /* ---- Dev control panel (prototype only) ---- */
+      .panel {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 50;
+        background: rgba(20, 20, 20, 0.9);
+        color: #f4f1ea;
+        padding: 14px 16px;
+        border-radius: 12px;
+        font: 13px/1.4 system-ui, sans-serif;
+        width: 230px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      }
+      .panel label { display: block; margin-bottom: 4px; opacity: 0.85; }
+      .panel input[type='range'] { width: 100%; accent-color: var(--amber); }
+      .panel .row { margin-bottom: 12px; }
+      .panel .row:last-child { margin-bottom: 0; }
+      .panel .val { color: var(--amber); font-weight: 600; }
+      .panel .bar {
+        height: 6px;
+        border-radius: 3px;
+        background: #3a3a3a;
+        margin-top: 6px;
+        overflow: hidden;
+      }
+      .panel .bar > i { display: block; height: 100%; width: 0%; background: var(--amber); }
+      .panel .chk { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="spacer"><p>↓ scroll down into the pinned section ↓</p></div>
+
+      <section class="scrub-section" id="section">
+        <div class="scrub-pin">
+          <div class="stage">
+            <div class="image-stack">
+              <div class="headshot" id="headshot">
+                <img class="face doodle" src="../Assets/motion/wavingDude-static.png" alt="Doodle of Dylan" />
+                <img class="face photo" src="./irlHeadshot.jpg" alt="Dylan headshot" />
+              </div>
+            </div>
+
+            <div class="text-stack">
+              <div class="text-block philosophy" id="block-0">
+                <h1>It Starts with a Sketch</h1>
+                <p>
+                  Napkins, printer paper, sketchbooks or just my mind, my projects start from a
+                  simple idea that is brought to reality. If you need a creative developer, a
+                  technical designer, or anything in between, I can bring a new perspective to your
+                  vision.
+                </p>
+              </div>
+              <div class="text-block about" id="block-1">
+                <h1>About Me</h1>
+                <p>
+                  I'm Dylan, a 2nd-year computer science and engineering student at Northeastern
+                  University. You can usually find me hopping between Boston and New York City,
+                  wandering around capturing urban experiences on my camera or absorbing inspiration
+                  for my next project.
+                </p>
+                <a class="resume-btn" href="#">Download Resume</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="spacer"><p>the pin has released — normal scroll resumes here</p></div>
+      <div class="spacer" style="background: #ece7dc"><p>(imagine the Experience timeline here)</p></div>
+    </div>
+
+    <div class="panel">
+      <div class="row">
+        <label>Mode</label>
+        <label class="chk"><input type="radio" name="mode" value="trigger" checked /> Trigger (self-timed flip)</label>
+        <label class="chk"><input type="radio" name="mode" value="scrub" /> Scrub (1:1 eased)</label>
+      </div>
+      <div class="row">
+        <label>Runway length: <span class="val" id="rw-val">80</span>vh</label>
+        <input type="range" id="rw" min="10" max="120" step="1" value="80" />
+      </div>
+      <div class="row" data-mode="trigger">
+        <label>Trigger point: <span class="val" id="tp-val">50</span>%</label>
+        <input type="range" id="tp" min="20" max="80" step="1" value="50" />
+      </div>
+      <div class="row" data-mode="scrub">
+        <label>Ease through middle: <span class="val" id="ez-val">2.6</span>×</label>
+        <input type="range" id="ez" min="1" max="5" step="0.1" value="2.6" />
+      </div>
+      <div class="row">
+        <label>Scroll progress</label>
+        <div class="bar"><i id="prog"></i></div>
+      </div>
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="rm" /> Force reduced / mobile state</label>
+      </div>
+    </div>
+
+    <script>
+      const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+      // smoothstep for the text crossfade so it eases rather than snaps
+      const smooth = (e0, e1, x) => {
+        const t = clamp((x - e0) / (e1 - e0), 0, 1);
+        return t * t * (3 - 2 * t);
+      };
+      // S-curve centered on 0.5: strength > 1 makes the middle STEEP (rotation
+      // races through the distorted 45-135deg frames) and the ends FLAT (a small
+      // scroll dwells at the clean 0deg/180deg rest states). strength = 1 is linear.
+      let easeStrength = 2.6;
+      const easeMid = (p) => {
+        const x = 2 * p - 1; // -1..1
+        const y = Math.sign(x) * Math.pow(Math.abs(x), 1 / easeStrength);
+        return (y + 1) / 2;
+      };
+
+      const section = document.getElementById('section');
+      const headshot = document.getElementById('headshot');
+      const block0 = document.getElementById('block-0');
+      const block1 = document.getElementById('block-1');
+      const prog = document.getElementById('prog');
+
+      let raf = 0;
+      let reduced = false;
+      let mode = 'trigger'; // 'trigger' | 'scrub'
+      let flipped = false; // trigger-mode latch
+      let triggerPoint = 0.5; // p at which the flip fires
+      const DEADBAND = 0.06; // hysteresis half-width: stops chatter at the line
+
+      const showBlock = (i) => {
+        block0.classList.toggle('is-visible', i === 0);
+        block1.classList.toggle('is-visible', i === 1);
+      };
+
+      function frame() {
+        raf = 0;
+        if (reduced) return;
+        const total = section.offsetHeight - window.innerHeight; // pin duration in px
+        if (total <= 0) return;
+        const p = clamp(-section.getBoundingClientRect().top / total, 0, 1);
+        prog.style.width = (p * 100).toFixed(1) + '%';
+
+        if (mode === 'scrub') {
+          // eased rotation — races through the middle, dwells at the rest states
+          const r = easeMid(p) * 180;
+          headshot.style.transform = `rotateY(${r}deg)`;
+          // text swap tied to ROTATION so it happens while edge-on (~72-108deg)
+          const t = smooth(72, 108, r);
+          block0.style.opacity = 1 - t;
+          block1.style.opacity = t;
+          block0.style.pointerEvents = t < 0.5 ? 'auto' : 'none';
+          block1.style.pointerEvents = t >= 0.5 ? 'auto' : 'none';
+        } else {
+          // TRIGGER: latch with hysteresis; the CSS transition owns the animation,
+          // so scroll distance (runway) and flip duration are fully independent.
+          if (!flipped && p > triggerPoint + DEADBAND) flipped = true;
+          else if (flipped && p < triggerPoint - DEADBAND) flipped = false;
+          headshot.classList.toggle('flipped', flipped);
+          showBlock(flipped ? 1 : 0);
+        }
+      }
+
+      function schedule() {
+        if (!raf) raf = requestAnimationFrame(frame);
+      }
+
+      window.addEventListener('scroll', schedule, { passive: true });
+      window.addEventListener('resize', schedule);
+
+      // ---- prototype controls ----
+      const rw = document.getElementById('rw');
+      const rwVal = document.getElementById('rw-val');
+      rw.addEventListener('input', () => {
+        document.documentElement.style.setProperty('--runway', rw.value);
+        rwVal.textContent = rw.value;
+        schedule();
+      });
+
+      const ez = document.getElementById('ez');
+      const ezVal = document.getElementById('ez-val');
+      ez.addEventListener('input', () => {
+        easeStrength = parseFloat(ez.value);
+        ezVal.textContent = ez.value;
+        schedule();
+      });
+
+      const tp = document.getElementById('tp');
+      const tpVal = document.getElementById('tp-val');
+      tp.addEventListener('input', () => {
+        triggerPoint = parseFloat(tp.value) / 100;
+        tpVal.textContent = tp.value;
+        schedule();
+      });
+
+      // Switching modes clears the other mode's inline styles so the CSS classes
+      // (trigger) or per-frame styles (scrub) win cleanly, and shows the right rows.
+      function applyMode(next) {
+        mode = next;
+        document.body.classList.toggle('trigger', mode === 'trigger');
+        headshot.style.transform = '';
+        block0.style.opacity = block1.style.opacity = '';
+        block0.style.pointerEvents = block1.style.pointerEvents = '';
+        flipped = false;
+        headshot.classList.remove('flipped');
+        block0.classList.remove('is-visible');
+        block1.classList.remove('is-visible');
+        document.querySelectorAll('[data-mode]').forEach((el) => {
+          el.style.display = el.dataset.mode === mode ? '' : 'none';
+        });
+        schedule();
+      }
+      document.querySelectorAll('input[name="mode"]').forEach((r) => {
+        r.addEventListener('change', () => { if (r.checked) applyMode(r.value); });
+      });
+
+      const rmToggle = document.getElementById('rm');
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce), (max-width: 768px)');
+      function syncReduced() {
+        reduced = rmToggle.checked || mq.matches;
+        document.body.classList.toggle('static-fallback', rmToggle.checked);
+        if (!reduced) {
+          block0.style.opacity = block1.style.opacity = '';
+          headshot.style.transform = '';
+          schedule();
+        }
+      }
+      rmToggle.addEventListener('change', syncReduced);
+      mq.addEventListener('change', syncReduced);
+
+      applyMode('trigger');
+      syncReduced();
+      schedule();
+    </script>
+  </body>
+</html>

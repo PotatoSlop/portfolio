@@ -17,6 +17,28 @@
   --color-error-border: #f5c6cb;
   --color-success-validation: rgb(69, 201, 80);
 
+  /* ===== DARK-MODE NEUTRAL RAMP =====
+     A parallel neutral set for the dark scheme (see themes/*.css
+     [data-scheme='dark'] blocks). Deliberately NOT pure black — a faintly warm
+     near-black echoes the site's warm charcoal identity (--color-black #1e1e14)
+     and gives surfaces something to separate against; pure #000 reads flat and
+     harsh in a themed UI. Ink is a soft near-white (#e9e8ec), never #fff, to cut
+     glare on the dark field. Per-theme blocks tint these toward each
+     discipline's hue; these are the shared / sketchbook defaults. */
+  --dark-bg: #17161b; /* base page surface */
+  --dark-surface: #201f26; /* raised surface: cards, drawers, islands */
+  --dark-surface-2: #2a2932; /* one step up from surface (active/hover fills) */
+  --dark-border: #34333d;
+  --dark-ink: #e9e8ec; /* primary text — soft white */
+  --dark-ink-muted: #9a99a4; /* secondary text */
+  /* Frosted "island" glass, dark variant of --theme-glass (see _contract.css). */
+  --dark-glass: rgba(32, 31, 38, 0.72);
+
+  /* Bright amber (--color-primary) glares on a dark field; --color-primary-dark
+     is the toned-down accent for dark surfaces. Kept as an alias so dark blocks
+     read intent, not a raw hex. */
+  --color-primary-muted: var(--color-primary-dark);
+
   /* Transparent & shadow colors */
   --color-shadow-light: rgba(0, 0, 0, 0.1);
   --color-shadow-dark: rgba(0, 0, 0, 0.5);
@@ -70,8 +92,10 @@
   --z-interactive: 10;
   --z-footer: 100;
   --z-nav: 1000;
-  --z-overlay: 101;
-  --z-sidebar: 1001;
+  /* Above the fixed settings toggles (z 1200) so an open drawer + its scrim
+     cover them; the scrim sits just under the drawer itself. */
+  --z-overlay: 1250;
+  --z-sidebar: 1300;
 
   /* ===== TRANSFORMS ===== */
   --transform-scale-hover: scale(1.1);

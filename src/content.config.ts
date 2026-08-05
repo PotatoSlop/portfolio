@@ -72,4 +72,32 @@ const projects = defineCollection({
     }),
 });
 
-export const collections = { projects };
+// Design discipline gallery — a SEPARATE collection from the locked `projects`
+// model (see docs/design-page-spec.md). One schema across categories so adding
+// work = drop a file, no layout edits.
+const DESIGN_CATEGORIES = ['3d', 'uiux', '2d'] as const;
+
+const design = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/design' }),
+  schema: ({ image }) =>
+    z.object({
+      title: z.string(),
+      category: z.enum(DESIGN_CATEGORIES),
+      // Cross-cutting tags (e.g. 'game-asset','pixel','lowpoly') — 'game-asset'
+      // is a tag, never its own category.
+      tags: z.array(z.string()).default([]),
+      year: z.number().optional(),
+      tools: z.array(z.string()).default([]),
+      // Landing spread + Featured hero pick; Recent hero pick.
+      featured: z.boolean().default(false),
+      recent: z.boolean().default(false),
+      // Resting still (same astro:assets pipeline / video-poster pattern as projects).
+      cover: image().optional(),
+      posterVideo: z.string().optional(),
+      // Where the card's click goes — model viewer, case study, or zoom.
+      href: z.string().optional(),
+      order: z.number().default(0),
+    }),
+});
+
+export const collections = { projects, design };

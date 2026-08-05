@@ -46,9 +46,19 @@ body > nav ul {
   transform: var(--transform-scale-hover);
 }
 
+/* Dark: recolour the boiling-name logo white (via the same brightness+invert as
+   .asset-recolor) and swap its white separation glow for a dark one so it still
+   reads against the dark field. More specific than the generic .asset-recolor
+   rule AND loaded after base.css, so this wins for the logo. */
+[data-scheme='dark'] .logo-img {
+  filter: brightness(0) invert(1)
+    drop-shadow(0 0 5px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 2px rgba(0, 0, 0, 0.85));
+}
+
 .nav-link {
-  border: var(--border-width-medium) solid var(--color-black);
-  background-color: var(--color-white);
+  border: var(--border-width-medium) solid var(--theme-border);
+  background-color: var(--theme-surface);
   border-radius: var(--radius-pill);
   padding: 0;
   position: relative;
@@ -69,7 +79,7 @@ body > nav ul {
   height: 100%;
   font-weight: 500;
   font-family: var(--font-secondary);
-  color: var(--color-black);
+  color: var(--theme-ink);
   position: relative;
   z-index: var(--z-content);
   transition: color var(--duration-medium);
@@ -79,7 +89,7 @@ body > nav ul {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--color-primary);
+  background: var(--theme-accent);
   border-radius: var(--radius-pill);
   z-index: var(--z-base);
   transform: scaleX(0);
@@ -92,7 +102,7 @@ body > nav ul {
 }
 
 .nav-link:hover a {
-  color: var(--color-black);
+  color: var(--theme-accent-contrast);
 }
 
 /* ===== Projects dropdown (desktop) =====
@@ -112,12 +122,17 @@ body > nav ul {
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45em;
-  padding: 0.3em 1.2em;
-  border: var(--border-width-medium) solid var(--color-black);
-  background-color: var(--color-white);
+  /* One shared width for the trigger and every option pill below it (they read
+     off this via width:100%), sized to fit the longest label ("Engineering") so
+     nothing clips while they all stay identical in size. */
+  min-width: 8.25rem;
+  padding: 0.3em 0.9em;
+  border: var(--border-width-medium) solid var(--theme-border);
+  background-color: var(--theme-surface);
   border-radius: var(--radius-pill);
-  color: var(--color-black);
+  color: var(--theme-ink);
   font-family: var(--font-secondary);
   font-weight: 500;
   transition: background-color var(--duration-medium), transform var(--duration-medium);
@@ -125,8 +140,14 @@ body > nav ul {
 
 .nav-dropdown-trigger:hover,
 .nav-dropdown.open .nav-dropdown-trigger {
-  background-color: var(--color-primary);
+  background-color: var(--theme-accent);
   transform: var(--transform-scale-hover-small);
+}
+
+/* Once the menu is open, drop the 1.05 hover-scale so the trigger stays the same
+   size as the option pills below it — a scaled-up header reads as non-uniform. */
+.nav-dropdown.open .nav-dropdown-trigger {
+  transform: none;
 }
 
 /* Caret — a small triangle that flips when the menu is open. */
@@ -143,28 +164,32 @@ body > nav ul {
   transform: rotate(180deg);
 }
 
+/* The menu is a column of pills descending from the Projects pill — same pill
+   language (border + surface + left→right accent wipe) as the .nav-link tabs, so
+   it reads as an extension of the index nav rather than a detached rounded card.
+   One soft drop-shadow over the whole cluster (via filter) floats it above the
+   page without the muddy overlap of a shadow per pill. */
 .nav-dropdown-menu {
   position: absolute;
   top: 100%;
-  left: 50%;
+  left: 0;
+  width: 100%; /* border-box → each pill matches the trigger pill's width exactly */
   margin: 0;
-  padding: 0.4rem;
-  min-width: 190px;
+  padding: 0.5rem 0 0; /* top breathing room = the seam under the trigger pill */
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  background: var(--color-white);
-  border: var(--border-width-medium) solid var(--color-black);
-  border-radius: var(--radius-medium);
-  box-shadow: var(--shadow-card-hover);
+  gap: 0.4rem;
+  filter: drop-shadow(0 6px 14px var(--color-shadow-light));
   z-index: var(--z-nav);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translateX(-50%) translateY(-6px);
-  transition: opacity var(--duration-medium) var(--ease-smooth),
-    transform var(--duration-medium) var(--ease-smooth),
+  /* The container only gates visibility/opacity — the per-pill stagger below
+     carries the motion, so the options cascade out of the trigger one after the
+     next instead of arriving as one block (a compact echo of the about-page
+     timeline's sequential reveal). */
+  transition: opacity var(--duration-fast) var(--ease-smooth),
     visibility var(--duration-medium);
 }
 
@@ -172,30 +197,89 @@ body > nav ul {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
+}
+
+/* Each item is a full-width pill (width:100% of the menu, which matches the
+   trigger), mirroring .nav-link: border + surface, with the accent wiping in
+   from the left on hover/focus and held solid for the current page. */
+.nav-dropdown-menu li {
+  width: 100%; /* every pill spans the menu → identical to the trigger width */
+  position: relative;
+  overflow: hidden;
+  border: var(--border-width-medium) solid var(--theme-border);
+  background-color: var(--theme-surface);
+  border-radius: var(--radius-pill);
+  transition: border-color var(--duration-medium);
+  /* Armed hidden state — each pill drops into place a beat after the previous
+     once the menu opens (stagger below). */
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* Sequential drop-in: options cascade out of the trigger. `both` fill holds the
+   armed state before each pill's delay and the resting state after, so a pill
+   never flashes its final position early or snaps back when the run ends. */
+.nav-dropdown.open .nav-dropdown-menu li {
+  animation: navPillDrop var(--duration-medium) var(--ease-smooth) both;
+}
+.nav-dropdown.open .nav-dropdown-menu li:nth-child(1) { animation-delay: 0.04s; }
+.nav-dropdown.open .nav-dropdown-menu li:nth-child(2) { animation-delay: 0.1s; }
+.nav-dropdown.open .nav-dropdown-menu li:nth-child(3) { animation-delay: 0.16s; }
+.nav-dropdown.open .nav-dropdown-menu li:nth-child(4) { animation-delay: 0.22s; }
+
+@keyframes navPillDrop {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Reduced motion (OS pref OR the corner toggle's html[data-sim-reduced]) — show
+   every option at rest immediately, no cascade. */
+@media (prefers-reduced-motion: reduce) {
+  .nav-dropdown-menu li { opacity: 1; transform: none; }
+  .nav-dropdown.open .nav-dropdown-menu li { animation: none; }
+}
+[data-sim-reduced] .nav-dropdown-menu li { opacity: 1; transform: none; }
+[data-sim-reduced] .nav-dropdown.open .nav-dropdown-menu li { animation: none; }
+
+.nav-dropdown-menu li::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--theme-accent);
+  border-radius: var(--radius-pill);
+  z-index: var(--z-base);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-smooth) var(--ease-smooth);
+}
+
+.nav-dropdown-menu li:hover::before,
+.nav-dropdown-menu li:has(a:focus-visible)::before,
+.nav-dropdown-menu li:has(a[aria-current='page'])::before {
+  transform: scaleX(1);
 }
 
 .nav-dropdown-menu a {
-  display: block;
-  padding: 0.5em 0.9em;
-  border-radius: var(--radius-small);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3em 0.9em; /* match the trigger pill */
+  border-radius: var(--radius-pill);
   font-family: var(--font-secondary);
   font-weight: 500;
-  color: var(--color-black);
+  color: var(--theme-ink);
   text-decoration: none;
   white-space: nowrap;
-  transition: background-color var(--duration-fast), color var(--duration-fast);
+  position: relative;
+  z-index: var(--z-content);
+  transition: color var(--duration-medium);
 }
 
-.nav-dropdown-menu a:hover,
-.nav-dropdown-menu a:focus-visible {
-  background: var(--color-primary);
-  color: var(--color-black);
-  outline: none;
-}
-
+.nav-dropdown-menu li:hover a,
+.nav-dropdown-menu a:focus-visible,
 .nav-dropdown-menu a[aria-current='page'] {
-  background: var(--color-primary-transparent);
+  color: var(--theme-accent-contrast);
+  outline: none;
 }
 
 /* ===== Engineering nav skin (Figma demo) =====
@@ -232,7 +316,7 @@ body > nav ul {
   height: auto;
   border: none;
   border-radius: 0;
-  background-color: var(--color-black);
+  background-color: var(--theme-ink);
   overflow: hidden;
 }
 
@@ -252,13 +336,14 @@ body > nav ul {
   font-weight: 200; /* slightly lighter */
   font-size: 14px;
   text-transform: uppercase;
-  color: var(--color-white);
+  color: var(--theme-bg);
 }
 
-/* Keep the sliding amber fill on hover; flip the label dark for contrast. */
+/* Keep the sliding amber fill on hover; flip the label to the accent-contrast
+   ink for legibility over the amber. */
 [data-theme='engineering'] .nav-link:hover a,
 [data-theme='engineering'] .nav-link a[aria-current='page'] {
-  color: var(--color-black);
+  color: var(--theme-accent-contrast);
   font-weight: 500;
 }
 [data-theme='engineering'] .nav-link:has(a[aria-current='page'])::before {
@@ -281,7 +366,7 @@ body > nav ul {
   text-decoration: none;
   transform-origin: left;
   transition: transform var(--duration-medium) var(--ease-logo-hover);
-  background: var(--color-black);
+  background: var(--theme-ink);
   paint-order: stroke fill;
   padding: 0.3em 1.2em;
 }
@@ -304,7 +389,7 @@ body > nav ul {
   line-height: 1;
   letter-spacing: normal;
   text-transform: uppercase;
-  color: var(--color-white);
+  color: var(--theme-bg);
   white-space: nowrap;
 }
 .logo-chip {
@@ -324,5 +409,166 @@ body > nav ul {
 @media (max-width: 768px) {
   [data-theme='engineering'] .logo {
     left: clamp(0.5rem, 1vw, 2vw);
+  }
+}
+
+/* ===== Design nav skin — floating islands =====
+   No bar, no divider: the logo wordmark and the Home/About/Contact links become
+   discrete translucent-cream "islands" (blur + 1px border + 5px radius + soft
+   shadow, matching the cards). Logo pinned top-left, links centred; top-right is
+   left clear for the PullTabs discipline switcher. Pure reskin of the shared
+   markup — every island (logo + links) uses one hover: a bright-amber fill that
+   rises bottom→top, the label/wordmark holding navy over it for contrast. */
+[data-theme='design'] body > nav {
+  height: auto;
+  padding: 16px 0;
+  align-items: flex-start;
+}
+[data-theme='design'] body > nav > ul {
+  gap: 10px;
+}
+
+/* Home / About / Contact islands. Unified button model: translucent-cream
+   default, and — as non-toggle navigation links — a bright-amber fill that
+   rises from the bottom on hover. The current page reads as the "on" state:
+   the same amber fill held solid. Label stays navy throughout (navy on cream
+   AND navy on amber both clear high-contrast — see the 3-colour text rule). */
+[data-theme='design'] .nav-link {
+  border: 1px solid var(--theme-border);
+  background: var(--theme-glass);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-radius: var(--theme-radius, 5px);
+  box-shadow: 0 10px 26px -16px rgba(30, 24, 14, 0.45);
+  overflow: hidden; /* clip the rising fill to the rounded box */
+  transition: border-color var(--duration-medium) var(--ease-smooth);
+}
+[data-theme='design'] .nav-link:hover,
+[data-theme='design'] .nav-link:has(a[aria-current='page']) {
+  transform: none; /* islands don't scale */
+  border-color: var(--theme-accent);
+}
+/* Reinstate the shared sliding-fill layer, re-skinned: bright amber rising
+   bottom→top (design uses a rising fill, not the pill's left→right wipe). */
+[data-theme='design'] .nav-link::before {
+  display: block;
+  background: var(--theme-accent);
+  border-radius: inherit;
+  transform: translateY(100%);
+  transform-origin: bottom;
+  transition: transform var(--duration-smooth) var(--ease-smooth);
+}
+[data-theme='design'] .nav-link:hover::before,
+[data-theme='design'] .nav-link:has(a[aria-current='page'])::before {
+  transform: translateY(0);
+}
+[data-theme='design'] .nav-link a {
+  padding: 9px 16px;
+  min-width: 92px;
+  font-family: var(--theme-font-body);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--theme-ink);
+  transition: color var(--duration-medium) var(--ease-smooth);
+}
+[data-theme='design'] .nav-link:hover a,
+[data-theme='design'] .nav-link a[aria-current='page'] {
+  color: var(--theme-ink); /* navy stays legible over the amber fill */
+}
+
+/* Logo island — amber square tick + wordmark; bright-amber fill sweeps
+   bottom-up on hover, the wordmark + tick flipping to navy for contrast. */
+[data-theme='design'] .logo {
+  /* Share the content gutter so the logo island's left edge lines up exactly
+     with the breadcrumb / hero title / section titles / cards below it. */
+  left: var(--dp-edge);
+  top: 50%;
+  transform: translateY(-50%);
+}
+[data-theme='design'] .logo-text {
+  gap: 9px;
+  padding: 8px 14px;
+  background: var(--theme-glass);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--theme-radius, 5px);
+  box-shadow: 0 10px 26px -16px rgba(30, 24, 14, 0.45);
+  overflow: hidden;
+  isolation: isolate;
+  transition: none;
+}
+[data-theme='design'] .logo-text:hover {
+  transform: none;
+}
+[data-theme='design'] .logo-chip {
+  width: 11px;
+  height: 11px;
+  margin-top: 0;
+  border-radius: 1px;
+  background: var(--theme-accent);
+}
+[data-theme='design'] .logo-name {
+  font-family: var(--theme-font-display);
+  font-weight: 400;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--theme-ink);
+  transition: color 0.35s var(--ease-smooth);
+}
+[data-theme='design'] .logo-text::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--theme-accent); /* amber fill sweeps bottom-up on hover */
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.55s var(--ease-smooth);
+}
+/* On hover the amber fill rises; the wordmark + square tick flip to navy — the
+   higher-contrast pairing on amber (matches the nav islands' navy-on-amber). */
+[data-theme='design'] .logo-text:hover .logo-name {
+  color: var(--theme-ink);
+}
+[data-theme='design'] .logo-text:hover .logo-chip {
+  background: var(--theme-ink);
+}
+[data-theme='design'] .logo-text:hover::before {
+  transform: scaleY(1);
+}
+
+/* ===== Design nav — mobile =====
+   Top-anchor the logo island and the hamburger so both sit a clean 16px off the
+   top edge (the bar previously centred them in a collapsed, all-absolute row, so
+   the logo was jammed against the very top with no margin). The hamburger becomes
+   a 42px box whose right edge lands on --dp-edge (16px) — the same inset as the
+   settings-toggle column and the content gutter, so the whole page reads to one
+   16px margin left and right. */
+@media (max-width: 768px) {
+  [data-theme='design'] body > nav {
+    padding: 0;
+    /* Contain the top-anchored 42px islands (16px top + box + 16px breathing
+       room) so the sticky bar reserves height and can't overlap the hero. */
+    min-height: 74px;
+  }
+  [data-theme='design'] .logo {
+    top: 16px;
+    transform: none;
+  }
+  [data-theme='design'] .menu-button {
+    right: var(--dp-edge);
+    top: 16px;
+    transform: none;
+    width: 42px;
+    height: 42px;
+  }
+  /* Drop the oversized default padding so the icon centres in the 42px box,
+     matching the corner toggles. */
+  [data-theme='design'] .menu-button button {
+    padding: 0;
   }
 }

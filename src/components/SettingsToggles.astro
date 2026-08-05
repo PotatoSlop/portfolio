@@ -1,0 +1,258 @@
+---
+import { Icon } from 'astro-icon/components';
+
+// Site-wide settings toggles (bottom-right, fixed): a reduced-motion control
+// (accessibility) + a dark-mode stub. Rendered once from Base.astro so every
+// page carries them. Reduced-motion drives `html[data-sim-reduced]` (honored by
+// src/lib/motion/reduced-motion.ts) and persists to localStorage.
+//
+// Styling is theme-token-driven, so the toggles wear each discipline's visual
+// language: the default (sketchbook / software) is a bordered token block; the
+// design + engineering themes override below to match their own idioms.
+---
+
+<div class="st-toggles" role="group" aria-label="Display preferences">
+  <button
+    type="button"
+    class="st-toggle"
+    id="toggle-motion"
+    aria-pressed="false"
+    aria-label="Reduce motion"
+    title="Reduce motion"
+  >
+    <Icon class="st-icon st-icon--on" name="solar:eye-linear" width="20" height="20" />
+    <Icon class="st-icon st-icon--off" name="solar:eye-closed-linear" width="20" height="20" />
+  </button>
+  <button
+    type="button"
+    class="st-toggle"
+    id="toggle-theme"
+    aria-pressed="false"
+    aria-label="Toggle dark mode"
+    title="Dark mode"
+  >
+    <Icon class="st-icon st-icon--moon" name="solar:moon-linear" width="20" height="20" />
+    <Icon class="st-icon st-icon--sun" name="solar:sun-linear" width="20" height="20" />
+  </button>
+</div>
+
+<style>
+  .st-toggles {
+    position: fixed;
+    right: 16px; /* aligned with the scroll rail's right edge for a cohesive column */
+    bottom: 16px;
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ---- Default (sketchbook / software): a token block ----
+     Reads the theme contract so it matches the page it's on — 2px border at the
+     theme border colour, the theme radius, accent-coloured hover, and an
+     accent-filled "on" state. Sketchbook gets a black 2px border + amber hover
+     (echoing the landing role chips); software gets its dark surface + green. */
+  .st-toggle {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    /* 42px matches the scroll rail's rendered width so they share a centre line. */
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    cursor: pointer;
+    color: var(--theme-ink);
+    background: var(--theme-surface);
+    border: var(--border-width-medium) solid var(--theme-border);
+    border-radius: var(--theme-radius);
+    transition: color var(--duration-medium) var(--theme-motion-ease),
+      background-color var(--duration-medium) var(--theme-motion-ease),
+      border-color var(--duration-medium) var(--theme-motion-ease),
+      transform var(--duration-fast) var(--theme-motion-ease);
+  }
+  .st-toggle:hover {
+    border-color: var(--theme-accent);
+    transform: scale(1.05);
+  }
+  .st-toggle:focus-visible {
+    outline: 2px solid var(--theme-accent);
+    outline-offset: 2px;
+  }
+
+  .st-icon {
+    display: block;
+  }
+  /* Eye state: "open" by default, swap to "closed" when reduced motion is on. */
+  .st-icon--off {
+    display: none;
+  }
+
+  /* Theme toggle icon: moon in light (click → go dark), sun in dark (click →
+     go light). Driven off the button's aria-pressed like the motion toggle, so
+     the JS only maintains one attribute. */
+  .st-icon--sun {
+    display: none;
+  }
+  #toggle-theme[aria-pressed='true'] .st-icon--moon {
+    display: none;
+  }
+  #toggle-theme[aria-pressed='true'] .st-icon--sun {
+    display: block;
+  }
+
+  /* Toggled "on" (reduced motion active) — accent fill + contrast icon. */
+  #toggle-motion[aria-pressed='true'] {
+    color: var(--theme-accent-contrast);
+    background: var(--theme-accent);
+    border-color: var(--theme-accent);
+  }
+  #toggle-motion[aria-pressed='true'] .st-icon--on {
+    display: none;
+  }
+  #toggle-motion[aria-pressed='true'] .st-icon--off {
+    display: block;
+  }
+
+  /* ===== Design: translucent-cream floating island =====
+     Preserves the design page's chrome idiom (thin 1px border, blur, soft drop
+     shadow, border-only hover — no scale). The accent-fill "on" state carries
+     over from the default. */
+  /* The theme ancestor lives on <html> (outside this component), so it MUST be
+     wrapped in :global() — a scoped `[data-theme='design']` gets this
+     component's cid appended and never matches, silently dropping the whole
+     island reskin (the toggles fell back to the default token block). Matches
+     how Scrollbar.astro scopes its design rail. */
+  :global([data-theme='design']) .st-toggle {
+    border-width: 1px;
+    background: var(--theme-glass);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 26px -16px rgba(30, 24, 14, 0.45);
+  }
+  :global([data-theme='design']) .st-toggle:hover {
+    transform: none; /* islands don't scale — border-colour is the whole hover */
+  }
+
+  /* ===== Engineering: solid black block, invert on hover =====
+     A flat black box with a white icon; hover inverts it (white box, black
+     icon) — a crisp highlight distinct from the amber toggled-on state. No
+     radius, no border. A soft shadow grounds the box so the inverted (white)
+     hover still reads against the white engineering page. */
+  :global([data-theme='engineering']) .st-toggle {
+    color: var(--theme-bg);
+    background: var(--theme-ink);
+    border: none;
+    border-radius: 0;
+    box-shadow: 0 6px 18px -8px rgba(30, 30, 20, 0.55);
+  }
+  :global([data-theme='engineering']) .st-toggle:hover {
+    color: var(--theme-ink);
+    background: var(--theme-bg);
+    transform: none;
+  }
+  /* Reduced-motion ON = amber filled, contrast icon (persistent). */
+  :global([data-theme='engineering']) #toggle-motion[aria-pressed='true'] {
+    color: var(--theme-accent-contrast);
+    background: var(--theme-accent);
+  }
+
+  /* Mobile forces reduced-motion on and hides that toggle — nothing to switch
+     there (the dark-mode stub stays). */
+  @media (max-width: 768px) {
+    #toggle-motion {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  const STORAGE_KEY = 'sim-reduced-motion';
+  // Mobile is treated as reduced-motion unconditionally — the toggle is hidden
+  // there (see the CSS) and small screens get the calmer, motion-free experience.
+  const mobileMq = window.matchMedia('(max-width: 768px)');
+
+  const storedPref = () => localStorage.getItem(STORAGE_KEY) === '1';
+  // Effective state: forced ON at mobile widths, else the user's stored choice.
+  const effectiveReduced = () => mobileMq.matches || storedPref();
+
+  // ----- Colour scheme (dark mode) -----
+  // Key + apply logic mirror the FOUC-safe head script and the before-swap
+  // handler in Base.astro. Stored value is an explicit 'dark' | 'light' once the
+  // user has chosen; null = follow the OS.
+  const THEME_KEY = 'color-scheme';
+  const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
+  const storedScheme = () => localStorage.getItem(THEME_KEY); // 'dark' | 'light' | null
+  const isDark = () => {
+    const s = storedScheme();
+    return s ? s === 'dark' : darkMq.matches;
+  };
+
+  function applyScheme(dark: boolean) {
+    const root = document.documentElement;
+    const was = root.dataset.scheme === 'dark';
+    if (dark) root.dataset.scheme = 'dark';
+    else delete root.dataset.scheme;
+    document.getElementById('toggle-theme')?.setAttribute('aria-pressed', String(dark));
+    // Notify canvas-backed backgrounds (e.g. the engineering dot field) that read
+    // theme tokens into JS — CSS re-cascades on the attribute flip, but a canvas
+    // has to re-read `--theme-ink`/`--theme-accent` and repaint itself. Only on an
+    // actual change so per-page re-asserts don't trigger needless repaints.
+    if (was !== dark) {
+      window.dispatchEvent(new CustomEvent('colorschemechange', { detail: { dark } }));
+    }
+  }
+
+  function applyMotionState(reduced: boolean) {
+    const root = document.documentElement;
+    const was = root.dataset.simReduced === '1';
+    if (reduced) root.dataset.simReduced = '1';
+    else delete root.dataset.simReduced;
+    document.getElementById('toggle-motion')?.setAttribute('aria-pressed', String(reduced));
+    // Only notify motion-driven behaviors (carousels, etc.) on an actual change,
+    // so a resize that doesn't cross the threshold doesn't thrash re-mounts.
+    if (was !== reduced) {
+      window.dispatchEvent(new CustomEvent('motionpreferencechange', { detail: { reduced } }));
+    }
+  }
+
+  function initSettingsToggles() {
+    applyMotionState(effectiveReduced());
+    // Re-sync the theme button's aria-pressed (and re-assert the attribute) on
+    // every page — after an SPA swap the button is fresh from the new document
+    // (aria-pressed="false"). The scheme itself is already correct via the head
+    // script + before-swap handler; this keeps the icon/state in step.
+    applyScheme(isDark());
+
+    const motionBtn = document.getElementById('toggle-motion');
+    // The motion toggle is desktop-only (hidden on mobile), so a click just flips
+    // the stored preference; mobile stays forced-on regardless.
+    motionBtn?.addEventListener('click', () => {
+      localStorage.setItem(STORAGE_KEY, storedPref() ? '0' : '1');
+      applyMotionState(effectiveReduced());
+    });
+
+    // Dark-mode toggle — flip the stored preference and apply immediately. Body
+    // bg/ink already transition (styles/base.css), so the swap animates.
+    document.getElementById('toggle-theme')?.addEventListener('click', () => {
+      const next = !isDark();
+      localStorage.setItem(THEME_KEY, next ? 'dark' : 'light');
+      applyScheme(next);
+    });
+  }
+
+  // Re-evaluate when crossing the mobile breakpoint (mobile forces reduced on;
+  // wider restores the stored preference). Bound once — page-agnostic, no per-page
+  // state — so it doesn't need per-navigation teardown.
+  mobileMq.addEventListener('change', () => applyMotionState(effectiveReduced()));
+
+  // Follow the OS scheme live, but only while the user hasn't made an explicit
+  // choice (an explicit 'dark'/'light' pins the scheme regardless of the OS).
+  darkMq.addEventListener('change', () => {
+    if (!storedScheme()) applyScheme(isDark());
+  });
+
+  document.addEventListener('astro:page-load', initSettingsToggles);
+</script>

@@ -4,24 +4,80 @@
    the point. Overrides ONLY the contract vars. */
 
 [data-theme='design'] {
-  --theme-bg: #f7f4ee;
+  --theme-bg: #f3efe6; /* cream */
   --theme-surface: #ffffff;
-  --theme-border: #e3ddd1;
+  --theme-border: rgba(20, 18, 12, 0.14);
 
-  --theme-ink: #211f1a;
-  --theme-ink-muted: #6c675c;
+  --theme-ink: #16233a; /* dark navy — carries the navy motif through chrome */
+  --theme-ink-muted: #6c7183;
 
-  /* Editorial accent — a deep terracotta, distinct from the amber anchor */
-  --theme-accent: #c8553d;
-  --theme-accent-contrast: #ffffff;
+  /* Amber identity accent (matches the page's --dp-accent). Terracotta #c8553d is
+     the swap if the page should read independent of the global amber anchor. */
+  --theme-accent: #f5a045;
+  /* Deep, readable amber for small accent text/borders on cream (bright amber
+     fails contrast there). Used by the nav islands + scroll-rail numerics. */
+  --theme-accent-deep: #b5611b;
+  --theme-accent-contrast: #16233a;
 
   --theme-grid: none;
 
-  --theme-font-display: var(--font-secondary);
-  --theme-radius: var(--radius-medium);
+  --theme-font-display: 'Dela Gothic One', sans-serif;
+  --theme-font-body: 'Archivo', system-ui, sans-serif;
+  --theme-radius: 5px;
   --theme-motion-ease: var(--ease-smooth);
 
-  /* Idiom: editorial image reveal (stub — wired in a later pass) */
-  --idiom-accent: #c8553d;
-  --idiom-rule: #e3ddd1;
+  --idiom-accent: #f5a045;
+  --idiom-rule: rgba(20, 18, 12, 0.14);
+
+  /* Shared page gutter for every left/right-aligned element — content blocks
+     (in .design-page) AND the nav logo island (a sibling of .design-page), so
+     both read it from this common [data-theme] ancestor. Sized so the fixed
+     right-edge chrome (scroll rail + corner toggles, ~42px wide sitting 16px off
+     the screen edge) lands centred in the gutter with a matching 16px inset on
+     the content side — 16 + 42 + 16 — echoing the nav's 16px top margin. */
+  --dp-edge: 74px;
+}
+
+/* ===== Design — DARK =====
+   Inverts the editorial light: the navy that was INK becomes a raised surface,
+   the cream that was paper becomes the ink, over a deep navy-charcoal field
+   (matches the page's existing navy footer section, #0e1a30). Amber pops on
+   navy, so it stays bright — and --theme-accent-deep, which had to darken to
+   survive on cream, is freed to brighten here. Note: the page's own --dp-*
+   palette is overridden separately in design.astro. */
+[data-theme='design'][data-scheme='dark'] {
+  --theme-bg: #0f1826;
+  --theme-surface: #16233a; /* the old navy ink, now a lifted surface */
+  --theme-border: rgba(233, 226, 210, 0.16);
+
+  --theme-ink: #e9e2d2; /* warm cream — matches the navy section's ink */
+  --theme-ink-muted: #9aa0ad;
+
+  --theme-accent: #f5a045; /* bright amber reads well on dark navy */
+  --theme-accent-deep: #f0a24e; /* freed to brighten (no cream-contrast tax) */
+  --theme-accent-contrast: #0f1826;
+
+  --theme-glass: rgba(22, 35, 58, 0.72); /* dark navy frosted island */
+
+  --idiom-accent: #f5a045;
+  --idiom-rule: rgba(233, 226, 210, 0.16);
+}
+
+/* Text selection — amber highlight on navy ink (the design-page identity
+   pairing; see docs/design-page-spec.md). Reuses the accent tokens so it
+   tracks any future accent retune. The descendant combinator covers every
+   selectable element on the page (all copy lives inside the theme root). */
+[data-theme='design'] ::selection {
+  background: var(--theme-accent);
+  color: var(--theme-accent-contrast);
+}
+
+@media (max-width: 768px) {
+  /* Below the tablet breakpoint the fixed chrome column stands down as the
+     dominant right-edge element; fall back to the tighter mobile gutter. 16px
+     lines the content + logo island up with the corner toggles / hamburger,
+     which sit 16px off the screen edge. */
+  [data-theme='design'] {
+    --dp-edge: 16px;
+  }
 }

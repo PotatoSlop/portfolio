@@ -29,7 +29,7 @@ button:focus-visible {
 
 .footer-cta-button:focus-visible,
 .resume-btn:focus-visible {
-  outline: 2px solid var(--color-black);
+  outline: 2px solid var(--theme-ink);
   outline-offset: 3px;
 }
 

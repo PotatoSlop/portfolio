@@ -1,13 +1,13 @@
 .temp-section {
   min-height: 200dvh;
   padding: var(--gap-xl) 0;
-  background: var(--color-white);
+  background: var(--theme-bg);
   text-align: center;
 }
 
 .temp-section-small {
   min-height: 100dvh;
   padding: var(--gap-xl) 0;
-  background: var(--color-white);
+  background: var(--theme-bg);
   text-align: center;
 }

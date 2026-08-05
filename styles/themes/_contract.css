@@ -18,6 +18,11 @@
   --theme-bg: var(--color-white);
   --theme-surface: var(--color-white);
   --theme-border: var(--color-black);
+  /* Frosted "island" glass — the translucent backdrop-filter surface shared by
+     the nav islands, settings toggles, scroll rail, and design hero. One token
+     so every frosted surface flips together in dark mode (was a duplicated
+     rgba(247,244,238,0.72) literal across five files). */
+  --theme-glass: rgba(247, 244, 238, 0.72);
 
   /* Ink */
   --theme-ink: var(--color-black);
@@ -42,4 +47,30 @@
      a data-idiom flag. */
   --idiom-accent: var(--color-primary);
   --idiom-rule: var(--color-black);
+}
+
+/* ===== DARK SCHEME =====
+   The global light/dark axis lives in `data-scheme` on <html>. Absence (or
+   'light') = the light base above; 'dark' re-overrides ONLY the contract vars
+   with the dark neutral ramp from tokens.css. Each discipline theme adds its own
+   [data-theme='x'][data-scheme='dark'] block (higher specificity) to tint these
+   toward its identity; this block is the sketchbook / no-theme fallback so
+   untethered pages still flip. Same override discipline as the light contract:
+   never touch primitives or the skeleton here. */
+:root[data-scheme='dark'],
+[data-theme='sketchbook'][data-scheme='dark'] {
+  --theme-bg: var(--dark-bg);
+  --theme-surface: var(--dark-surface);
+  --theme-border: var(--dark-border);
+  --theme-glass: var(--dark-glass);
+
+  --theme-ink: var(--dark-ink);
+  --theme-ink-muted: var(--dark-ink-muted);
+
+  /* Amber anchor stays, toned down so it doesn't glare on the dark field. */
+  --theme-accent: var(--color-primary-muted);
+  --theme-accent-contrast: var(--color-black);
+
+  --idiom-accent: var(--color-primary-muted);
+  --idiom-rule: rgba(233, 232, 236, 0.16);
 }

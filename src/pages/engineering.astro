@@ -46,7 +46,7 @@ const rest = projects.filter((p) => p !== featured);
       <div class="wrap">
         {
           featured && (
-            <div class="eng-feature-crop">
+            <div class="feature-crop">
               <ProjectCard project={featured} current={CURRENT} variant="feature" />
             </div>
           )
@@ -123,11 +123,11 @@ const rest = projects.filter((p) => p !== featured);
       align-items: left;
       gap: 0.4em;
       padding: 0.5em 1em;
-      background: var(--color-black);
+      background: var(--theme-ink);
       font-family: var(--theme-font-body);
       font-style: normal;
       font-size: 16px;
-      color: var(--color-white);
+      color: var(--theme-bg);
       z-index: 10;
     }
     .eng-hero__crumbs a {
@@ -145,8 +145,8 @@ const rest = projects.filter((p) => p !== featured);
       overflow: hidden;
       display: inline-block;
       padding: 0.5rem 1rem;
-      background: var(--color-black);
-      color: var(--color-white);
+      background: var(--theme-ink);
+      color: var(--theme-bg);
       font-family: var(--theme-font-body);
       font-weight: 500;
       font-size: 18px;
@@ -166,7 +166,7 @@ const rest = projects.filter((p) => p !== featured);
     }
     .eng-hero__cta:hover,
     .eng-hero__cta:focus-visible {
-      color: var(--color-black);
+      color: var(--theme-accent-contrast);
       outline: none;
     }
     .eng-hero__cta:hover::before,
@@ -208,16 +208,8 @@ const rest = projects.filter((p) => p !== featured);
     .eng-gallery {
       padding: 0 clamp(0.5rem, 1.5vw, 1rem) clamp(2rem, 6vh, 4rem);
     }
-    /* Crop container for the hero reveal: overflow-clips the feature card while
-       reveal.ts rides it up from translateY(100%). Observe THIS (stationary) and
-       animate the child .feat — the motion-migration IntersectionObserver rule. */
-    .eng-feature-crop {
-      overflow: hidden;
-      line-height: 0;
-      /* Subtle lift off the page (shared token from .wrap). The crop's own
-         shadow isn't clipped by its overflow — only its children are. */
-      box-shadow: var(--card-shadow);
-    }
+    /* .feature-crop (the hero reveal container) is shared across disciplines and
+       lives in styles/components/project-card.css. */
 
     @media (max-width: 768px) {
       .eng-reveal--crumbs {
@@ -303,56 +295,38 @@ const rest = projects.filter((p) => p !== featured);
           gridRippleSafety 0.3s linear 2s forwards;
       }
     }
+
+    /* Manual reduced-motion toggle (and mobile, which forces it) lives on <html>
+       and doesn't hit the OS media queries above. Mirror the OS-reduce path: no
+       crop-rise on the intro (crumbs/CTA rest in place — none carry an opacity
+       fade, so they simply appear), no chevron bob, and no grid ripple. The
+       ancestor is external to these scoped elements, so it needs :global(). */
+    :global(html[data-sim-reduced]) .eng-reveal--crumbs > .eng-hero__crumbs,
+    :global(html[data-sim-reduced]) .eng-reveal--cta > .eng-hero__cta,
+    :global(html[data-sim-reduced]) .eng-chevron svg {
+      animation: none;
+    }
+    :global(html[data-sim-reduced]) .eng-grid-reveal {
+      display: none;
+    }
   </style>
 
   <script>
-    import { reveal } from '../lib/motion/reveal';
-    import { eases } from '../lib/motion/tokens';
-    import { mountVideoScrub, type VideoScrubHandle } from '../lib/motion/video-scrub';
-    import { mountChipTrail } from '../lib/motion/pointer-follow';
-    import { mountCaseOverlay } from '../lib/motion/case-overlay';
+    // The whole projects-section lifecycle (feature reveal, accordion sweep,
+    // hero video scrub, trailing chip, FLIP case overlay) is shared across
+    // disciplines — see src/lib/motion/projects-gallery.ts.
+    import { mountProjectsGallery } from '../lib/motion/projects-gallery';
 
-    let videoScrub: VideoScrubHandle | null = null;
-    let destroyChip: (() => void) | null = null;
-    let destroyOverlay: (() => void) | null = null;
+    let destroy: (() => void) | null = null;
 
     document.addEventListener('astro:page-load', () => {
-      // Hero feature rides up from below its crop on first scroll into view.
-      reveal(
-        '.eng-feature-crop .feat',
-        {
-          transform: ['translateY(100%)', 'translateY(0)'],
-          opacity: [0.25, 1],
-        },
-        {
-          observe: '.eng-feature-crop',
-          delay: 0.05,
-          duration: 0.8,
-          ease: eases.smooth,
-          amount: 0.2,
-          margin: '0px 0px -8% 0px',
-        }
-      );
-
-      // Hover-scrubbed hero clip: the whole feature card drives playback.
-      const feature = document.querySelector<HTMLElement>('.feat');
-      const video = feature?.querySelector<HTMLVideoElement>('[data-scrub-video]');
-      if (feature && video) {
-        videoScrub = mountVideoScrub(feature, video);
-      }
-
-      // Trailing "View Project" chip + SPA case-study overlay.
-      destroyChip = mountChipTrail();
-      destroyOverlay = mountCaseOverlay();
+      if (!document.querySelector('.eng-gallery')) return;
+      destroy = mountProjectsGallery();
     });
 
     document.addEventListener('astro:before-swap', () => {
-      videoScrub?.destroy();
-      videoScrub = null;
-      destroyChip?.();
-      destroyChip = null;
-      destroyOverlay?.();
-      destroyOverlay = null;
+      destroy?.();
+      destroy = null;
     });
   </script>
 </Base>

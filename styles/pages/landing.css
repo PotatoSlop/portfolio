@@ -29,11 +29,11 @@
   font-size: clamp(1rem, 1.1rem + 3vw, 4rem);
   font-weight: 300;
   letter-spacing: 0.106em;
-  color: var(--color-black);
+  color: var(--theme-ink);
   display: inline-block;
   white-space: nowrap;
   overflow: hidden;
-  border-right: 4px solid var(--color-black);
+  border-right: 4px solid var(--theme-ink);
   animation: blinkingCursor 650ms steps(50) infinite normal;
   width: auto;
   opacity: 1;
@@ -45,7 +45,7 @@
 
 @keyframes blinkingCursor {
   from {
-    border-right-color: var(--color-black);
+    border-right-color: var(--theme-ink);
   }
 
   to {
@@ -60,7 +60,7 @@
   top: calc(45vh - 7rem);
   left: 0;
   transform: none;
-  color: var(--color-black);
+  color: var(--theme-ink);
   font-weight: 800;
   font-family: var(--font-secondary);
   font-size: clamp(2rem, 1rem + 8vw, 8rem);
@@ -104,6 +104,16 @@
   margin: 0 auto;
 }
 
+/* Dark: the doodle is dark line-art on a WHITE backing knocked out by
+   mix-blend multiply — so the generic brightness(0)+invert recolour would turn
+   it solid white and multiply would then erase it. Instead invert (lines → light,
+   backing → black) and switch to `screen`, which knocks the now-black backing out
+   and keeps the light line-art visible on the dark page. */
+[data-scheme='dark'] .bottom-gif img {
+  filter: invert(1);
+  mix-blend-mode: screen;
+}
+
 /* ----- Scroll-down indicator text ----- */
 .scroll-down-text {
   position: fixed;
@@ -114,7 +124,10 @@
   font-size: clamp(0.7rem, 3vw, 1rem);
   font-family: var(--font-primary);
   font-weight: 300;
-  color: var(--color-text-light);
+  /* Muted ink (not the fixed grey --color-text-light, which stays dark and drops
+     to near-invisible on the dark bg) — tracks the scheme so the hint keeps
+     contrast in dark while staying a subtle secondary cue in light. */
+  color: var(--theme-ink-muted);
   z-index: var(--z-interactive);
   background: transparent;
   padding: clamp(0.25rem, 1vw, 0.5rem) clamp(0.5rem, 2vw, 1rem);
@@ -152,7 +165,7 @@
   font-size: clamp(0.75rem, 1vw + 0.4rem, 1rem);
   font-weight: 500;
   font-family: var(--font-primary);
-  border: var(--border-width-thick) dashed var(--color-black);
+  border: var(--border-width-thick) dashed var(--theme-border);
   border-radius: var(--radius-medium);
   padding: 0.75rem 1rem;
   z-index: var(--z-interactive);
@@ -183,20 +196,20 @@
   padding: 0.5em 0.5em;
   margin: 0.2em;
   user-select: none;
-  color: var(--color-black);
+  color: var(--theme-ink);
   animation: wave 2s ease-in-out infinite;
   transition: all 0.2s var(--ease-default);
 }
 
 .category-select span[draggable="true"]:hover {
-  border: var(--border-width-medium) solid var(--color-black);
+  border: var(--border-width-medium) solid var(--theme-ink);
   border-radius: var(--radius-pill);
   animation: wave 2s ease-in-out infinite, shake 0.3s ease-in-out infinite;
   padding: 0.52em 1.2em;
 }
 
 .category-select .bracket {
-  color: var(--color-primary);
+  color: var(--theme-accent);
   font-weight: 800;
   display: inline;
   padding: 0.2em 0.1em;
@@ -232,7 +245,7 @@
 }
 
 .placeholder-text {
-  color: var(--color-black);
+  color: var(--theme-ink);
   font-style: italic;
   font-size: clamp(1rem, 1.1rem + 3vw, 4rem);
   font-weight: 300;
@@ -246,7 +259,7 @@
   text-align: left;
   font-weight: 300;
   cursor: grab;
-  color: var(--color-black);
+  color: var(--theme-ink);
   padding: 0.5rem 1rem;
   border-radius: var(--radius-medium);
 }

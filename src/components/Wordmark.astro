@@ -168,6 +168,13 @@ const clipH = (baseline: number) => baseline + CLIP_EPS - CLIP_TOP;
       opacity: 1;
     }
   }
+  /* Manual / mobile reduced-motion (html[data-sim-reduced]) skips the intro that
+     adds .intro-ready, so the OS-gated opacity:0 above would leave the wordmark
+     blank. Force it visible under the flag (content-visible-by-default — see
+     docs/routing-and-lifecycle.md §4). */
+  :global([data-sim-reduced]) .eng-wordmark {
+    opacity: 1;
+  }
 </style>
 
 <script>
@@ -176,9 +183,13 @@ const clipH = (baseline: number) => baseline + CLIP_EPS - CLIP_TOP;
   import { prefersReducedMotion } from '../lib/motion/reduced-motion';
 
   const THRESHOLD = 90;
-  const MASK_DY = -2;
+  const MASK_DY = 0;
   const DEBUG = false;
-  const reduced = prefersReducedMotion();
+  // Re-read on every mount (see setup) — NEVER capture reduced-motion once at
+  // module scope: that value is frozen on the first page ever loaded and would
+  // then be wrong after a navigation or a runtime toggle. See
+  // docs/routing-and-lifecycle.md.
+  let reduced = prefersReducedMotion();
 
   type GMask = { el: Element; x: number; y: number; w: number; h: number; a: Uint8ClampedArray };
   type ArrowCfg = {
@@ -299,6 +310,47 @@ const clipH = (baseline: number) => baseline + CLIP_EPS - CLIP_TOP;
       }
     }
     maskDirty = false;
+    renderDebugOverlay();
+  }
+
+  // DEBUG: paint every collision mask onto a fixed full-screen overlay so the ink
+  // regions can be eyeballed against the rendered wordmark. Magenta = the area a
+  // trail counts as a hit (alpha ≥ THRESHOLD); faint magenta = sub-threshold ink;
+  // cyan box = each mask's stored footprint (includes the MASK_DY nudge, so any
+  // vertical drift between the box and the glyph is the misalignment to tune).
+  function renderDebugOverlay() {
+    if (!DEBUG) {
+      if (dbg) {
+        dbg.remove();
+        dbg = null;
+      }
+      return;
+    }
+    if (!dbg) {
+      dbg = document.createElement('canvas');
+      dbg.setAttribute('data-ink-debug', '');
+      dbg.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
+      document.body.appendChild(dbg);
+    }
+    dbg.width = window.innerWidth;
+    dbg.height = window.innerHeight;
+    const dctx = dbg.getContext('2d');
+    if (!dctx) return;
+
+    dctx.clearRect(0, 0, dbg.width, dbg.height);
+    for (const g of gmasks) {
+      const overlay = dctx.createImageData(g.w, g.h);
+      for (let k = 0; k < g.w * g.h; k++) {
+        const alpha = g.a[k];
+        overlay.data[k * 4] = 255; // R
+        overlay.data[k * 4 + 2] = 255; // B → magenta
+        overlay.data[k * 4 + 3] = alpha >= THRESHOLD ? 130 : alpha * 0.25;
+      }
+      dctx.putImageData(overlay, g.x, g.y);
+      dctx.strokeStyle = 'rgba(0,180,255,0.7)';
+      dctx.lineWidth = 1;
+      dctx.strokeRect(g.x + 0.5, g.y + 0.5, g.w - 1, g.h - 1);
+    }
   }
 
   function inkAt(cx: number, cy: number): Element | null {
@@ -323,13 +375,18 @@ const clipH = (baseline: number) => baseline + CLIP_EPS - CLIP_TOP;
   (window as unknown as { __engInkAt?: (x: number, y: number) => Element | null }).__engInkAt =
     (x, y) => inkAt(x, y);
 
-  if (!reduced) {
-    window.addEventListener('resize', () => {
-      fitWordmark();
-      maskDirty = true;
-    });
-    window.addEventListener('scroll', () => { maskDirty = true; }, { passive: true });
-  }
+  // Bound once (window persists across navigations); both handlers no-op unless
+  // the wordmark for the CURRENT page is actually mounted, so they never touch a
+  // detached SVG left over from a page we've navigated away from.
+  window.addEventListener('resize', () => {
+    if (!svg || !svg.isConnected) return;
+    fitWordmark();
+    maskDirty = true;
+  });
+  window.addEventListener('scroll', () => {
+    if (!svg || !svg.isConnected) return;
+    maskDirty = true;
+  }, { passive: true });
 
   function runIntro() {
     if (!svg || reduced || introStarted) return;
@@ -401,9 +458,10 @@ const clipH = (baseline: number) => baseline + CLIP_EPS - CLIP_TOP;
   }
 
   function setup() {
+    reduced = prefersReducedMotion(); // refresh per mount — never trust a cached value
     svg = document.querySelector('.eng-wordmark');
     if (!svg || reduced) return;
-    
+
     // Parse arrow dataset initially from the dom
     const initialArrow = svg.querySelector('.eng-hero__arrow') as SVGGElement | null;
     try {
@@ -425,5 +483,21 @@ const clipH = (baseline: number) => baseline + CLIP_EPS - CLIP_TOP;
     else runIntro();
   }
 
-  document.addEventListener('astro:page-load', setup);
+  // Idempotent mount + catch-up, so the intro reliably runs whether the page is
+  // reached by full load or by a first SPA navigation (where this module can
+  // evaluate after astro:page-load has already fired). Without this the wordmark,
+  // which is opacity:0 until `.intro-ready` is added by runIntro, would stay
+  // blank when navigated into. See docs/routing-and-lifecycle.md.
+  let mounted = false;
+  const mount = () => {
+    if (mounted || !document.querySelector('.eng-wordmark')) return;
+    mounted = true;
+    setup();
+  };
+  document.addEventListener('astro:page-load', mount);
+  document.addEventListener('astro:before-swap', () => {
+    mounted = false;
+    svg = null; // drop the reference to the outgoing page's (soon-detached) node
+  });
+  mount(); // catch-up if page-load already fired before this module evaluated
 </script>

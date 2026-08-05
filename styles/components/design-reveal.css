@@ -1,0 +1,138 @@
+/* ===== Design page load / reveal animations =====
+   Ported from the prototype. These target JS-created wrapper elements
+   (.br-ch / .br-cover / .br-glyph / .br-strip) so they must be GLOBAL — scoped
+   component styles never match runtime-created nodes. Loaded only on the design
+   page (imported by design.astro), so the global scope stays contained.
+   Colour-var fallbacks use the page's --dp-ease (inherited from .design-page). */
+
+/* Elements that start hidden until the load timeline reveals them. */
+.pre-anim {
+  opacity: 0;
+}
+
+/* crop-in left→right (breadcrumb, caption, toggle) — no colour block. */
+.crop-lr {
+  clip-path: inset(0 100% 0 0);
+}
+.crop-lr.in {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 0.6s var(--dp-ease, cubic-bezier(0.075, 0.82, 0.165, 1));
+}
+
+/* crop-in top→bottom for whole grid containers — no colour block. */
+.crop-tb {
+  clip-path: inset(0 0 100% 0);
+}
+.crop-tb.in {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 0.75s var(--dp-ease, cubic-bezier(0.075, 0.82, 0.165, 1));
+}
+
+/* Colour-block reveal: the block crops IN from the bottom, holds, then exits the
+   top revealing the glyph — a left→right per-character stagger. */
+.br-ch {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  white-space: pre;
+  vertical-align: bottom;
+  padding-block: 0.08em;
+  margin-block: -0.08em;
+}
+.br-glyph {
+  display: inline-block;
+  opacity: 0;
+}
+.br-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--br-color);
+  transform: translateY(101%);
+}
+.br--go .br-cover {
+  animation: brBlock 0.9s var(--dp-ease, cubic-bezier(0.075, 0.82, 0.165, 1)) forwards;
+  animation-delay: calc(var(--i) * 45ms);
+}
+.br--go .br-glyph {
+  animation: brText 0.9s linear forwards;
+  animation-delay: calc(var(--i) * 45ms);
+}
+.br-box {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  overflow: hidden;
+  pointer-events: none;
+}
+.br-strip {
+  flex: 1;
+  background: var(--br-color);
+  transform: translateY(101%);
+}
+.br--go .br-strip {
+  animation: brBlock 0.95s var(--dp-ease, cubic-bezier(0.075, 0.82, 0.165, 1)) forwards;
+  animation-delay: calc(var(--i) * 40ms);
+}
+.hero-feature.br--go .hf-inner {
+  animation: brText 0.95s linear forwards;
+  animation-delay: 180ms;
+}
+@keyframes brBlock {
+  0% {
+    transform: translateY(101%);
+  }
+  42% {
+    transform: translateY(0);
+  }
+  54% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-110%);
+  }
+}
+@keyframes brText {
+  0%,
+  41% {
+    opacity: 0;
+  }
+  42%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Reduced motion (OS pref OR the corner toggle's html[data-sim-reduced]) —
+   show everything immediately, no blocks, no clips. */
+@media (prefers-reduced-motion: reduce) {
+  .pre-anim {
+    opacity: 1;
+  }
+  .crop-lr,
+  .crop-tb {
+    clip-path: none !important;
+  }
+  .br-glyph {
+    opacity: 1;
+  }
+  .br-cover,
+  .br-strip {
+    display: none;
+  }
+}
+[data-sim-reduced] .pre-anim {
+  opacity: 1;
+}
+[data-sim-reduced] .crop-lr,
+[data-sim-reduced] .crop-tb {
+  clip-path: none !important;
+}
+[data-sim-reduced] .br-glyph {
+  opacity: 1;
+}
+[data-sim-reduced] .br-cover,
+[data-sim-reduced] .br-strip {
+  display: none;
+}

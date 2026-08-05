@@ -1,0 +1,146 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  items: CollectionEntry<'design'>[];
+}
+const { items } = Astro.props;
+
+const COLS = 4;
+const columns: CollectionEntry<'design'>[][] = Array.from({ length: COLS }, () => []);
+items.forEach((it, i) => columns[i % COLS].push(it));
+---
+
+<div class="masonry crop-tb">
+  {
+    columns.map((col, i) => (
+      <div class="m-col" data-drift="y" data-dir={i % 2 === 0 ? -1 : 1}>
+        {col.map((it) => (
+          <a class="m-card" href={it.data.href ?? '#'} draggable={false}>
+            <div class="m-media" />
+            <div class="m-label">
+              <b>{it.data.title}</b>
+              <span>{it.data.tools?.[0] ?? it.data.category}</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  .masonry {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    height: 78vh;
+    overflow: hidden;
+    padding-inline: var(--dp-bleed);
+    margin-inline: calc(-1 * var(--dp-bleed));
+  }
+  .m-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+    align-self: start;
+    will-change: transform;
+  }
+  .m-card {
+    position: relative;
+    display: block;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid var(--dp-line);
+    background: var(--dp-card);
+    text-decoration: none;
+    transition: box-shadow 0.5s var(--dp-ease), transform 0.4s var(--dp-ease);
+  }
+  .m-card:hover {
+    box-shadow: var(--dp-shadow);
+    transform: scale(1.05);
+    z-index: 2;
+  }
+  .m-media {
+    background: linear-gradient(150deg, #e9e3d6, #d5ccb9);
+    transition: transform 0.6s var(--dp-ease);
+  }
+  .m-card:hover .m-media {
+    transform: scale(1.06);
+  }
+
+  .m-card:nth-child(3n) .m-media {
+    aspect-ratio: 4 / 5;
+  }
+  .m-card:nth-child(3n + 1) .m-media {
+    aspect-ratio: 3 / 4;
+  }
+  .m-card:nth-child(3n + 2) .m-media {
+    aspect-ratio: 1 / 1;
+  }
+  
+
+  .m-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(0deg, rgba(243, 239, 230, 0.92) 0%, rgba(243, 239, 230, 0) 42%);
+  }
+  .m-label {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 14px;
+    z-index: 2;
+  }
+  .m-label b {
+    display: block;
+    font-family: var(--dp-font-title);
+    font-size: 17px;
+    font-weight: 400;
+    text-transform: uppercase;
+  }
+  .m-label span {
+    font-size: 12px;
+    color: var(--dp-muted);
+    text-transform: uppercase;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .masonry {
+      height: auto;
+      overflow: visible;
+    }
+    .m-col {
+      transform: none !important;
+      will-change: auto;
+    }
+  }
+  
+  :global([data-sim-reduced]) .masonry {
+    height: auto;
+    overflow: visible;
+  }
+  :global([data-sim-reduced]) .m-col {
+    transform: none !important;
+    will-change: auto;
+  }
+
+  @media (max-width: 900px) {
+    .masonry {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .masonry {
+      height: auto;
+      overflow: visible;
+    }
+    .m-col {
+      transform: none;
+    }
+  }
+</style>

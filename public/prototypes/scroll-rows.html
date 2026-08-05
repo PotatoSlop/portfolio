@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="design">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Design page prototype — v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Dela+Gothic+One&family=Zen+Dots&family=RocknRoll+One&display=swap" rel="stylesheet" />
+<script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+<style>
+  /* ---- To use your local Chinese Rocks RG: drop the file in public/fonts/,
+         uncomment, then set --font-display below to 'Chinese Rocks' first ----
+  @font-face{
+    font-family:'Chinese Rocks';
+    src:url('/fonts/chinese-rocks-rg.woff2') format('woff2');
+    font-display:swap;
+  } */
+  :root{
+    --font-title:'Dela Gothic One', 'Chinese Rocks', sans-serif; /* try: 'Zen Dots' | 'RocknRoll One' */
+    --font-display:'Archivo', system-ui, sans-serif; /* UI text = body font for readability; deco reserved for --font-title */
+    --font-body:'Archivo', system-ui, sans-serif;
+    --ease-smooth:cubic-bezier(0.4, 1, 0.6, 1);
+    --ease-logo:cubic-bezier(0.075, 0.82, 0.165, 1);
+
+    /* light theme (dark toggle comes later) */
+    --paper:#f3efe6; --ink:#16233a; --muted:#6c7183; /* ink = dark navy to carry the navy motif; retains contrast on cream */
+    --card:#ffffff; --line:rgba(20,18,12,.12);
+    --accent:#F5A045;          /* bright amber — site identity; pops on navy + fills */
+    --accent-deep:#b5611b;     /* readable amber for small accent text on cream (try #c8553d terracotta) */
+    --edge:28px;               /* small full-bleed side margin */
+    --shadow:28px 40px 60px -28px rgba(30,24,14,.45);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--font-body); -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--accent); color:var(--ink)} /* amber highlight on navy text */
+  .idx,.viewall,.chip{font-family:var(--font-display)}
+  h2{font-family:var(--font-title)}
+
+  /* shared floating-island look (nav pieces, rail, corner toggles) — no bar, no divider */
+  .isle{background:rgba(247,244,238,.72); backdrop-filter:blur(10px);
+        border:1px solid var(--line); border-radius:5px;
+        box-shadow:0 10px 26px -16px rgba(30,24,14,.45)}
+
+  /* top nav: logo pinned top-left, Home/About/Contact centered — top-right stays clear for pull tabs */
+  .top-nav{position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:60; display:flex; align-items:center; gap:10px}
+  .nav-isle{font-family:var(--font-display); font-weight:600; text-transform:uppercase; letter-spacing:.07em; font-size:13px;
+            min-width:92px; text-align:center; color:var(--ink); text-decoration:none; padding:9px 16px; cursor:pointer;
+            transition:color .3s var(--ease-logo), border-color .3s var(--ease-logo)}
+  .nav-isle:hover{color:var(--accent-deep); border-color:var(--accent-deep)}
+
+  /* logo island: minimalist amber square tick + wordmark, left→right fill + text inversion on hover */
+  .logo-isle{position:fixed; top:16px; left:var(--edge); z-index:60; overflow:hidden; isolation:isolate;
+             display:inline-flex; align-items:center; gap:9px; padding:8px 14px; text-decoration:none; cursor:pointer}
+  .logo-isle .sq{width:11px; height:11px; background:var(--accent); border-radius:1px; flex:none}
+  .logo-isle .wm{font-family:var(--font-title); font-size:15px; letter-spacing:.02em; color:var(--ink);
+             text-transform:uppercase; transition:color .35s var(--ease-logo)}
+  .logo-isle::before{content:""; position:absolute; inset:0; z-index:-1; background:var(--ink);
+             transform:scaleY(0); transform-origin:bottom; transition:transform .55s var(--ease-logo)}
+  .logo-isle:hover .wm{color:var(--paper)}
+  .logo-isle:hover::before{transform:scaleY(1)}
+
+  /* pull-tabs placeholder — the real component lives fixed top-right; shown to reserve the space */
+  .pulltabs-stub{position:fixed; top:1vh; right:0; z-index:40; display:flex; flex-direction:column; gap:14px; pointer-events:none}
+  .pulltabs-stub b{writing-mode:vertical-rl; font-family:var(--font-display); text-transform:uppercase; letter-spacing:.14em;
+             font-size:12px; color:var(--muted); background:rgba(247,244,238,.7); border:1px solid var(--line); border-right:none;
+             border-radius:6px 0 0 6px; padding:13px 6px; box-shadow:-4px 0 14px rgba(0,0,0,.08)}
+
+  /* corner toggles (bottom-right): the site-wide home for reduced-motion + dark-mode */
+  .corner-toggles{position:fixed; right:16px; bottom:16px; z-index:60; display:flex; gap:8px; align-items:center}
+  .corner-toggles button{display:grid; place-items:center; width:38px; height:38px; padding:0; cursor:pointer; color:var(--muted);
+             background:rgba(247,244,238,.72); backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:5px}
+  .corner-toggles button[aria-pressed="true"]{color:var(--ink); border-color:var(--accent); background:rgba(245,160,69,.18)}
+  .corner-toggles .stub{opacity:.5; cursor:default}
+
+  /* hero — big left-aligned DESIGN wordmark, feature slot for the later standout visual */
+  #s-hero{min-height:100vh; justify-content:flex-start; padding-top:12vh; align-items:flex-start; position:relative}
+  .hero-crumb{font-family:var(--font-display); font-weight:600; text-transform:uppercase; letter-spacing:.1em; font-size:13px; color:var(--muted); margin:0 0 2vh}
+  .hero-crumb b{color:var(--accent-deep); font-weight:600}
+  .hero-title{font-family:var(--font-title); text-transform:uppercase; font-size:clamp(52px,12vw,188px); line-height:.9;
+             margin:0; color:var(--ink); letter-spacing:.01em}
+  .hero-sub{font-family:var(--font-body); font-size:16px; color:var(--muted); margin:2vh 0 0}
+
+  /* featured / recent hero-project toggle */
+  .hero-toggle{display:inline-flex; margin-top:3vh; border:1px solid var(--line); border-radius:5px; overflow:hidden}
+  .hero-toggle button{font-family:var(--font-display); font-weight:600; text-transform:uppercase; letter-spacing:.06em; font-size:12px;
+             padding:8px 18px; background:transparent; color:var(--muted); border:none; cursor:pointer; transition:background .3s, color .3s}
+  .hero-toggle button+button{border-left:1px solid var(--line)}
+  .hero-toggle button[aria-selected="true"]{background:var(--accent); color:var(--ink)}
+
+  /* hero feature: full-width banner, overlaid text (matches card layout), hover scale+shadow, direct link */
+  .hero-feature{position:relative; display:block; margin-top:3vh; width:100%; height:clamp(280px,40vh,440px);
+             border:1px solid var(--line); border-radius:5px; overflow:hidden; background:var(--card); cursor:pointer;
+             text-decoration:none; transition:box-shadow .5s var(--ease-logo)}
+  .hero-feature:hover{box-shadow:var(--shadow)}
+  .hf-media{position:absolute; inset:0; background:linear-gradient(150deg,#e9e3d6,#d5ccb9); transition:transform .6s var(--ease-logo)}
+  .hero-feature:hover .hf-media{transform:scale(1.05)}
+  .hero-feature::after{content:""; position:absolute; inset:0; z-index:1;
+             background:linear-gradient(0deg, rgba(243,239,230,.94) 0%, rgba(243,239,230,0) 46%)}
+  .hf-tag{position:absolute; top:18px; left:20px; z-index:2; font-family:var(--font-display); font-weight:600;
+             text-transform:uppercase; letter-spacing:.06em; font-size:12px; color:var(--accent-deep)}
+  .hf-label{position:absolute; left:20px; bottom:18px; z-index:2; display:flex; flex-direction:column; gap:4px}
+  .hf-title{font-family:var(--font-title); text-transform:uppercase; font-size:clamp(24px,3vw,40px); color:var(--ink); line-height:1}
+  .hf-meta{font-family:var(--font-body); font-size:14px; color:var(--muted)}
+
+  /* ---- load / reveal animations ---- */
+  .pre-anim{opacity:0}
+
+  /* crop-in left→right (breadcrumb, subtext, toggle) — no color block */
+  .crop-lr{clip-path:inset(0 100% 0 0)}
+  .crop-lr.in{clip-path:inset(0 0 0 0); transition:clip-path .6s var(--ease-logo)}
+
+  /* crop-in top→bottom for whole grid containers — no color block */
+  .crop-tb{clip-path:inset(0 0 100% 0)}
+  .crop-tb.in{clip-path:inset(0 0 0 0); transition:clip-path .75s var(--ease-logo)}
+
+  /* color-block reveal: block crops IN from bottom, holds, then off the top revealing text — L→R stagger */
+  .br-ch{position:relative; display:inline-block; overflow:hidden; white-space:pre; vertical-align:bottom;
+         padding-block:.08em; margin-block:-.08em}
+  .br-glyph{display:inline-block; opacity:0}
+  .br-cover{position:absolute; inset:0; z-index:2; background:var(--br-color); transform:translateY(101%)}
+  .br--go .br-cover{animation:brBlock .9s var(--ease-logo) forwards; animation-delay:calc(var(--i) * 45ms)}
+  .br--go .br-glyph{animation:brText .9s linear forwards; animation-delay:calc(var(--i) * 45ms)}
+  .br-box{position:absolute; inset:0; z-index:5; display:flex; overflow:hidden; pointer-events:none}
+  .br-strip{flex:1; background:var(--br-color); transform:translateY(101%)}
+  .br--go .br-strip{animation:brBlock .95s var(--ease-logo) forwards; animation-delay:calc(var(--i) * 40ms)}
+  .hero-feature.br--go .hf-inner{animation:brText .95s linear forwards; animation-delay:180ms}
+  @keyframes brBlock{ 0%{transform:translateY(101%)} 42%{transform:translateY(0)} 54%{transform:translateY(0)} 100%{transform:translateY(-110%)} }
+  @keyframes brText{ 0%,41%{opacity:0} 42%,100%{opacity:1} }
+
+  @media (prefers-reduced-motion: reduce){
+    .pre-anim{opacity:1}
+    .crop-lr,.crop-tb{clip-path:none !important}
+    .br-glyph{opacity:1}
+    .br-cover,.br-strip{display:none}
+  }
+
+  section{
+    min-height:78vh; padding:4.5vh var(--edge); display:flex; flex-direction:column; justify-content:center;
+    scroll-margin-top:58px;
+  }
+  .head{display:flex; align-items:baseline; gap:16px; margin-bottom:2.4vh}
+  .head .idx{font-size:15px; color:var(--accent-deep); font-weight:600; letter-spacing:.08em}
+  .head h2{margin:0; font-size:clamp(28px,4.4vw,58px); font-weight:400; letter-spacing:0; line-height:1; text-transform:uppercase}
+  .head .note{font-size:13px; color:var(--muted); font-family:var(--font-body)}
+  .head .viewall{margin-left:auto; font-weight:600; font-size:14px; letter-spacing:.04em; color:var(--ink);
+    text-decoration:none; border:1px solid var(--line); padding:6px 14px; border-radius:5px; cursor:pointer; text-transform:uppercase}
+  .head .viewall:hover{border-color:var(--accent-deep); color:var(--accent-deep)}
+
+  /* ---- horizontal drift rows ---- */
+  .row-viewport{overflow:hidden}
+  .row-track{display:flex; gap:26px; will-change:transform}
+  .h-card{
+    position:relative; flex:0 0 clamp(360px,34vw,520px); aspect-ratio:4/3;
+    border-radius:5px; overflow:hidden; border:1px solid var(--line);
+    background:var(--card); cursor:pointer;
+    transition:box-shadow .5s var(--ease-logo);
+  }
+  .h-card.uiux{aspect-ratio:16/10}
+  .h-card .media{position:absolute; inset:0; transition:transform .6s var(--ease-logo)}
+  .h-card:hover{box-shadow:var(--shadow)}
+  .h-card:hover .media{transform:scale(1.07)}
+  .h-card .media{background:linear-gradient(150deg,#e9e3d6,#d7cfbe); display:grid; place-items:center; color:var(--muted); font-size:12px; letter-spacing:.05em}
+  .h-card .label{position:absolute; left:18px; bottom:16px; right:18px; z-index:2}
+  .h-card .label b{display:block; font-family:var(--font-title); font-size:20px; font-weight:400; text-transform:uppercase; letter-spacing:.01em}
+  .h-card .label span{font-size:12px; color:var(--muted)}
+  .h-card::after{content:""; position:absolute; inset:0; z-index:1; background:linear-gradient(0deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,0) 42%)}
+  .tag{position:absolute; top:14px; left:14px; z-index:2; font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
+       background:var(--ink); color:var(--paper); padding:4px 9px; border-radius:3px}
+  .cta{position:absolute; top:14px; right:14px; z-index:2; font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--accent-deep);
+       background:rgba(245,160,69,.16); padding:4px 10px; border-radius:3px; font-family:var(--font-display)}
+
+  #s-3d .h-card .media{background:linear-gradient(155deg,#2a2a2e,#141416); color:#8a8880}
+
+  /* ---- 2D masonry: alternating columns ---- */
+  .masonry{display:grid; grid-template-columns:repeat(4,1fr); gap:20px; height:78vh; overflow:hidden}
+  .col-track{display:flex; flex-direction:column; gap:20px; will-change:transform}
+  .m-card{border-radius:5px; overflow:hidden; border:1px solid var(--line); cursor:pointer; background:var(--card);
+          transition:box-shadow .5s var(--ease-logo)}
+  .m-card .media{transition:transform .6s var(--ease-logo)}
+  .m-card img{display:block; width:100%; height:auto}
+  .m-card:hover{box-shadow:var(--shadow)}
+  .m-card:hover .media{transform:scale(1.06)}
+
+  /* ---- master grid (bold navy block) ---- */
+  #s-grid{background:#0e1a30; color:#e9e2d2; --navy-line:rgba(233,226,210,.16); justify-content:flex-start}
+  #s-grid .note{color:rgba(233,226,210,.55)}
+  #s-grid .hint{color:rgba(233,226,210,.5)}
+  .filters{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:3vh}
+  .chip{font-weight:600; font-size:13px; letter-spacing:.05em; text-transform:uppercase; padding:7px 16px; border-radius:5px;
+        border:1px solid var(--navy-line); background:transparent; color:#e9e2d2; cursor:pointer; transition:all .3s}
+  .chip:hover{border-color:var(--accent)}
+  .chip[aria-pressed="true"]{background:var(--accent); color:var(--ink); border-color:var(--accent)}
+  .grid{display:grid; grid-template-columns:repeat(4,1fr); gap:18px}
+  .g-tile{position:relative; aspect-ratio:1; border-radius:5px; overflow:hidden; border:1px solid var(--navy-line);
+          background:#152541; cursor:pointer; transition:box-shadow .5s var(--ease-logo)}
+  .g-tile:hover{box-shadow:0 24px 44px -22px rgba(0,0,0,.7)}
+  .g-tile .media{position:absolute; inset:0; background:linear-gradient(150deg,#1b2c4c,#122038); transition:transform .6s var(--ease-logo)}
+  .g-tile:hover .media{transform:scale(1.06)}
+  .g-tile .gl{position:absolute; left:12px; bottom:10px; z-index:2; font-family:var(--font-display); text-transform:uppercase; font-size:14px; color:#e9e2d2}
+  .g-tile .gt{position:absolute; top:10px; right:10px; z-index:2; font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--accent)}
+
+  .hint{font-size:12px; color:var(--muted); margin-top:2.5vh}
+
+  /* ---- custom scroll rail (right edge) ---- */
+  .rail{position:fixed; right:16px; top:50%; transform:translateY(-50%); z-index:55;
+        padding:14px; border-radius:5px;
+        background:rgba(247,244,238,.72); backdrop-filter:blur(10px);
+        border:1px solid var(--line); box-shadow:0 14px 34px -18px rgba(30,24,14,.5)}
+  .rail-inner{position:relative; height:26vh; width:32px}
+  .rail-line{position:absolute; right:0; top:0; width:2px; height:100%; background:var(--line); border-radius:2px}
+  .rail-fill{position:absolute; left:0; top:0; width:2px; background:var(--accent-deep); height:0}
+  .rail-tick{position:absolute; left:0; transform:translateY(-50%); display:flex; align-items:center;
+             background:none; border:none; cursor:pointer; padding:0; color:var(--muted);
+             font-family:var(--font-display); font-weight:600}
+  .rail-tick .n{font-size:12px; letter-spacing:.04em; width:22px; text-align:center; transition:color .3s}
+  .rail-tick[aria-current="true"] .n{color:var(--accent-deep)}
+  .rail-tick:hover .n{color:var(--ink)}
+
+  @media (prefers-reduced-motion: reduce){
+    .row-viewport{overflow-x:auto}
+    .masonry{height:auto; overflow:visible}
+    .col-track{transform:none !important}
+    .is-clone{display:none} /* drop the loop-stitching duplicates */
+  }
+  [data-sim-reduced] .is-clone{display:none}
+  [data-sim-reduced] .row-viewport{overflow-x:auto}
+  [data-sim-reduced] .masonry{height:auto; overflow:visible}
+</style>
+</head>
+<body id="top">
+
+<a class="logo-isle isle" href="#top"><span class="sq"></span><span class="wm">Dylan Chen</span></a>
+<nav class="top-nav" aria-label="site">
+  <a class="nav-isle isle" href="#">Home</a>
+  <a class="nav-isle isle" href="#">About</a>
+  <a class="nav-isle isle" href="#">Contact</a>
+</nav>
+
+<aside class="pulltabs-stub" aria-hidden="true"><b>Engineering</b><b>Software</b></aside>
+
+<div class="corner-toggles" aria-label="preferences">
+  <button id="toggle-reduced" aria-pressed="false" title="Reduce motion">
+    <iconify-icon icon="mdi:eye-outline" width="19" height="19"></iconify-icon>
+  </button>
+  <button class="stub" title="Dark mode (coming later)" aria-disabled="true">
+    <iconify-icon icon="mdi:weather-night" width="17" height="17"></iconify-icon>
+  </button>
+</div>
+
+<nav class="rail" aria-label="section navigation"><div class="rail-inner"><div class="rail-line"><div class="rail-fill"></div></div></div></nav>
+
+<section id="s-hero">
+  <p class="hero-crumb crop-lr">Sketchbook / <b>Design</b></p>
+  <h1 class="hero-title pre-anim">Design</h1>
+  <p class="hero-sub crop-lr">Industrial · visual · interaction — a gallery in motion.</p>
+  <div class="hero-toggle crop-lr" role="tablist" aria-label="hero project">
+    <button data-mode="featured" aria-selected="true">Featured</button>
+    <button data-mode="recent" aria-selected="false">Recent</button>
+  </div>
+  <a class="hero-feature pre-anim" id="heroFeature" href="#s-3d"></a>
+</section>
+
+<section id="s-3d" data-rail="3D">
+  <div class="head">
+    <span class="idx">01</span><h2>3D models</h2>
+    <span class="note">— studio shelf · drifts ◀</span>
+    <a class="viewall" data-goto="3d">view all</a>
+  </div>
+  <div class="row-viewport crop-tb"><div class="row-track" data-drift="x" data-dir="-1"></div></div>
+  <p class="hint">Hover slows the drift; content scales inside a fixed frame + drop shadow. Click → model viewer.</p>
+</section>
+
+<section id="s-uiux" data-rail="UI/UX">
+  <div class="head">
+    <span class="idx">02</span><h2>UI / UX</h2>
+    <span class="note">— case studies · drifts ▶ (opposite)</span>
+    <a class="viewall" data-goto="uiux">view all</a>
+  </div>
+  <div class="row-viewport crop-tb"><div class="row-track" data-drift="x" data-dir="1"></div></div>
+  <p class="hint">Click → full case study. The portfolio site itself is the hero piece.</p>
+</section>
+
+<section id="s-2d" data-rail="2D">
+  <div class="head">
+    <span class="idx">03</span><h2>2D / posters</h2>
+    <span class="note">— uniform columns, alternating ▲ / ▼</span>
+    <a class="viewall" data-goto="2d">view all</a>
+  </div>
+  <div class="masonry crop-tb" id="masonry"></div>
+  <p class="hint">Click any image → zoomed modal (the unified lightweight interaction for flat art).</p>
+</section>
+
+<section id="s-grid" data-rail="ALL">
+  <div class="head">
+    <span class="idx">04</span><h2>All work</h2>
+    <span class="note">— master grid · tag-filtered</span>
+  </div>
+  <div class="filters" id="filters"></div>
+  <div class="grid crop-tb" id="grid"></div>
+  <p class="hint">Each zone's "view all" scrolls here and auto-applies its tag. Game assets is a tag, not a zone.</p>
+</section>
+
+<script>
+/* ---------- placeholder content ---------- */
+const models = [
+  ['Mecha WIP','low-poly · blender',true],['Turbine housing','print-ready',false],['Boat hull','render',false],
+  ['Character bust','sculpt',false],['Modular tileset','game · low-poly',true],['Enclosure','CAD → print',false],
+  ['Prop: lantern','asset',true],['Terrain chunk','render',false],
+];
+const cases = [
+  ['This portfolio','the meta case study'],['Trip planner','figma · flows'],['Dashboard','process'],
+  ['Onboarding','research → ship'],['Design system','tokens + components'],['Booking app','end-to-end'],
+];
+
+function hCard(title, sub, cls, tag, cta){
+  const el = document.createElement('div');
+  el.className = 'h-card' + (cls ? ' '+cls : '');
+  el.innerHTML =
+    `<div class="media">preview</div>` +
+    (tag ? `<span class="tag">${tag}</span>` : '') +
+    (cta ? `<span class="cta">${cta}</span>` : '') +
+    `<div class="label"><b>${title}</b><span>${sub}</span></div>`;
+  return el;
+}
+const track3d = document.querySelector('#s-3d .row-track');
+const trackUi = document.querySelector('#s-uiux .row-track');
+models.forEach(([t,s,g]) => track3d.appendChild(hCard(t,s,'', g?'game-asset':'', '3d viewer')));
+cases.forEach(([t,s]) => trackUi.appendChild(hCard(t,s,'uiux','', 'case study')));
+
+/* 2D masonry — real photography, varied aspect ratios */
+const horz = Array.from({length:9}, (_,i)=>`/Assets/Photography/Sample Horz (${i+1}).jpg`);
+const vert = Array.from({length:13}, (_,i)=>`/Assets/Photography/Sample Vert (${i+1}).jpg`);
+const pool = [];
+for (let i=0;i<Math.max(horz.length,vert.length);i++){ if(vert[i])pool.push(vert[i]); if(horz[i])pool.push(horz[i]); }
+const masonry = document.getElementById('masonry');
+const COLS = 4, colTracks = [];
+for (let c=0;c<COLS;c++){
+  const col = document.createElement('div');
+  col.className = 'col-track'; col.dataset.drift='y'; col.dataset.dir = (c%2===0)?'-1':'1';
+  colTracks.push(col); masonry.appendChild(col);
+}
+pool.forEach((src,i)=>{
+  const card=document.createElement('div'); card.className='m-card';
+  const media=document.createElement('div'); media.className='media';
+  const img=new Image(); img.loading='lazy'; img.src=encodeURI(src); img.alt='';
+  media.appendChild(img); card.appendChild(media); colTracks[i%COLS].appendChild(card);
+});
+
+/* master grid — stub tiles with tags */
+const TAGS=['3d','uiux','2d','game-asset'];
+const stub=[
+  ['Mecha','3d game-asset'],['Portfolio','uiux'],['Poster: jazz','2d'],['Turbine','3d'],
+  ['Trip planner','uiux'],['Tileset','2d game-asset'],['Boat','3d'],['Dashboard','uiux'],
+  ['Illustration','2d'],['Lantern','3d game-asset'],['Booking','uiux'],['Zine','2d'],
+  ['Terrain','3d'],['Design system','uiux'],['Sticker pack','2d game-asset'],['Bust','3d'],
+];
+const grid=document.getElementById('grid');
+stub.forEach(([name,tags])=>{
+  const t=document.createElement('div'); t.className='g-tile'; t.dataset.tags=tags;
+  t.innerHTML=`<div class="media"></div><span class="gt">${tags.split(' ')[0]}</span><span class="gl">${name}</span>`;
+  grid.appendChild(t);
+});
+const filters=document.getElementById('filters');
+['all',...TAGS].forEach(tag=>{
+  const b=document.createElement('button'); b.className='chip'; b.dataset.tag=tag;
+  b.setAttribute('aria-pressed', tag==='all'?'true':'false'); b.textContent=tag;
+  b.addEventListener('click',()=>applyFilter(tag)); filters.appendChild(b);
+});
+function applyFilter(tag){
+  document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed', String(c.dataset.tag===tag)));
+  document.querySelectorAll('.g-tile').forEach(t=>{
+    t.hidden = tag!=='all' && !t.dataset.tags.split(' ').includes(tag);
+  });
+}
+document.querySelectorAll('[data-goto]').forEach(a=>{
+  a.addEventListener('click',()=>{ applyFilter(a.dataset.goto); document.getElementById('s-grid').scrollIntoView({behavior:'smooth'}); });
+});
+
+/* hero featured / recent toggle — swaps the highlighted hero project */
+const heroProjects={
+  featured:{tag:'Featured', title:'Mecha WIP', meta:'3D · low-poly showcase — open model viewer', href:'#s-3d'},
+  recent:{tag:'Most recent', title:'Jazz Night poster', meta:'2D · screen-print · Nov — open case study', href:'#s-2d'},
+};
+const heroFeature=document.getElementById('heroFeature');
+function renderHero(mode){
+  const p=heroProjects[mode]||heroProjects.featured;
+  heroFeature.href=p.href; // direct link to the project's interactive feature
+  heroFeature.innerHTML=`<div class="hf-inner"><div class="hf-media"></div><span class="hf-tag">${p.tag}</span><div class="hf-label"><span class="hf-title">${p.title}</span><span class="hf-meta">${p.meta}</span></div></div>`;
+}
+document.querySelectorAll('.hero-toggle button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.hero-toggle button').forEach(x=>x.setAttribute('aria-selected', String(x===b)));
+    renderHero(b.dataset.mode);
+  });
+});
+renderHero('featured');
+
+/* ---------- drift mechanic ---------- */
+const AMBIENT=26, SCROLL_GAIN=2.6, SMOOTH=0.12, HOVER_SLOW=0.34, HOVER_RAMP=0.06;
+const drifters=[];
+document.querySelectorAll('[data-drift]').forEach(track=>{
+  const count=track.children.length;
+  Array.from(track.children).forEach(n=>{ const c=n.cloneNode(true); c.classList.add('is-clone'); track.appendChild(c); }); // duplicate for loop
+  drifters.push({track, axis:track.dataset.drift, dir:+track.dataset.dir, count, offset:0, size:0, hoverFactor:1, targetHover:1});
+});
+drifters.forEach(d=>{
+  const zone=d.track.parentElement;
+  zone.addEventListener('pointerenter',()=>d.targetHover=HOVER_SLOW);
+  zone.addEventListener('pointerleave',()=>d.targetHover=1);
+});
+function measure(){
+  drifters.forEach(d=>{
+    const first=d.track.children[0], clone=d.track.children[d.count]; // exact period incl. one gap
+    d.size = d.axis==='x' ? (clone.offsetLeft-first.offsetLeft) : (clone.offsetTop-first.offsetTop);
+  });
+}
+window.addEventListener('load',measure); window.addEventListener('resize',measure); measure();
+
+let reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches, simReduced=false;
+const isReduced=()=>reduced||simReduced;
+let lastY=window.scrollY, smoothVel=0, prevT=performance.now();
+function frame(t){
+  const dt=Math.min(0.05,(t-prevT)/1000); prevT=t;
+  const y=window.scrollY, rawVel=(y-lastY)/(dt||0.016); lastY=y;
+  smoothVel+=(rawVel-smoothVel)*SMOOTH;
+  if(!isReduced()){
+    for(const d of drifters){
+      d.hoverFactor+=((d.targetHover)-d.hoverFactor)*HOVER_RAMP;
+      const speed=(AMBIENT*d.hoverFactor+smoothVel*SCROLL_GAIN)*d.dir;
+      d.offset-=speed*dt;
+      if(d.size>0) d.offset=((d.offset%d.size)+d.size)%d.size-d.size;
+      d.track.style.transform = d.axis==='x'?`translate3d(${d.offset}px,0,0)`:`translate3d(0,${d.offset}px,0)`;
+    }
+  }
+  updateRail(y);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- scroll rail ---------- */
+const railInner=document.querySelector('.rail-inner'), railFill=document.querySelector('.rail-fill');
+const railSecs=[...document.querySelectorAll('[data-rail]')];
+const ticks=railSecs.map((sec,i)=>{
+  const b=document.createElement('button'); b.className='rail-tick';
+  b.innerHTML=`<span class="n">0${i+1}</span>`;
+  b.title=sec.dataset.rail;
+  b.addEventListener('click',()=>sec.scrollIntoView({behavior:'smooth'}));
+  railInner.appendChild(b); return {b, sec};
+});
+function layoutRail(){
+  const docH=document.documentElement.scrollHeight-window.innerHeight;
+  ticks.forEach(({b,sec})=>{
+    const center=sec.offsetTop+sec.offsetHeight/2 - window.innerHeight/2;
+    const frac=Math.max(0,Math.min(1, center/docH));
+    b.style.top=(frac*100)+'%';
+  });
+}
+window.addEventListener('load',layoutRail); window.addEventListener('resize',layoutRail); layoutRail();
+function updateRail(y){
+  const docH=document.documentElement.scrollHeight-window.innerHeight;
+  const frac=docH>0?Math.max(0,Math.min(1,y/docH)):0;
+  railFill.style.height=(frac*100)+'%';
+  const mid=y+window.innerHeight/2;
+  let active=-1; railSecs.forEach((sec,i)=>{ if(mid>=sec.offsetTop) active=i; }); // -1 while in hero
+  ticks.forEach((t,i)=>t.b.setAttribute('aria-current', String(i===active)));
+}
+
+/* reduced-motion preview toggle */
+const toggle=document.getElementById('toggle-reduced');
+toggle.addEventListener('click',()=>{
+  simReduced=!simReduced; toggle.setAttribute('aria-pressed',String(simReduced));
+  const eye=toggle.querySelector('iconify-icon');
+  if(eye) eye.setAttribute('icon', simReduced?'mdi:eye-off-outline':'mdi:eye-outline');
+  if(simReduced){
+    document.documentElement.setAttribute('data-sim-reduced','');
+    drifters.forEach(d=>d.track.style.transform='none');
+  }else{
+    document.documentElement.removeAttribute('data-sim-reduced');
+    measure();
+  }
+});
+
+/* ---------- load / reveal choreography ---------- */
+const loadReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const q = s => document.querySelector(s);
+const AMBER='#F5A045', NAVY='#16233a';
+const heroTitleEl=q('.hero-title'), crumbEl=q('.hero-crumb'), subEl=q('.hero-sub'),
+      hToggleEl=q('.hero-toggle'), featureEl=q('.hero-feature');
+const secTitleSpec=[['#s-3d h2',NAVY],['#s-uiux h2',NAVY],['#s-2d h2',NAVY],['#s-grid h2',AMBER]];
+const cropTbEls=[...document.querySelectorAll('.crop-tb')];
+
+// wrap each character in a cover-segment that will translate up to reveal it
+function wrapCharsReveal(el, color){
+  el.style.setProperty('--br-color', color);
+  const txt=el.textContent; el.textContent=''; el.classList.add('br');
+  let i=0;
+  for(const ch of txt){
+    const cell=document.createElement('span'); cell.className='br-ch'; cell.style.setProperty('--i', i++);
+    const c=document.createElement('span'); c.className='br-cover'; cell.appendChild(c); // cover spaces too
+    const g=document.createElement('span'); g.className='br-glyph'; g.textContent=(ch===' '?' ':ch); cell.appendChild(g);
+    void(0&&(ch===' ' ? ' ' : ch));
+    el.appendChild(cell);
+  }
+}
+// overlay a non-text element with vertical strips that translate up L→R
+function boxReveal(el, color, n){
+  el.style.setProperty('--br-color', color);
+  const ov=document.createElement('div'); ov.className='br-box';
+  for(let k=0;k<n;k++){ const s=document.createElement('span'); s.className='br-strip'; s.style.setProperty('--i', k); ov.appendChild(s); }
+  el.appendChild(ov);
+}
+const reveal = el => { if(el){ el.classList.remove('pre-anim'); el.classList.add('br--go'); } };
+
+if(loadReduced){
+  [crumbEl,subEl,hToggleEl,...cropTbEls].forEach(e=>e&&e.classList.add('in'));
+  [heroTitleEl,featureEl].forEach(e=>e&&e.classList.remove('pre-anim'));
+}else{
+  wrapCharsReveal(heroTitleEl, AMBER);
+  boxReveal(featureEl, NAVY, 12);
+  const hfInner=featureEl.querySelector('.hf-inner'); if(hfInner) hfInner.style.opacity='0';
+  secTitleSpec.forEach(([sel,col])=>{ const el=q(sel); if(el) wrapCharsReveal(el, col); });
+  // section titles ripple when scrolled into view
+  const ioTitle=new IntersectionObserver((es,o)=>es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('br--go'); o.unobserve(e.target); } }), { threshold:.35 });
+  secTitleSpec.forEach(([sel])=>{ const el=q(sel); if(el) ioTitle.observe(el); });
+  // whole grid containers crop-in top-to-bottom when scrolled into view.
+  // NB: observe the UNCLIPPED parent — a clip-path'd element reports 0 intersection
+  // to IntersectionObserver, which would otherwise deadlock the reveal.
+  cropTbEls.forEach(el=>{
+    const host=el.parentElement;
+    const o=new IntersectionObserver((es,ob)=>es.forEach(e=>{ if(e.isIntersecting){ el.classList.add('in'); ob.disconnect(); } }), { threshold:.05 });
+    o.observe(host);
+  });
+  // hero timeline: DESIGN first (block from bottom), then breadcrumb + subtext + toggle (crop L-R) + featured (block from bottom)
+  requestAnimationFrame(()=>{
+    // breadcrumb + caption + toggle + featured come in first...
+    setTimeout(()=>{ [crumbEl,subEl,hToggleEl].forEach(e=>e&&e.classList.add('in')); reveal(featureEl); }, 150);
+    // ...then the DESIGN color block fills on a delay
+    setTimeout(()=>reveal(heroTitleEl), 700);
+    setTimeout(()=>{ featureEl.classList.remove('br--go'); const bx=featureEl.querySelector('.br-box'); if(bx) bx.remove(); if(hfInner) hfInner.style.opacity=''; }, 1450);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,6 +1,12 @@
 /* ===== Footer =====
    Sticky pill-shaped contact-CTA footer with curved top edge.
-   Includes the CTA button, link list, and the slim bottom copyright bar. */
+   Includes the CTA button, link list, and the slim bottom copyright bar.
+
+   NOTE: the footer is intentionally scheme-INDEPENDENT — it looks identical in
+   light and dark mode. Default/engineering skins use fixed primitives
+   (--color-black/--color-white); the design skin pins its navy as a literal
+   (#16233a) rather than var(--theme-ink) (which flips to cream in dark). Keep it
+   that way — do not wire footer colours to the flipping --theme-* contract. */
 
 .contact-footer {
   position: sticky;
@@ -38,6 +44,10 @@
   font-weight: 800;
   font-size: clamp(2.5rem, 8vw, 4rem);
   margin-bottom: 1rem;
+  /* Pinned dark (was inheriting the h1–h6 ink, which now flips light in dark mode
+     and washed the title out on the amber). Keeps the footer scheme-independent;
+     design overrides to its navy literal below. */
+  color: var(--color-black);
 }
 
 .footer-subtitle {
@@ -163,4 +173,77 @@
 }
 [data-theme='engineering'] .footer-bottom-bar {
   font-family: var(--theme-font-body);
+}
+
+/* ===== Design footer skin =====
+   Same boxy layout as engineering (squared CTA + sliding fill, shrink-to-content),
+   with the design fonts: Dela Gothic display title + Archivo body. */
+[data-theme='design'] .contact-footer {
+  border-radius: 0;
+  filter: none;
+  font-family: 'Archivo', system-ui, sans-serif;
+  height: auto;
+  min-height: 0;
+  padding-top: 2.5rem;
+}
+[data-theme='design'] .footer-title {
+  font-family: 'Dela Gothic One', sans-serif;
+  font-weight: 400;
+  text-transform: uppercase;
+  font-size: clamp(1.6rem, 4.5vw, 2.75rem);
+  margin-bottom: 0.75rem;
+}
+[data-theme='design'] .footer-content-wrapper {
+  padding: 1.5rem 1rem;
+}
+[data-theme='design'] .footer-cta-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 4px;
+  font-family: 'Archivo', sans-serif;
+  transition: color var(--duration-fast) var(--ease-smooth);
+}
+[data-theme='design'] .footer-cta-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--color-white);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-smooth) var(--ease-smooth);
+}
+[data-theme='design'] .footer-cta-button:hover {
+  background: #16233a;
+  color: #16233a; /* navy label once the white fill is behind it */
+  transform: none;
+}
+[data-theme='design'] .footer-cta-button:hover::before {
+  transform: scaleX(1);
+}
+[data-theme='design'] .footer-link,
+[data-theme='design'] .footer-bottom-bar {
+  font-family: 'Archivo', sans-serif;
+}
+
+/* Recolor every near-black element on the amber footer to the page navy, so the
+   whole design page reads in one ink (navy on amber is high-contrast). The CTA's
+   resting fill is navy; it inverts to a white fill + navy label on hover. Navy is
+   a literal (not var(--theme-ink)) so it stays navy in dark mode too — the footer
+   never inverts. */
+[data-theme='design'] .footer-title,
+[data-theme='design'] .footer-subtitle,
+[data-theme='design'] .footer-link {
+  color: #16233a;
+}
+[data-theme='design'] .footer-link::after {
+  background-color: #16233a;
+}
+[data-theme='design'] .link-separator {
+  color: rgba(22, 35, 58, 0.5);
+}
+[data-theme='design'] .footer-cta-button {
+  background-color: #16233a;
+  color: var(--color-white);
 }

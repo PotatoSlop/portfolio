@@ -1,9 +1,39 @@
 /* ===== Software theme — editor / terminal =====
-   Cool editor-dark backdrop, mono type, syntax/caret accent. Differentiated
-   from Engineering's warm charcoal by a blue-tinged dark + green caret accent.
-   Overrides ONLY the contract vars. */
+   Editor look with mono type and a green syntax/caret accent. Unlike the other
+   disciplines, software's original identity was DARK — so the global light/dark
+   axis is inverted here: the LIGHT variant below is the new base (the default a
+   light-scheme visitor sees), and the classic dark editor moves into the
+   [data-scheme='dark'] block. Overrides ONLY the contract vars. */
 
 [data-theme='software'] {
+  /* Light editor: pale cool-gray field, dark slate ink, deep-green caret so the
+     accent survives on light (the bright #5ad6a0 is a dark-field colour). */
+  --theme-bg: #f4f6f9;
+  --theme-surface: #ffffff;
+  --theme-border: #d6dae2;
+
+  --theme-ink: #1c2029;
+  --theme-ink-muted: #626b7d;
+
+  --theme-accent: #1f9d6b; /* deep caret green — readable on light */
+  --theme-accent-contrast: #ffffff;
+
+  --theme-glass: rgba(246, 247, 249, 0.72);
+
+  --theme-grid: none;
+
+  --theme-font-display: var(--font-primary);
+  --theme-radius: var(--radius-small);
+  --theme-motion-ease: var(--ease-smooth);
+
+  --idiom-accent: #1f9d6b;
+  --idiom-rule: #d6dae2;
+}
+
+/* ===== Software — DARK =====
+   The original editor-dark identity: blue-tinged charcoal, cool light ink, and
+   the bright caret green that only works on a dark field. */
+[data-theme='software'][data-scheme='dark'] {
   --theme-bg: #16181f;
   --theme-surface: #1e212b;
   --theme-border: #2c3140;
@@ -15,13 +45,8 @@
   --theme-accent: #5ad6a0;
   --theme-accent-contrast: #0c0e13;
 
-  --theme-grid: none;
+  --theme-glass: rgba(30, 33, 43, 0.72);
 
-  --theme-font-display: var(--font-primary);
-  --theme-radius: var(--radius-small);
-  --theme-motion-ease: var(--ease-smooth);
-
-  /* Idiom: caret/typing (stub — wired in a later pass) */
   --idiom-accent: #5ad6a0;
   --idiom-rule: #2c3140;
 }

@@ -3,6 +3,7 @@ import { ClientRouter } from 'astro:transitions';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import Scrollbar from '../components/Scrollbar.astro';
+import SettingsToggles from '../components/SettingsToggles.astro';
 import '../../styles/main.css';
 
 interface Props {
@@ -28,11 +29,29 @@ const {
     <meta name="description" content={description} />
     <title>{title}</title>
 
+    {/* Colour scheme — set BEFORE first paint to avoid a light→dark flash.
+        Runs synchronously (is:inline, not deferred/bundled): reads the stored
+        choice, else the OS preference, and stamps data-scheme on <html>. The
+        stored key + apply logic are mirrored in SettingsToggles.astro (toggle)
+        and below (SPA-nav persistence). */}
+    <script is:inline>
+      (function () {
+        try {
+          var stored = localStorage.getItem('color-scheme');
+          var dark = stored
+            ? stored === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (dark) document.documentElement.dataset.scheme = 'dark';
+          else delete document.documentElement.dataset.scheme;
+        } catch (e) {}
+      })();
+    </script>
+
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&family=Nunito:wght@400;800&family=Syne:wght@600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Dela+Gothic+One&family=IBM+Plex+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&family=Nunito:wght@400;800&family=Syne:wght@600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="https://use.typekit.net/nnb5nol.css" />
@@ -86,11 +105,27 @@ const {
     <Nav theme={theme} />
     <Scrollbar />
     <slot />
+    <SettingsToggles />
     {/* Contact page opts out — a "Get in Touch" footer CTA there is circular. */}
     {showFooter && <Footer />}
 
     <script>
+      // Freeze animated GIFs (the waving doodle, the boiling-name logo) at frame
+      // zero under reduced motion — swaps to a static still, restores on toggle.
+      import { mountFreezeGifs } from '../lib/motion/freeze-gifs';
+      mountFreezeGifs();
+    </script>
+
+    <script>
       import { inView } from 'motion';
+
+      // Kept at module scope so the before-swap teardown can stop the observer
+      // and undo the nav-theme vars. Without this, each navigation added another
+      // footer observer (leak) and — because inView's stop() does NOT fire the
+      // leave callback — navigating away while the footer was in view left the
+      // footer nav colors stuck on the next page (a routing dual-state).
+      let stopFooterInView: (() => void) | null = null;
+      let resetNavTheme: (() => void) | null = null;
 
       function initPageEffects() {
         const footer = document.querySelector('.contact-footer') as HTMLElement | null;
@@ -134,7 +169,8 @@ const {
         // Recolor while the footer is in view; restore on leave. Not a tween —
         // a two-way token toggle — so we use inView's enter/leave callbacks
         // directly rather than reveal().
-        inView(
+        resetNavTheme = () => applyNavTheme(defaultTheme);
+        stopFooterInView = inView(
           footer,
           () => {
             applyNavTheme(footerTheme);
@@ -144,7 +180,15 @@ const {
         );
       }
 
+      function teardownPageEffects() {
+        stopFooterInView?.();
+        stopFooterInView = null;
+        resetNavTheme?.(); // stop() won't fire the leave cb — undo colors ourselves
+        resetNavTheme = null;
+      }
+
       document.addEventListener('astro:page-load', initPageEffects);
+      document.addEventListener('astro:before-swap', teardownPageEffects);
     </script>
 
     <script>
@@ -153,6 +197,16 @@ const {
       const DISCIPLINE_ORDER = ['/engineering', '/design', '/software'];
       const normalize = (p: string) => (p.replace(/\/$/, '') || '/');
       const indexOfRoute = (p: string) => DISCIPLINE_ORDER.indexOf(normalize(p));
+
+      // Colour scheme is a client-only preference (never rendered server-side),
+      // so the incoming document arrives without it. Copy the current scheme onto
+      // the new <html> before the swap paints — otherwise every navigation flashes
+      // back to the base (light) scheme. Mirrors the FOUC-safe head script.
+      document.addEventListener('astro:before-swap', (e) => {
+        const current = document.documentElement.dataset.scheme;
+        if (current) e.newDocument.documentElement.dataset.scheme = current;
+        else delete e.newDocument.documentElement.dataset.scheme;
+      });
 
       document.addEventListener('astro:before-swap', (e) => {
         const root = e.newDocument.documentElement;

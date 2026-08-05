@@ -10,7 +10,7 @@ const { discipline } = Astro.props;
 const ORDER: Discipline[] = ['engineering', 'design', 'software'];
 
 const THEME: Record<Discipline, { bg: string; ink: string }> = {
-  engineering: { bg: '#ffffff', ink: '#1e1e14' },
+  engineering: { bg: '#f5a045', ink: '#1e1e14' },
   design: { bg: '#f7f4ee', ink: '#211f1a' },
   software: { bg: '#16181f', ink: '#d6dbe6' },
 };
@@ -91,8 +91,8 @@ const others = ORDER.filter((d) => d !== discipline);
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.6rem;
-    padding: 0.9rem 0.72rem;
+    gap: 0.4rem;
+    padding: 0.6rem 0.5rem;
     background: var(--door-bg);
     color: var(--door-ink);
     border-radius: 10px 0 0 10px;
@@ -100,13 +100,19 @@ const others = ORDER.filter((d) => d !== discipline);
        stays a clean seam where it meets the door strip. */
     box-shadow: -5px 0 16px rgba(0, 0, 0, 0.12);
   }
+  /* Slimmer chevron to match the smaller label (keeps the grip compact so the
+     design scroll rail can tuck closer to the right edge). */
+  .pull-tab__grip svg {
+    width: 18px;
+    height: 18px;
+  }
 
   .pull-tab__label {
     writing-mode: vertical-rl;
     font-family: 'Roboto', sans-serif;
     font-weight: 700;
-    font-size: 0.9rem;
-    letter-spacing: 0.14em;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     white-space: nowrap;
     color: var(--door-ink);

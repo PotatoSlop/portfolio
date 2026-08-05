@@ -1,0 +1,479 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  featured: CollectionEntry<'design'>;
+  recent: CollectionEntry<'design'>;
+}
+const { featured, recent } = Astro.props;
+
+const meta = (e: CollectionEntry<'design'>) =>
+  [e.data.category.toUpperCase(), e.data.tools?.[0], e.data.year].filter(Boolean).join(' · ');
+
+const ctaLabel = (e: CollectionEntry<'design'>) => {
+  switch (e.data.category) {
+    case '3d':
+      return 'Open 3D viewer';
+    case 'uiux':
+      return 'Read case study';
+    default:
+      return 'View project';
+  }
+};
+
+const item = (e: CollectionEntry<'design'>, tag: string) => ({
+  tag,
+  title: e.data.title,
+  meta: meta(e),
+  href: e.data.href ?? '#',
+  cta: ctaLabel(e),
+});
+
+const modes = featured.id === recent.id ? [item(featured, 'Featured')] : [item(featured, 'Featured'), item(recent, 'Most recent')];
+const first = modes[0];
+const multi = modes.length > 1;
+---
+
+<section id="dp-hero">
+  <p class="hero-crumb crop-lr">Sketchbook / <b>Design</b></p>
+  <h1 class="hero-title pre-anim">Design</h1>
+
+  <div class="hero-cycler crop-lr" role="group" aria-label="Featured work carousel" data-multi={String(multi)}>
+
+    <span class="hc-progress" aria-hidden="true">
+      {
+        modes.map((_, i) => (
+          <span class="hc-seg">
+            <span class="hc-seg__fill" data-hc-seg={String(i)} />
+          </span>
+        ))
+      }
+    </span>
+  </div>
+
+  <div class="hero-feature pre-anim" id="heroFeature" data-hero={JSON.stringify(modes)}>
+    <div class="hf-inner">
+      <div class="hf-media"></div>
+      <span class="hf-tag">{first.tag}</span>
+      <div class="hf-label">
+        <span class="hf-title">{first.title}</span>
+        <span class="hf-meta">{first.meta}</span>
+        <a class="hf-cta" href={first.href}>{first.cta}</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  #dp-hero {
+    min-height: calc(100vh - 72px);
+    padding: 3.5vh var(--dp-edge) 4vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+
+  .hero-crumb {
+    font-family: var(--dp-font-body);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 13px;
+    color: var(--dp-muted);
+    margin: 0 0 1vh;
+  }
+  .hero-crumb b {
+    color: var(--dp-accent-deep);
+    font-weight: 600;
+  }
+  .hero-title {
+    font-family: var(--dp-font-title);
+    text-transform: uppercase;
+    font-size: clamp(52px, 12vw, 188px);
+    line-height: 0.9;
+    letter-spacing: 0.01em;
+    margin: 0.03em 0 0 -0.02em; /* Slight offset for font */
+    color: var(--dp-ink);
+  }
+
+  /* ===== Hero project cycler =====
+     Auto cross-fades between the featured + most-recent project on a timer. The
+     segmented "story" countdown is now a full-width bar spanning the hero: the
+     kicker label sits at the left, the bar flexes across the middle, and the
+     manual chevrons cap the right. Slim so the feature card claims more height. */
+  .hero-cycler {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    margin-top: 2vh;
+  }
+  .hc-kicker {
+    flex: 0 0 auto;
+    font-family: var(--dp-font-body);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(--dp-ink);
+  }
+  /* Segmented story timer — flexes to fill the hero width; each segment is an
+     empty track holding a left-anchored fill the JS scales along X. */
+  .hc-progress {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 3px;
+  }
+  .hc-seg {
+    flex: 1;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--dp-line);
+    overflow: hidden;
+  }
+  .hc-seg__fill {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: var(--dp-accent);
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  /* Single slide: nothing to cycle — drop the countdown, keep the tag. */
+  .hero-cycler[data-multi='false'] .hc-progress {
+    display: none;
+  }
+  /* Reduced motion (OS pref OR the corner toggle): no auto-advance, so the
+     countdown bars have nothing to count — hide them (chevrons still cycle). */
+  @media (prefers-reduced-motion: reduce) {
+    .hc-progress {
+      visibility: hidden;
+    }
+  }
+  :global([data-sim-reduced]) .hc-progress {
+    visibility: hidden;
+  }
+
+  .hero-feature {
+    position: relative;
+    display: block;
+    margin-top: 1.8vh;
+    width: 100%;
+    /* Grow to fill whatever the tightened header leaves inside the 100vh hero, so
+       the project claims the most room possible while still fitting the first
+       viewport (with a floor for short screens). */
+    flex: 1 1 auto;
+    min-height: clamp(360px, 46vh, 560px);
+    border: 1px solid var(--dp-line);
+    border-radius: 5px;
+    overflow: hidden;
+    /* Transparent (not white) so the empty frame reads as the cream page before
+       the block reveal fills it — no white flash during the load animation. */
+    background: transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition: box-shadow 0.5s var(--dp-ease), border-color 0.4s var(--dp-ease);
+  }
+  /* During the block reveal the interior fills navy but the 1px border is outside
+     the fill, so its thin cream edge flickers into view as the strips rise. Hold
+     the border transparent until the reveal finishes, then fade it in. */
+  .hero-feature.pre-anim,
+  .hero-feature.br--go {
+    border-color: transparent;
+  }
+  .hero-feature:hover {
+    box-shadow: var(--dp-shadow);
+  }
+
+  /* ===== Card interior =====
+     These nodes are REBUILT at runtime by the cycler (cross-fade layers), so
+     Astro's scoped class hash never lands on them — the styles MUST be :global()
+     or the layout collapses to unstyled text the instant the card first cycles.
+     Loaded only with this component (design page), so global scope stays tame. */
+
+  /* Fill the card so the media / scrim / label all share ONE stacking context.
+     Keeping the scrim (::after) here — not on .hero-feature — means the label
+     (z-index 2) stays above the scrim (z-index 1) throughout the opacity reveal,
+     instead of the label jumping above the scrim only once the animation ends.
+     During a cross-fade two .hf-inner layers stack here and fade past each other. */
+  :global(.hf-inner) {
+    position: absolute;
+    inset: 0;
+    isolation: isolate;
+  }
+  /* Dark scheme: the hero label/tag/CTA sit OVER the media behind a fixed CREAM
+     scrim (::after, below) — a light backdrop regardless of page scheme. So this
+     zone keeps the LIGHT --dp-* palette (dark navy ink, deep amber, cream glass);
+     inverting it to cream ink would vanish against the cream scrim. The scrim +
+     media gradient are literals, so they already stay light — only the text vars
+     need re-pinning. */
+  :global([data-scheme='dark'] .hf-inner) {
+    --dp-ink: #16233a;
+    --dp-muted: #6c7183;
+    --dp-accent: #f5a045;
+    --dp-accent-deep: #b5611b;
+    --dp-line: rgba(20, 18, 12, 0.12);
+    --theme-glass: rgba(247, 244, 238, 0.72);
+  }
+  :global(.hf-inner)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(0deg, rgba(243, 239, 230, 0.94) 0%, rgba(243, 239, 230, 0) 46%);
+  }
+  :global(.hf-media) {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(150deg, #e9e3d6, #d5ccb9);
+    transition: transform 0.6s var(--dp-ease);
+  }
+  .hero-feature:hover :global(.hf-media) {
+    transform: scale(1.05);
+  }
+  :global(.hf-tag) {
+    position: absolute;
+    top: 18px;
+    left: 20px;
+    z-index: 2;
+    font-family: var(--dp-font-body);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 12px;
+    color: var(--dp-accent-deep);
+  }
+  :global(.hf-label) {
+    position: absolute;
+    left: 20px;
+    bottom: 18px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  :global(.hf-title) {
+    font-family: var(--dp-font-title);
+    text-transform: uppercase;
+    font-size: clamp(24px, 3vw, 40px);
+    line-height: 1;
+    color: var(--dp-ink);
+  }
+  :global(.hf-meta) {
+    font-family: var(--dp-font-body);
+    font-size: 14px;
+    color: var(--dp-muted);
+  }
+  /* Redirect CTA — sits inside the card, in the label stack directly under the
+     caption. Outlined by default; on hover an amber fill rises bottom→top behind
+     the label (a clipped ::before slab). No arrow. The card body cycles, so this
+     link stops that (guarded in the click handler) and redirects instead. */
+  :global(.hf-cta) {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    align-self: flex-start;
+    margin-top: 12px;
+    padding: 9px 18px;
+    /* Unified button face: subtle border + translucent-cream (frosted) fill,
+       matching the nav islands. As a non-toggle it fills amber from the bottom
+       on hover; the navy label stays legible on cream AND on amber. */
+    border: 1px solid var(--dp-line);
+    border-radius: 5px;
+    background: var(--theme-glass);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    color: var(--dp-ink);
+    font-family: var(--dp-font-body);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.4s var(--dp-ease), border-color 0.4s var(--dp-ease);
+  }
+  :global(.hf-cta)::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--dp-accent);
+    transform: translateY(100%);
+    transition: transform 0.4s var(--dp-ease);
+  }
+  :global(.hf-cta:hover) {
+    border-color: var(--dp-accent);
+  }
+  :global(.hf-cta:hover)::before {
+    transform: translateY(0);
+  }
+  @media (max-width: 520px) {
+    :global(.hf-label) {
+      left: 16px;
+      bottom: 14px;
+    }
+  }
+</style>
+
+<script>
+  import { prefersReducedMotion } from '../../lib/motion/reduced-motion';
+
+  interface Mode {
+    tag: string;
+    title: string;
+    meta: string;
+    href: string;
+    cta: string;
+  }
+
+  const AUTO_MS = 6000; // dwell before the hero cross-fades to the next project
+
+  const esc = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  const buildInner = (m: Mode) =>
+    `<div class="hf-media"></div>` +
+    `<span class="hf-tag">${esc(m.tag)}</span>` +
+    `<div class="hf-label"><span class="hf-title">${esc(m.title)}</span><span class="hf-meta">${esc(m.meta)}</span>` +
+    `<a class="hf-cta" href="${esc(m.href)}">${esc(m.cta)}</a></div>`;
+
+  function initHeroCycler(): (() => void) | null {
+    const feature = document.getElementById('heroFeature');
+    if (!feature) return null;
+    let modes: Mode[];
+    try {
+      modes = JSON.parse(feature.dataset.hero || '[]');
+    } catch {
+      return null;
+    }
+    if (!Array.isArray(modes) || modes.length === 0) return null;
+
+    const label = document.querySelector<HTMLElement>('[data-hc-label]');
+    const segs = [...document.querySelectorAll<HTMLElement>('[data-hc-seg]')];
+
+    const reduced = prefersReducedMotion();
+    const multi = modes.length > 1;
+
+    let idx = 0;
+    let raf = 0;
+    let runStart = 0; // performance.now() when the current countdown run began
+    const fadeTimers = new Set<number>();
+
+    // Story segments: full before the active slide, empty after it, the active
+    // one riding the countdown. Wrapping back to slide 0 resets them all.
+    const paintSegs = (active: number, p: number) => {
+      segs.forEach((fill, i) => {
+        const v = i < active ? 1 : i === active ? Math.max(0, Math.min(p, 1)) : 0;
+        fill.style.transform = `scaleX(${v})`;
+      });
+    };
+
+    const render = (i: number, animate: boolean) => {
+      const m = modes[i];
+      if (label) label.textContent = m.tag;
+
+      // Collapse any mid-fade stragglers (rapid clicks) down to the visible layer.
+      const layers = [...feature.querySelectorAll<HTMLElement>('.hf-inner')];
+      const old = layers[layers.length - 1] || null;
+      layers.slice(0, -1).forEach((l) => l.remove());
+
+      if (!animate || !old) {
+        if (old) {
+          old.style.transition = '';
+          old.style.opacity = '';
+          old.innerHTML = buildInner(m);
+        } else {
+          const d = document.createElement('div');
+          d.className = 'hf-inner';
+          d.innerHTML = buildInner(m);
+          feature.appendChild(d);
+        }
+        return;
+      }
+
+      // Cross-fade: the incoming layer eases in over the outgoing one.
+      const nu = document.createElement('div');
+      nu.className = 'hf-inner';
+      nu.style.opacity = '0';
+      nu.innerHTML = buildInner(m);
+      feature.appendChild(nu);
+      void nu.offsetWidth; // commit opacity:0 before transitioning
+      nu.style.transition = 'opacity 0.55s var(--dp-ease)';
+      old.style.transition = 'opacity 0.55s var(--dp-ease)';
+      nu.style.opacity = '1';
+      old.style.opacity = '0';
+      const t = window.setTimeout(() => {
+        old.remove();
+        nu.style.transition = '';
+        fadeTimers.delete(t);
+      }, 600);
+      fadeTimers.add(t);
+    };
+
+    const stop = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    };
+    const frame = () => {
+      const p = (performance.now() - runStart) / AUTO_MS;
+      paintSegs(idx, p);
+      if (p >= 1) {
+        raf = 0;
+        go(1);
+        return;
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    const run = () => {
+      if (reduced || !multi || raf) return;
+      runStart = performance.now();
+      raf = requestAnimationFrame(frame);
+    };
+    const go = (dir: number) => {
+      idx = (idx + dir + modes.length) % modes.length;
+      render(idx, !reduced);
+      stop();
+      paintSegs(idx, reduced ? 1 : 0);
+      run();
+    };
+
+    // Clicking the card body is the manual advance (no chevrons). A click on the
+    // CTA under the caption falls through to the link instead of cycling. On a
+    // single-slide hero there's nothing to cycle, so the body opens the project.
+    feature.addEventListener('click', (e) => {
+      if ((e.target as Element).closest('.hf-cta')) return;
+      if (!multi) {
+        const href = modes[idx]?.href;
+        if (href && href !== '#') window.location.assign(href);
+        return;
+      }
+      go(1);
+    });
+
+    paintSegs(0, reduced ? 1 : 0);
+    run();
+
+    return () => {
+      stop();
+      fadeTimers.forEach((t) => clearTimeout(t));
+      fadeTimers.clear();
+    };
+  }
+
+  let destroy: (() => void) | null = null;
+  document.addEventListener('astro:page-load', () => {
+    destroy?.();
+    destroy = initHeroCycler();
+  });
+  document.addEventListener('astro:before-swap', () => {
+    destroy?.();
+    destroy = null;
+  });
+</script>

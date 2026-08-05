@@ -1,14 +1,366 @@
 ---
 import Base from '../layouts/Base.astro';
 import PullTabs from '../components/PullTabs.astro';
-import DisciplinePage from '../components/DisciplinePage.astro';
+import HeroProject from '../components/design/HeroProject.astro';
+import MarqueeRow from '../components/design/MarqueeRow.astro';
+import MasonryGrid from '../components/design/MasonryGrid.astro';
+import FilterGrid from '../components/design/FilterGrid.astro';
+import { getCollection } from 'astro:content';
+import '../../styles/components/design-reveal.css';
+
+const all = await getCollection('design');
+const byCat = (c: '3d' | 'uiux' | '2d') =>
+  all.filter((d) => d.data.category === c).sort((a, b) => a.data.order - b.data.order);
+
+const models = byCat('3d');
+const uiux = byCat('uiux');
+const posters = byCat('2d');
+const featured = all.find((d) => d.data.featured) ?? all[0];
+const recent = all.find((d) => d.data.recent) ?? featured;
 ---
 
 <Base title="Design — Dylan Chen" theme="design">
-  <DisciplinePage
-    discipline="design"
-    tagline="Industrial, visual, and interaction design work."
-  />
-</Base>
+  <main class="design-page">
+    <HeroProject featured={featured} recent={recent} />
 
-<PullTabs discipline="design" />
+    <section id="s-3d" class="dp-section" data-rail aria-label="3D models">
+      <div class="dp-head">
+        <span class="dp-idx">01</span>
+        <h2>3D models</h2>
+        <span class="dp-note">— creative assets · products</span>
+      </div>
+      <MarqueeRow items={models} dir={-1} />
+      <a class="dp-viewall" data-goto="3d" href="#s-grid">view all</a>
+    </section>
+
+    <section id="s-uiux" class="dp-section" data-rail aria-label="UI / UX">
+      <div class="dp-head">
+        <span class="dp-idx">02</span>
+        <h2>UI / UX</h2>
+        <span class="dp-note">— case studies · frontend</span>
+      </div>
+      <MarqueeRow items={uiux} dir={1} />
+      <a class="dp-viewall" data-goto="uiux" href="#s-grid">view all</a>
+    </section>
+
+    <section id="s-2d" class="dp-section" data-rail aria-label="2D / posters">
+      <div class="dp-head">
+        <span class="dp-idx">03</span>
+        <h2>2D Illustration and Graphics</h2>
+        <span class="dp-note">— game assets · posters · digital art</span>
+      </div>
+      <MasonryGrid items={posters} />
+      <a class="dp-viewall" data-goto="2d" href="#s-grid">view all</a>
+    </section>
+
+    <section id="s-grid" class="dp-section dp-section--grid" data-rail aria-label="All work">
+      <div class="dp-head">
+        <span class="dp-idx">04</span>
+        <h2>All work</h2>
+        <span class="dp-note">— "A little bit of this" · "and a little bit of that"</span>
+      </div>
+      <FilterGrid items={all} />
+    </section>
+  </main>
+
+  <PullTabs discipline="design" />
+
+  <style>
+    /* Design-page tokens (scaffold; reconciled into styles/themes/design.css later).
+       Custom properties inherit into the child components (HeroProject, MarqueeRow). */
+    .design-page {
+      --dp-paper: #f3efe6;
+      --dp-ink: #16233a; /* dark navy — carries the navy motif */
+      --dp-muted: #6c7183;
+      --dp-card: #ffffff;
+      --dp-line: rgba(20, 18, 12, 0.12);
+      --dp-accent: #f5a045; /* bright amber (site identity) */
+      --dp-accent-deep: #b5611b; /* readable amber for small text on cream */
+      --dp-shadow: 28px 40px 60px -28px rgba(30, 24, 14, 0.45);
+      /* Bleed the clip frames (drift rows / masonry / master grid) outward on the
+         axis that ISN'T being masked, so a hover-scaled card's drop shadow has
+         room to render instead of being cropped at the frame edge. Applied as
+         padding + equal negative margin, so layout position is unchanged and only
+         the paint/clip region grows. Sized to the shadow's reach; shrunk on mobile
+         (tighter gutter, no hover) so the negative margin can't overflow the page. */
+      --dp-bleed: 52px;
+      /* --dp-edge (page gutter) is defined at the [data-theme='design'] root so
+         the nav logo island can share it; inherited here. */
+      --dp-ease: cubic-bezier(0.075, 0.82, 0.165, 1);
+      --dp-font-title: 'Dela Gothic One', 'Chinese Rocks', sans-serif;
+      --dp-font-body: 'Archivo', system-ui, sans-serif;
+
+      background: var(--dp-paper);
+      color: var(--dp-ink);
+      font-family: var(--dp-font-body);
+    }
+
+    /* Dark scheme — invert the editorial palette: the navy that was INK becomes
+       the paper/card surfaces, the cream becomes the ink, amber pops on navy so
+       it brightens. Mirrors the [data-theme='design'][data-scheme='dark'] block
+       in styles/themes/design.css; kept here because the page runs its own --dp-*
+       shadow-palette (a full migration onto the contract is a later pass). The
+       :global() wrap is required — the theme/scheme flags live on <html>, an
+       ancestor outside this component's scoped selectors. */
+    :global([data-scheme='dark']) .design-page {
+      --dp-paper: #0f1826;
+      --dp-ink: #e9e2d2;
+      --dp-muted: #9aa0ad;
+      --dp-card: #16233a;
+      --dp-line: rgba(233, 226, 210, 0.16);
+      --dp-accent: #f5a045;
+      --dp-accent-deep: #f0a24e;
+      --dp-shadow: 28px 40px 60px -28px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Tighter bleed below the tablet breakpoint: the gutter narrows to 24px there,
+       so a 52px negative margin would push the frames off-page (horizontal scroll).
+       Touch has no hover shadow to protect anyway. */
+    @media (max-width: 768px) {
+      .design-page {
+        --dp-bleed: 16px;
+      }
+    }
+
+    /* Uniform vertical padding (not min-height + centering) so the gap between
+       01 / 02 / 03 is consistent regardless of each zone's content height. */
+    .dp-section {
+      padding: 8vh var(--dp-edge);
+      display: flex;
+      flex-direction: column;
+    }
+    /* Sections carrying a "view all" (01–03) put the head and the link on one
+       row, content spanning below — so the link rides top-right beside the title
+       on desktop. (The master grid, 04, has no link and stays a plain column.) */
+    .dp-section:has(> .dp-viewall) {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      column-gap: 16px;
+      row-gap: 16px; /* head → content gap (the head's own margin is zeroed below) */
+      align-items: center;
+    }
+    .dp-section:has(> .dp-viewall) > .dp-head {
+      grid-column: 1;
+      grid-row: 1;
+      margin-bottom: 0; /* gap handled by the grid's row-gap so "view all" centres */
+    }
+    .dp-section:has(> .dp-viewall) > .dp-viewall {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+      /* Bottom-align the button with the title text instead of centring it in
+         the head row. The head aligns its children on the baseline, so its
+         box bottom sits just under the title's descender — matching the
+         button's bottom edge to it reads as "sitting on the same line". */
+      align-self: end;
+    }
+    /* Place the content row full-width. It MUST use :global() on the content
+       classes: .row-viewport (MarqueeRow) and .masonry (MasonryGrid) are child-component
+       roots, so they carry THEIR OWN astro scope id — not design.astro's. The old
+       `> :not(.dp-head):not(.dp-viewall)` (and the mobile `order`) got design's
+       scope id appended and thus never matched, so the row lost `grid-column: 1/-1`
+       and auto-placed into column 1 only — its right edge stopped short of the
+       view-all / hero edge (very visible at in-between widths). */
+    .dp-section:has(> .dp-viewall) > :global(.row-viewport),
+    .dp-section:has(> .dp-viewall) > :global(.masonry) {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      min-width: 0; /* let the row/masonry shrink inside the grid track */
+    }
+    /* Master grid — bold navy block. Left-aligned (not centred) so filtering,
+       which changes content height, doesn't re-shift the title. */
+    .dp-section--grid {
+      justify-content: flex-start;
+      background: #0e1a30;
+      color: #e9e2d2;
+      --navy-line: rgba(233, 226, 210, 0.16);
+    }
+    .dp-section--grid .dp-idx {
+      color: var(--dp-accent);
+    }
+    .dp-section--grid .dp-note {
+      color: rgba(233, 226, 210, 0.55);
+    }
+    .dp-head {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      /* Fixed (not vh) so the gap below every section title reads the same
+         regardless of viewport height, and tighter than the old 2.4vh. */
+      margin-bottom: 16px;
+    }
+    .dp-idx {
+      font-family: var(--dp-font-body);
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: 0.08em;
+      color: var(--dp-accent-deep);
+    }
+    .dp-head h2 {
+      margin: 0;
+      font-family: var(--dp-font-title);
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      line-height: 1;
+      /* Gentler slope + lower cap than the old (4.4vw, 58px): that flattened at
+         the cap by ~1319px, so 1080p AND a high-DPI laptop both rendered ~58px
+         but the laptop's scaled (narrower) CSS viewport left the longest title
+         ("2D Illustration and Graphics") no room and it wrapped. 2.7vw shrinks
+         the title on narrow/high-res viewports where vw is proportionally large,
+         while 1080p only eases 58 → ~52px. */
+      font-size: clamp(24px, 2.7vw, 54px);
+    }
+    .dp-note {
+      font-family: var(--dp-font-body);
+      font-size: 13px;
+      color: var(--dp-muted);
+    }
+    /* Master-grid title reads on the navy block — force cream (it must not
+       inherit the page's navy ink, which would vanish against the block). */
+    .dp-section--grid .dp-head h2 {
+      color: #e9e2d2;
+    }
+
+    /* "view all" — rides top-right beside the zone title (desktop, via the grid
+       above); scrolls to the master grid and applies that zone's filter (wired in
+       FilterGrid). Border-based hover, matching the chips / nav islands. */
+    /* "view all" follows the shared button model (translucent-cream face, fill
+       rising from the bottom on hover) but deliberately KEEPS the deep-brass
+       accent rather than the bright amber — it reads as a quiet index control
+       beside the section title, not a primary action. Brass is dark, so the
+       label flips to cream once the fill is behind it (3-colour contrast rule). */
+    .dp-viewall {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      justify-self: end;
+      font-family: var(--dp-font-body);
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--dp-accent-deep);
+      text-decoration: none;
+      padding: 6px 14px;
+      background: var(--theme-glass);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--dp-line);
+      border-radius: 5px;
+      transition: border-color 0.3s var(--dp-ease), color 0.3s var(--dp-ease);
+    }
+    .dp-viewall::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: var(--dp-accent-deep);
+      transform: translateY(100%);
+      transition: transform 0.4s var(--dp-ease);
+    }
+    .dp-viewall:hover {
+      border-color: var(--dp-accent-deep);
+      color: var(--dp-paper);
+    }
+    .dp-viewall:hover::before {
+      transform: translateY(0);
+    }
+
+    /* On narrower / high-DPI (OS-scaled) desktop viewports the section head has
+       less horizontal room, and the longest title ("2D Illustration and
+       Graphics") would wrap. Drop the supplementary caption here so the title
+       keeps its own line; the caption returns on wide screens (≥1500px) that
+       have room for both. Same intent as the mobile rule below. */
+    @media (max-width: 1500px) {
+      .dp-note {
+        display: none;
+      }
+    }
+
+    /* ===== Mobile ===== */
+    @media (max-width: 768px) {
+      /* Section heads: smaller title, drop the little caption — the long ones
+         (e.g. "2D Illustration and Graphics") were wrapping messily. */
+      .dp-head h2 {
+        font-size: clamp(20px, 6vw, 30px);
+      }
+      .dp-note {
+        display: none;
+      }
+      /* Stack head → content → "view all". The DOM is already authored in that
+         order, so DO NOT use flex `order` here: the content match
+         (`> :not(.dp-head):not(.dp-viewall)`) proved unreliable — the card fell to
+         the default order 0 and jumped ABOVE the title. Plain source order is
+         bulletproof, and `align-items: stretch` (also the flex default) undoes the
+         desktop grid's `align-items: center`, which otherwise shrank the card to a
+         tiny centred box. */
+      .dp-section:has(> .dp-viewall) {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px; /* head → card → view-all (grid row-gap doesn't apply to flex) */
+      }
+      .dp-section:has(> .dp-viewall) > .dp-viewall {
+        justify-self: unset;
+        align-self: flex-start; /* the link hugs the left instead of stretching */
+      }
+    }
+  </style>
+
+  <script>
+    import { mountCarousels } from '../lib/motion/carousel';
+    import { mountDesignReveal } from '../lib/motion/design-reveal';
+
+    let destroyDrift: (() => void) | null = null;
+    let destroyReveal: (() => void) | null = null;
+    let mounted = false;
+
+    // Idempotent mount. Registered on astro:page-load AND invoked once directly
+    // below as a catch-up: on a first SPA entry into /design this module
+    // evaluates around the page-load dispatch and can miss the event, which would
+    // leave the CSS-hidden hero (.pre-anim / .crop-*) permanently un-revealed —
+    // the "different view when navigated into" bug. The `mounted` guard makes the
+    // double-call a no-op. See docs/routing-and-lifecycle.md.
+    const mount = () => {
+      if (mounted || !document.querySelector('.design-page')) return;
+      mounted = true;
+      // Mobile is reduced-motion (SettingsToggles enforces this site-wide and
+      // hides the toggle). Set the flag BEFORE the reveal/drift read it, so it
+      // holds even if SettingsToggles' page-load handler runs after this one.
+      if (window.matchMedia('(max-width: 768px)').matches) {
+        document.documentElement.dataset.simReduced = '1';
+      }
+      destroyReveal = mountDesignReveal();
+      destroyDrift = mountCarousels();
+    };
+    const unmount = () => {
+      destroyDrift?.();
+      destroyDrift = null;
+      destroyReveal?.();
+      destroyReveal = null;
+      mounted = false;
+    };
+
+    // Rebuild ONLY the drift rows (the reveal is one-shot) when reduced-motion or
+    // the mobile breakpoint flips.
+    const remountDrift = () => {
+      if (!mounted) return;
+      destroyDrift?.();
+      destroyDrift = mountCarousels();
+    };
+
+    document.addEventListener('astro:page-load', mount);
+    document.addEventListener('astro:before-swap', unmount);
+    // The corner toggle flips reduced-motion at runtime — rebuild the rows so the
+    // drift actually stops/starts (mountCarousels now honors the manual flag).
+    window.addEventListener('motionpreferencechange', remountDrift);
+    // Crossing the mobile breakpoint swaps drift ↔ chevron pager — rebuild so the
+    // right mode (and its DOM: clones vs. pager buttons) is in place.
+    window.matchMedia('(max-width: 768px)').addEventListener('change', remountDrift);
+
+    // Catch-up: if astro:page-load already fired before this module evaluated
+    // (first SPA entry), mount now — the guard prevents a second mount.
+    mount();
+  </script>
+</Base>

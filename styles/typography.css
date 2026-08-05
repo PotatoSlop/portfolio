@@ -8,7 +8,7 @@ h4,
 h5,
 h6 {
   font-family: var(--font-secondary);
-  color: var(--color-black);
+  color: var(--theme-ink);
 }
 
 p {

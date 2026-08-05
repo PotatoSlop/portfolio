@@ -1,13 +1,239 @@
 ---
+/*
+  Software discipline page. Composed — not templated — from the shared
+  components/projects/ kit (ProjectCard + ProjectAccordion + CaseOverlay), the
+  same building blocks engineering uses, reskinned by the `software` theme. Only
+  the hero treatment (terminal prompt + caret) is discipline-specific; every
+  project interaction is inherited via mountProjectsGallery().
+*/
 import Base from '../layouts/Base.astro';
 import PullTabs from '../components/PullTabs.astro';
-import DisciplinePage from '../components/DisciplinePage.astro';
+import ProjectCard from '../components/projects/ProjectCard.astro';
+import ProjectAccordion from '../components/projects/ProjectAccordion.astro';
+import CaseOverlay from '../components/projects/CaseOverlay.astro';
+import { getCollection } from 'astro:content';
+import { Icon } from 'astro-icon/components';
+
+const CURRENT = 'software' as const;
+
+const tagged = await getCollection('projects', ({ data }) => data.disciplines.includes(CURRENT));
+const projects = tagged.sort((a, b) => a.data.order - b.data.order);
+
+// The hero keeps its own full-bleed feature block; the accordion holds the rest.
+const featured = projects.find((p) => p.data.hero) ?? projects[0] ?? null;
+const rest = projects.filter((p) => p !== featured);
 ---
 
 <Base title="Software — Dylan Chen" theme="software">
-  <DisciplinePage
-    discipline="software"
-    tagline="Full-stack builds, tools, and game experiments."
-  />
+  <main class="sw">
+    <section class="sw-hero">
+      <nav class="sw-hero__crumbs" aria-label="Breadcrumb">
+        <a href="/">SKETCHBOOK</a>
+        <span aria-hidden="true">/</span>
+        <a href="/software" aria-current="page">SOFTWARE</a>
+      </nav>
+
+      <h1 class="sw-hero__title">
+        <span class="sw-hero__prompt" aria-hidden="true">&gt;</span>
+        <span class="sw-hero__word">software</span>
+        <span class="sw-hero__caret" aria-hidden="true"></span>
+      </h1>
+
+      <a class="sw-hero__cta" href="#sw-gallery">SEE PROJECTS</a>
+
+      <a class="sw-chevron" href="#sw-gallery" aria-label="Scroll to projects">
+        <span class="sw-chevron__crop">
+          <Icon name="mdi:chevron-down" />
+        </span>
+      </a>
+    </section>
+
+    <section id="sw-gallery" class="sw-gallery" aria-label="Software projects">
+      <div class="wrap">
+        {
+          featured && (
+            <div class="feature-crop">
+              <ProjectCard project={featured} current={CURRENT} variant="feature" />
+            </div>
+          )
+        }
+
+        <ProjectAccordion projects={rest} current={CURRENT} />
+      </div>
+    </section>
+  </main>
+
+  <CaseOverlay />
+  <PullTabs discipline="software" />
+
+  <style>
+    .sw {
+      position: relative;
+    }
+
+    /* ----- Hero: terminal prompt + blinking caret (the `caret` idiom) ----- */
+    .sw-hero {
+      position: relative;
+      min-height: calc(100dvh - clamp(60px, 10vh, 80px));
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 8vh clamp(1rem, 4vw, 3rem) 0;
+    }
+
+    .sw-hero__crumbs {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      width: fit-content;
+      font-family: var(--theme-font-body);
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      color: var(--theme-ink-muted);
+    }
+    .sw-hero__crumbs a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .sw-hero__crumbs a:hover {
+      color: var(--theme-accent);
+    }
+    .sw-hero__crumbs [aria-current='page'] {
+      color: var(--theme-ink);
+    }
+
+    .sw-hero__title {
+      display: flex;
+      align-items: baseline;
+      gap: 0.18em;
+      margin: 0;
+      font-family: var(--theme-font-display);
+      font-size: clamp(3rem, 12vw, 9rem);
+      font-weight: 700;
+      line-height: 1;
+      color: var(--theme-ink);
+    }
+    .sw-hero__prompt {
+      color: var(--theme-accent);
+    }
+    .sw-hero__caret {
+      display: inline-block;
+      width: 0.52ch;
+      height: 0.82em;
+      translate: 0 0.04em;
+      background: var(--theme-accent);
+      animation: sw-blink 1.05s steps(1, end) infinite;
+    }
+    @keyframes sw-blink {
+      0%, 50% { opacity: 1; }
+      50.01%, 100% { opacity: 0; }
+    }
+
+    .sw-hero__cta {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      align-self: flex-start;
+      display: inline-block;
+      padding: 0.6rem 1.1rem;
+      border: var(--border-width-medium) solid var(--theme-border);
+      border-radius: var(--theme-radius);
+      background: var(--theme-surface);
+      color: var(--theme-ink);
+      font-family: var(--theme-font-body);
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      text-decoration: none;
+      transition: color var(--duration-fast) var(--theme-motion-ease),
+        border-color var(--duration-fast) var(--theme-motion-ease);
+    }
+    .sw-hero__cta::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: var(--theme-accent);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.5s var(--theme-motion-ease);
+    }
+    .sw-hero__cta:hover,
+    .sw-hero__cta:focus-visible {
+      color: var(--theme-accent-contrast);
+      border-color: var(--theme-accent);
+      outline: none;
+    }
+    .sw-hero__cta:hover::before,
+    .sw-hero__cta:focus-visible::before {
+      transform: scaleX(1);
+    }
+
+    .sw-chevron {
+      position: absolute;
+      bottom: clamp(1rem, 3vh, 2rem);
+      left: 0;
+      right: 0;
+      width: fit-content;
+      margin-inline: auto;
+      display: grid;
+      place-items: center;
+      padding: 0.5rem;
+      color: var(--theme-ink-muted);
+      transition: transform var(--duration-fast) var(--theme-motion-ease),
+        color var(--duration-fast) var(--theme-motion-ease);
+    }
+    .sw-chevron:hover,
+    .sw-chevron:focus-visible {
+      transform: translateY(2px);
+      color: var(--theme-accent);
+      outline: none;
+    }
+    .sw-chevron__crop {
+      display: block;
+      overflow: hidden;
+      line-height: 0;
+    }
+    .sw-chevron svg {
+      width: clamp(28px, 4vw, 40px);
+      height: auto;
+      display: block;
+    }
+
+    /* Projects gallery: shares the centred .wrap column + card system from
+       styles/components/project-card.css. */
+    .sw-gallery {
+      padding: 0 clamp(0.5rem, 1.5vw, 1rem) clamp(2rem, 6vh, 4rem);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .sw-hero__caret {
+        animation: none;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .sw-hero {
+        padding-inline: 1.25rem;
+      }
+    }
+  </style>
+
+  <script>
+    // The entire projects-section lifecycle is shared — see
+    // src/lib/motion/projects-gallery.ts (same primitive engineering uses).
+    import { mountProjectsGallery } from '../lib/motion/projects-gallery';
+
+    let destroy: (() => void) | null = null;
+
+    document.addEventListener('astro:page-load', () => {
+      if (!document.querySelector('.sw-gallery')) return;
+      destroy = mountProjectsGallery();
+    });
+
+    document.addEventListener('astro:before-swap', () => {
+      destroy?.();
+      destroy = null;
+    });
+  </script>
 </Base>
-<PullTabs discipline="software" />

@@ -1,59 +1,107 @@
 ---
 import Base from '../layouts/Base.astro';
 import { Image } from 'astro:assets';
+import { Icon } from 'astro-icon/components';
 import headshot from '../assets/irlHeadshot.jpg';
 ---
 
 <Base title="About — Dylan Chen">
   <main class="container about-page-main">
-    <div class="scroll-animation-container">
-      <div class="sticky-wrapper">
-        <div class="about-image-stack">
-          <div class="headshot">
+    <section class="about-stage" aria-label="About Dylan — draw to reveal the photo">
+      <div class="about-image-stack">
+        <div class="headshot">
+          <div class="about-layer about-layer-sketch">
             <img
-              class="headshot-face doodle-image"
-              src="/Assets/wavingDude.gif"
-              alt="Doodle of Dylan Chen"
+              class="doodle-image"
+              src="/Assets/motion/wavingDude-static.png"
+              alt="Hand-drawn doodle of Dylan Chen"
+              draggable="false"
             />
+          </div>
+          <div class="about-layer about-layer-real masked" data-mask aria-hidden="true">
             <Image
-              class="headshot-face real-photo"
+              class="real-photo"
               src={headshot}
-              alt="Dylan Chen Headshot"
+              alt="Dylan Chen"
               widths={[400, 800]}
               sizes="(max-width: 700px) 400px, 800px"
               format="webp"
+              draggable={false}
             />
           </div>
         </div>
+      </div>
 
-        <div class="about-text-stack">
-          <div class="text-block" id="philosophy-text">
-            <h1>It Starts with a Sketch</h1>
-            <p class="block-text">
-              Napkins, printer paper, sketchbooks or just my mind, my projects start from a simple
-              idea that is brought to reality. If you need a creative developer, a technical
-              designer, or anything in between, I can bring a new perspective to your vision.
-            </p>
-          </div>
+      <div class="about-text-stack">
+        <div class="text-block is-active" id="about-cap-sketch">
+          <h1>It Starts with a Sketch</h1>
+          <p class="block-text">
+            Napkins, printer paper, sketchbooks or just my mind, my projects start from a simple
+            idea that is brought to reality. If you need a creative developer, a technical
+            designer, or anything in between, I can bring a new perspective to your vision.
+          </p>
+        </div>
 
-          <div class="text-block" id="intro-text">
-            <h1>About Me</h1>
-            <p class="block-text">
-              I'm Dylan, a 2nd-year computer science and engineering student at Northeastern
-              University. You can usually find me hopping between Boston and New York City, wandering
-              around capturing urban experiences on my camera or absorbing inspiration for my new
-              development or engineering project. If there's too much coffee in your office, I'm
-              always willing to help out!
-            </p>
-            <a
-              href="/Assets/Dylan Chen Resume - Hardware 7_26.pdf"
-              download="Dylan Chen Resume 2026"
-              class="resume-btn">Download Resume</a
-            >
-          </div>
+        <div class="text-block" id="about-cap-real">
+          <h1>About Me</h1>
+          <p class="block-text">
+            I'm Dylan, a 2nd-year computer science and engineering student at Northeastern
+            University. You can usually find me hopping between Boston and New York City, wandering
+            around capturing urban experiences on my camera or absorbing inspiration for my new
+            development or engineering project. If there's too much coffee in your office, I'm
+            always willing to help out!
+          </p>
+          <a
+            href="/Assets/documents/Dylan Chen Resume - Hardware 7_26.pdf"
+            download="Dylan Chen Resume 2026"
+            class="resume-btn">Download Resume</a
+          >
         </div>
       </div>
-    </div>
+
+      <div class="about-hint" aria-hidden="true">
+        <span class="about-hint__row">
+          <Icon class="about-hint__ico" name="mdi:mouse-left-click-outline" width="20" height="20" />
+          <span id="about-hint-action">Draw</span>
+        </span>
+        <span class="about-hint__row">
+          <Icon class="about-hint__ico" name="mdi:mouse-right-click-outline" width="20" height="20" />
+          Flip
+        </span>
+      </div>
+
+      <!-- Decorative interaction chrome (brush ring + 3D tool). aria-hidden. -->
+      <div class="brush-ring" aria-hidden="true"></div>
+      <div id="about-tool-layer" aria-hidden="true"></div>
+      <div class="about-css-tool" id="about-css-tool" aria-hidden="true">✏️</div>
+
+      <div class="about-toolbar" role="toolbar" aria-label="Drawing tools">
+        <button
+          class="tool-btn about-tool-draw about-tool-active"
+          id="about-tool"
+          aria-label="Draw tool (right-click to flip)"
+          data-tooltip="Draw"
+        >
+          <Icon class="glyph glyph-draw" name="tabler:pencil" width="22" height="22" />
+          <Icon class="glyph glyph-erase" name="tabler:eraser" width="22" height="22" />
+        </button>
+        <div class="brush-size about-tool-draw" data-tooltip="Brush size">
+          <input type="range" id="about-size" aria-label="Brush size" />
+          <span id="about-size-pct">50%</span>
+        </div>
+        <button
+          class="tool-btn about-tool-draw"
+          id="about-reset"
+          aria-label="Reset drawing"
+          data-tooltip="Reset to sketch"
+        >
+          <Icon class="glyph" name="tabler:refresh" width="20" height="20" />
+        </button>
+        <button class="state-toggle" id="about-toggle" aria-label="Show real photo" data-tooltip="Change view">
+          <Icon class="glyph" name="tabler:chevron-right" width="24" height="24" />
+        </button>
+      </div>
+    </section>
   </main>
 
   <section class="timeline-section">
@@ -66,7 +114,7 @@ import headshot from '../assets/irlHeadshot.jpg';
       <div class="timeline-item">
         <div class="timeline-dot" id="js-dot-0"></div>
         <div class="timeline-content">
-          <span class="timeline-date">Jan 2026 — Present</span>
+          <span class="timeline-date">Jan 2026 — Jun 2026</span>
           <h3 class="timeline-title">Quality Test Engineering Co-op</h3>
           <p class="timeline-company">SharkNinja</p>
           <p class="timeline-desc">
@@ -107,181 +155,26 @@ import headshot from '../assets/irlHeadshot.jpg';
   </section>
 
   <script>
-    // About page behavior.
-    //  FLIP: faithful port of about.js's scroll-lock state machine. The lock is
-    //    intentional — it holds the section in view so the flip + swapped text
-    //    are actually seen (a de-jacked version swaps after you've scrolled past).
-    //  TIMELINE: hand-drawn spine that draws as you scroll (scroll-linked, no lock).
-    //  Astro hardening the original couldn't have: all listeners are removed and
-    //    the body lock is RELEASED on astro:before-swap, so a mid-flip navigation
-    //    can't leave the next page frozen; re-inits cleanly on astro:page-load.
+    import { mountAboutReveal } from '../lib/motion/about-reveal';
 
-    let rafId: number | null = null;
-    let resizeHandler: (() => void) | null = null;
-    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
-    let scrollHandler: (() => void) | null = null;
-    let wheelHandler: ((e: WheelEvent) => void) | null = null;
-    let touchStartHandler: ((e: TouchEvent) => void) | null = null;
-    let touchMoveHandler: ((e: TouchEvent) => void) | null = null;
-    let touchEndHandler: (() => void) | null = null;
-
-    // Scroll lock (body fixed) with safe restore.
-    let _lockY = 0;
-    let _isLocked = false;
-    function lockScroll() {
-      if (_isLocked) return;
-      _lockY = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${_lockY}px`;
-      document.body.style.left = '0';
-      document.body.style.right = '0';
-      document.body.style.overflowY = 'scroll';
-      document.documentElement.dataset.flipLocked = '1'; // Scrollbar hides on this
-      _isLocked = true;
-    }
-    function unlockScroll() {
-      if (!_isLocked) return;
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.overflowY = '';
-      window.scrollTo({ top: _lockY, behavior: 'instant' });
-      delete document.documentElement.dataset.flipLocked;
-      _isLocked = false;
-    }
-
-    function teardownAbout() {
-      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
-      if (resizeHandler) { window.removeEventListener('resize', resizeHandler); resizeHandler = null; }
-      if (scrollHandler) { window.removeEventListener('scroll', scrollHandler); scrollHandler = null; }
-      if (wheelHandler) { window.removeEventListener('wheel', wheelHandler); wheelHandler = null; }
-      if (touchStartHandler) { window.removeEventListener('touchstart', touchStartHandler); touchStartHandler = null; }
-      if (touchMoveHandler) { window.removeEventListener('touchmove', touchMoveHandler); touchMoveHandler = null; }
-      if (touchEndHandler) { window.removeEventListener('touchend', touchEndHandler); touchEndHandler = null; }
-      unlockScroll(); // never leave the body locked across a navigation
-    }
-
-    function initAbout() {
-      teardownAbout(); // idempotent re-init
-
-      const aboutMain = document.querySelector('.about-page-main');
-      if (!aboutMain) return; // not on /about
-
-      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const headshot = document.querySelector('.headshot');
-      const textBlocks = document.querySelectorAll<HTMLElement>('.text-block');
-      const showTextBlock = (index: number) =>
-        textBlocks.forEach((b, i) => b.classList.toggle('is-visible', i === index));
-      showTextBlock(0);
-
-      // Phases: 0 IDLE (above, normal scroll), 1 PRE (locked, pre-flip),
-      //         2 POST (locked, flipped), 3 DONE (below, normal scroll).
-      const sectionAbsBottom = aboutMain.getBoundingClientRect().bottom + window.scrollY;
-      let phase = window.scrollY >= sectionAbsBottom ? 3 : 0;
-      let accumulated = 0;
-      const FLIP_DELTA = 100;
-      const EXIT_DELTA = 100;
-      let lastScrollY = window.scrollY;
-      // Track the section's previous top so the re-lock can detect the engage
-      // line being CROSSED between two scroll events. A position-band check is
-      // skipped by fast/momentum scrolling (the "won't reverse from far down"
-      // bug); a crossing check fires even when one event jumps over the band.
-      let prevTop = aboutMain.getBoundingClientRect().top;
-      const ENGAGE = 80; // section top at viewport top = the engaged position
-      // Set once the timeline is built; lets the flip's scroll handler re-arm
-      // the (now idle-when-settled) draw loop without depending on it existing.
-      let timelineKick: (() => void) | null = null;
-
-      scrollHandler = () => {
-        const sy = window.scrollY;
-        const isScrollingUp = sy < lastScrollY;
-        lastScrollY = sy;
-        const rect = aboutMain.getBoundingClientRect();
-
-        if (phase === 0) {
-          if (rect.top <= ENGAGE && rect.bottom > window.innerHeight * 0.3) {
-            accumulated = 0; lockScroll(); phase = 1;
-          }
-        } else if (phase === 3 && isScrollingUp) {
-          // Re-arm when the section top crosses the engage line going up
-          // (was above it, now below it) — fires regardless of scroll speed.
-          if (prevTop < ENGAGE && rect.top >= ENGAGE) {
-            accumulated = 0; lockScroll(); phase = 2;
-          }
-        }
-
-        prevTop = rect.top;
-        timelineKick?.(); // re-arm the timeline draw on any real scroll
-      };
-
-      wheelHandler = (e: WheelEvent) => {
-        if (phase !== 1 && phase !== 2) return;
-        e.preventDefault();
-        accumulated += e.deltaY;
-        if (phase === 1) {
-          if (accumulated >= FLIP_DELTA) {
-            headshot?.classList.add('flipped'); showTextBlock(1); phase = 2; accumulated = 0;
-          } else if (accumulated < -80) {
-            unlockScroll(); phase = 0; accumulated = 0;
-          }
-        } else {
-          if (accumulated >= EXIT_DELTA) {
-            unlockScroll(); phase = 3; accumulated = 0;
-          } else if (accumulated <= -FLIP_DELTA) {
-            headshot?.classList.remove('flipped'); showTextBlock(0); phase = 1; accumulated = 0;
-          }
-        }
-      };
-
-      let touchY0 = 0;
-      let touchBase = 0;
-      touchStartHandler = (e: TouchEvent) => { touchY0 = e.touches[0].clientY; };
-      touchMoveHandler = (e: TouchEvent) => {
-        if (phase !== 1 && phase !== 2) return;
-        e.preventDefault();
-        const dy = touchY0 - e.touches[0].clientY;
-        accumulated = touchBase + dy;
-        if (phase === 1) {
-          if (accumulated >= FLIP_DELTA) {
-            headshot?.classList.add('flipped'); showTextBlock(1); phase = 2;
-            touchBase = 0; touchY0 = e.touches[0].clientY; accumulated = 0;
-          } else if (accumulated < -80) {
-            unlockScroll(); phase = 0; touchBase = 0; accumulated = 0;
-          }
-        } else {
-          if (accumulated >= EXIT_DELTA) {
-            unlockScroll(); phase = 3; touchBase = 0; accumulated = 0;
-          } else if (accumulated <= -FLIP_DELTA) {
-            headshot?.classList.remove('flipped'); showTextBlock(0); phase = 1;
-            touchBase = 0; touchY0 = e.touches[0].clientY; accumulated = 0;
-          }
-        }
-      };
-      touchEndHandler = () => { touchBase = accumulated; touchY0 = 0; };
-
-      window.addEventListener('scroll', scrollHandler, { passive: true });
-      window.addEventListener('wheel', wheelHandler, { passive: false });
-      window.addEventListener('touchstart', touchStartHandler, { passive: true });
-      window.addEventListener('touchmove', touchMoveHandler, { passive: false });
-      window.addEventListener('touchend', touchEndHandler, { passive: true });
-
-      // ---- Timeline draw (scroll-linked, no lock) ----
-      const timelineElRaw = document.getElementById('js-timeline');
-      const svgElRaw = document.getElementById('js-timeline-svg') as unknown as SVGSVGElement | null;
-      const pathElRaw = document.getElementById('js-timeline-path') as unknown as SVGPathElement | null;
+    // ---- Experience timeline (scroll-linked hand-drawn path) ----
+    function mountTimeline(): () => void {
+      const timelineEl = document.getElementById('js-timeline');
+      const svgEl = document.getElementById('js-timeline-svg') as unknown as SVGSVGElement | null;
+      const pathEl = document.getElementById('js-timeline-path') as unknown as SVGPathElement | null;
       const timelineItems = Array.from(document.querySelectorAll<HTMLElement>('.timeline-item'));
       const dots = Array.from(document.querySelectorAll<HTMLElement>('.timeline-dot'));
-      if (!timelineElRaw || !svgElRaw || !pathElRaw || timelineItems.length === 0) return;
-      const timelineEl = timelineElRaw;
-      const svgEl = svgElRaw;
-      const pathEl = pathElRaw;
+      if (!timelineEl || !svgEl || !pathEl || timelineItems.length === 0) return () => {};
+
+      const prefersReducedMotion =
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+        document.documentElement.dataset.simReduced === '1';
 
       if (prefersReducedMotion) {
         timelineItems.forEach((item) => item.classList.add('reveal'));
         dots.forEach((dot) => dot.classList.add('dot-visible'));
         svgEl.style.display = 'none';
-        return;
+        return () => {};
       }
 
       const WOBBLE_RANGE = 7;
@@ -289,9 +182,11 @@ import headshot from '../assets/irlHeadshot.jpg';
       let totalLength = 0;
       let revealFracs: number[] = [];
       let currentOffset = 0;
+      let rafId: number | null = null;
 
       const fracAtY = (targetY: number) => {
-        let lo = 0, hi = 1;
+        let lo = 0,
+          hi = 1;
         for (let i = 0; i < 24; i++) {
           const mid = (lo + hi) / 2;
           if (pathEl.getPointAtLength(mid * totalLength).y < targetY) lo = mid;
@@ -341,10 +236,8 @@ import headshot from '../assets/irlHeadshot.jpg';
         const rect = timelineEl.getBoundingClientRect();
         const topAbs = rect.top + window.scrollY;
         const bottomAbs = rect.bottom + window.scrollY;
-        const drawStartOffset = 0.7;
-        const drawEndOffset = 0.9;
-        const drawStart = topAbs - viewH * drawStartOffset;
-        const drawEnd = bottomAbs - viewH * drawEndOffset;
+        const drawStart = topAbs - viewH * 0.7;
+        const drawEnd = bottomAbs - viewH * 0.9;
         const sy = window.scrollY;
         if (sy < drawStart) return 0;
         if (sy > drawEnd) return 1;
@@ -363,33 +256,58 @@ import headshot from '../assets/irlHeadshot.jpg';
           dots[i].classList.toggle('dot-visible', visible);
           timelineItems[i].classList.toggle('reveal', visible);
         });
-        // Idle once the draw has caught up — a fresh scroll re-arms it below —
-        // instead of burning a 60fps loop while the page sits still.
         rafId = settled ? null : requestAnimationFrame(tick);
       };
       const kickTick = () => {
         if (rafId === null) rafId = requestAnimationFrame(tick);
       };
-      timelineKick = kickTick; // now the scroll handler can re-arm the loop
 
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          buildPath();
-          kickTick();
-        })
-      );
-
-      resizeHandler = () => {
+      const onScroll = () => kickTick();
+      let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+      const onResize = () => {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
           buildPath();
           kickTick();
         }, 120);
       };
-      window.addEventListener('resize', resizeHandler);
+
+      const bootRaf = requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          buildPath();
+          kickTick();
+        })
+      );
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onResize);
+
+      return () => {
+        cancelAnimationFrame(bootRaf);
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        clearTimeout(resizeTimer);
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('resize', onResize);
+      };
     }
 
-    document.addEventListener('astro:page-load', initAbout);
-    document.addEventListener('astro:before-swap', teardownAbout);
+    // ---- Idempotent mount/teardown (routing-and-lifecycle contract) ----
+    let destroyReveal: (() => void) | null = null;
+    let destroyTimeline: (() => void) | null = null;
+
+    function mount() {
+      if (!document.querySelector('.about-stage')) return; // not on /about
+      if (!destroyReveal) destroyReveal = mountAboutReveal();
+      if (!destroyTimeline) destroyTimeline = mountTimeline();
+    }
+    function teardown() {
+      destroyReveal?.();
+      destroyReveal = null;
+      destroyTimeline?.();
+      destroyTimeline = null;
+    }
+
+    document.addEventListener('astro:page-load', mount);
+    document.addEventListener('astro:before-swap', teardown);
+    mount(); // catch-up: a first SPA entry can miss the page-load dispatch
   </script>
 </Base>

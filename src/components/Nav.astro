@@ -19,53 +19,24 @@ const { theme = 'sketchbook' } = Astro.props;
 // Projects dropdown is redundant — show Home / About / Contact instead. Other
 // pages keep the Projects ▾ dropdown.
 const isDiscipline = theme === 'engineering' || theme === 'design' || theme === 'software';
+
+// Engineering and Design both use the wordmark logo (amber tick + "DYLAN CHEN"),
+// skinned per-theme in nav.css. Other themes keep the boiling-name gif.
+const useWordmark = theme === 'engineering' || theme === 'design';
 ---
 
 <nav>
-  <ul class="sidebar">
-    <li>
-      <button id="close-sidebar" type="button" aria-label="Close menu">
-        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
-          <Icon name="at-icons:cross"/>
-      </button>
-    </li>
-    <li><a href="/">Home</a></li>
-    {
-      !isDiscipline && (
-        <li class="sidebar-group">
-          <button
-            type="button"
-            class="sidebar-group-trigger"
-            aria-expanded="false"
-            aria-controls="sidebar-projects"
-          >
-            Projects
-            <span class="nav-caret" aria-hidden="true" />
-          </button>
-          <ul class="sidebar-submenu" id="sidebar-projects">
-            {projectLinks.map((link) => (
-              <li>
-                <a href={link.href}>{link.label}</a>
-              </li>
-            ))}
-          </ul>
-        </li>
-      )
-    }
-    <li><a href="/about">About</a></li>
-    <li><a href="/contact">Contact</a></li>
-  </ul>
   <ul>
     <li class="logo">
       {
-        theme === 'engineering' ? (
+        useWordmark ? (
           <a href="/" class="logo-text" aria-label="Dylan Chen Portfolio Home">
             <span class="logo-chip" aria-hidden="true" />
             <span class="logo-name">DYLAN CHEN</span>
           </a>
         ) : (
           <a href="/">
-            <img src="/Assets/boilingName.gif" alt="Dylan Chen Portfolio Home" class="logo-img" />
+            <img src="/Assets/motion/boilingName.gif" data-freeze="/Assets/motion/boilingName-static.png" alt="Dylan Chen Portfolio Home" class="logo-img asset-recolor" />
           </a>
         )
       }
@@ -110,6 +81,44 @@ const isDiscipline = theme === 'engineering' || theme === 'design' || theme === 
   </ul>
 </nav>
 
+{/* The drawer lives OUTSIDE <nav> on purpose: <nav> is position:sticky + z-index,
+    so it forms a stacking context that would trap the drawer beneath the fixed
+    settings toggles / scrim no matter how high its own z-index. As a body-level
+    sibling of the scrim it stacks freely (drawer > scrim > toggles). It's
+    position:fixed, so leaving nav costs nothing in layout. */}
+<ul class="sidebar">
+  <li>
+    <button id="close-sidebar" type="button" aria-label="Close menu">
+      <Icon name="at-icons:cross" class="close-icon" width="24" height="24" />
+    </button>
+  </li>
+  <li><a href="/">Home</a></li>
+  {
+    !isDiscipline && (
+      <li class="sidebar-group">
+        <button
+          type="button"
+          class="sidebar-group-trigger"
+          aria-expanded="false"
+          aria-controls="sidebar-projects"
+        >
+          Projects
+          <span class="nav-caret" aria-hidden="true" />
+        </button>
+        <ul class="sidebar-submenu" id="sidebar-projects">
+          {projectLinks.map((link) => (
+            <li>
+              <a href={link.href}>{link.label}</a>
+            </li>
+          ))}
+        </ul>
+      </li>
+    )
+  }
+  <li><a href="/about">About</a></li>
+  <li><a href="/contact">Contact</a></li>
+</ul>
+
 <div class="sidebar-overlay"></div>
 
 <style>
@@ -119,6 +128,14 @@ const isDiscipline = theme === 'engineering' || theme === 'design' || theme === 
     display: block;
 
     stroke-width: 2.5px;
+  }
+
+  /* at-icons:cross is a fill="currentColor" glyph, so it recolours via `color`
+     (inherited from the close button) — no stroke-width needed. */
+  .close-icon {
+    width: 24px;
+    height: 24px;
+    display: block;
   }
 
 
@@ -146,6 +163,64 @@ const isDiscipline = theme === 'engineering' || theme === 'design' || theme === 
     setTimeout(() => {
       sidebar.style.display = 'none';
     }, 300);
+  }
+
+  // ---- Mobile "Projects" accordion: rail-draw-driven reveal ----
+  // One progress value (0→1) drives BOTH the chain-rail clip-path AND, from the
+  // options' real layout positions, the moment each is revealed — so the wire
+  // front reaches every row exactly as it un-hides, guaranteed in sync however
+  // many options there are. Ported from the about-page timeline's drawn-fraction
+  // reveal, replacing the CSS's old hardcoded animation-delays.
+  let railRaf = 0;
+  const RAIL_DRAW_MS = 700;
+  // Deliberately keys off the OS pref only (not html[data-sim-reduced], which is
+  // force-on at mobile widths where this accordion lives) — mirrors the matching
+  // note in sidebar.css.
+  const railReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function openSidebarGroup(group: HTMLElement) {
+    const items = Array.from(group.querySelectorAll<HTMLElement>('.sidebar-submenu li'));
+    group.classList.add('open');
+    cancelAnimationFrame(railRaf);
+    railRaf = 0;
+
+    if (railReduced() || items.length === 0) {
+      group.style.setProperty('--rail-progress', '1');
+      items.forEach((li) => li.classList.add('revealed'));
+      return;
+    }
+
+    // Each option's centre as a fraction of the rail's full span. The rail (the
+    // group's ::before) runs top→bottom of the group, and the group is the
+    // options' offsetParent (it's the only positioned ancestor), so an option's
+    // offsetTop already includes the trigger + gaps and the last option's bottom
+    // is the rail's end. offsetTop is unaffected by the submenu's max-height
+    // clip, so this is valid the moment .open is added.
+    const last = items[items.length - 1];
+    const railTotal = last.offsetTop + last.offsetHeight || 1;
+    const fracs = items.map((li) => (li.offsetTop + li.offsetHeight / 2) / railTotal);
+
+    items.forEach((li) => li.classList.remove('revealed'));
+    const start = performance.now();
+    const step = (now: number) => {
+      const p = Math.min(1, (now - start) / RAIL_DRAW_MS);
+      group.style.setProperty('--rail-progress', String(p));
+      items.forEach((li, i) => {
+        if (p >= fracs[i]) li.classList.add('revealed');
+      });
+      railRaf = p < 1 ? requestAnimationFrame(step) : 0;
+    };
+    railRaf = requestAnimationFrame(step);
+  }
+
+  function closeSidebarGroup(group: HTMLElement) {
+    cancelAnimationFrame(railRaf);
+    railRaf = 0;
+    group.classList.remove('open');
+    group.style.removeProperty('--rail-progress');
+    group
+      .querySelectorAll('.sidebar-submenu li.revealed')
+      .forEach((li) => li.classList.remove('revealed'));
   }
 
   // ---- Desktop "Projects" dropdown ----
@@ -185,9 +260,12 @@ const isDiscipline = theme === 'engineering' || theme === 'design' || theme === 
     } else if (t.closest('.sidebar-group-trigger')) {
       e.preventDefault();
       const trigger = t.closest('.sidebar-group-trigger') as HTMLElement;
-      const group = trigger.closest('.sidebar-group');
-      const open = group?.classList.toggle('open');
-      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      const group = trigger.closest('.sidebar-group') as HTMLElement | null;
+      if (!group) return;
+      const willOpen = !group.classList.contains('open');
+      if (willOpen) openSidebarGroup(group);
+      else closeSidebarGroup(group);
+      trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
     } else if (!t.closest('.nav-dropdown')) {
       // Click outside the dropdown closes it.
       closeDropdown();
@@ -240,14 +318,15 @@ const isDiscipline = theme === 'engineering' || theme === 'design' || theme === 
   function syncNavState() {
     closeDropdown();
     document
-      .querySelectorAll('.sidebar-group.open')
-      .forEach((g) => g.classList.remove('open'));
+      .querySelectorAll<HTMLElement>('.sidebar-group.open')
+      .forEach((g) => closeSidebarGroup(g));
     document
       .querySelectorAll('.sidebar-group-trigger[aria-expanded="true"]')
       .forEach((t) => t.setAttribute('aria-expanded', 'false'));
 
     const path = window.location.pathname.replace(/\/$/, '') || '/';
-    document.querySelectorAll('nav a[href]').forEach((a) => {
+    // Includes the drawer, which now lives outside <nav> (see the markup note).
+    document.querySelectorAll('nav a[href], .sidebar a[href]').forEach((a) => {
       const href = (a as HTMLAnchorElement).getAttribute('href') || '';
       const norm = href.replace(/\/$/, '') || '/';
       if (norm === path) a.setAttribute('aria-current', 'page');

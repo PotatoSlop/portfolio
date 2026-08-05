@@ -12,7 +12,7 @@
   Card model (locked): STRUCTURAL only — timeline eyebrow → title → caption →
   optional cross-discipline links → one solid "View Repo" button. The whole
   card opens the case study (a "View Project" chip trails the pointer, driven by
-  src/lib/motion/pointer-follow.ts); tech travels to the overlay, never the card.
+  src/lib/motion/cursor-chip.ts); tech travels to the overlay, never the card.
 
   Media resolves per card: a hover-scrubbed <video> (hero), an <Image> cover, or
   a neutral glyph placeholder — all cover-fit into the fixed frame.
@@ -27,6 +27,19 @@
   gap: clamp(0.35rem, 1vw, 0.7rem);
   /* Subtle lift off the (white) page — shared by the hero crop + accordion cards. */
   --card-shadow: 0 6px 22px -6px rgba(30, 30, 20, 0.22);
+}
+
+/* ---------- feature crop (hero reveal container) ----------
+   Overflow-clips the hero .feat while projects-gallery.ts rides it up from
+   translateY(100%). Rests with a TRANSPARENT shadow (same geometry as
+   --card-shadow, alpha 0); the reveal fades the shadow in only AFTER the card
+   has finished riding up, so it never outlines an empty / half-cropped box. The
+   crop's own shadow isn't clipped by its overflow — only its children are.
+   Shared by every discipline's projects section (engineering, software, …). */
+.feature-crop {
+  overflow: hidden;
+  line-height: 0;
+  box-shadow: 0 6px 22px -6px rgba(30, 30, 20, 0);
 }
 
 /* ---------- media (shared) ---------- */
@@ -53,7 +66,7 @@
 }
 .feat:hover .feat__media img,
 .feat:hover .feat__media video,
-.acc__panel:hover .acc__media img,
+.acc__panel.is-active .acc__media img,
 .acc__panel:focus-within .acc__media img {
   --cover-hover: 1.04;
 }
@@ -109,7 +122,7 @@
 }
 .cta svg { width: 1.02rem; height: 1.02rem; }
 
-/* Trailing "View Project" chip. pointer-follow.ts owns translate() (pointer
+/* Trailing "View Project" chip. cursor-chip.ts owns translate() (pointer
    lag); CSS owns the reveal (opacity + scale on the non-overshoot SMOOTH ease —
    the aggressive theme ease overshoots into a squishy bounce). */
 .viewchip {
@@ -210,8 +223,13 @@
 /* the only button — solid + prominent, distinct from the flat spec row, using
    the site's signature wipe-to-accent hover for CTA continuity. */
 .cta--repo {
-  color: var(--theme-ink);
-  background: #fff;
+  /* Solid ink block: dark box + light label (+ the mdi:github glyph, which
+     inherits currentColor). Uses the contract pair so it inverts with the scheme
+     and stays high-contrast — black-on-white in light, white-on-dark's inverse in
+     dark — instead of a fixed box that goes low-contrast in one mode. The accent
+     wipe + accent-contrast label on hover still track the theme. */
+  color: var(--theme-bg);
+  background: var(--theme-ink);
   font-weight: 700;
   padding: 0.62rem 1.1rem;
 }
@@ -308,9 +326,15 @@
   transition: flex-grow var(--duration-smooth) var(--ease-smooth);
 }
 .acc__panel:first-child { flex-grow: 11; }
-.acc:hover .acc__panel:first-child,
+/* Mouse interaction is driven by JS (.is-interacting / .is-active) via
+   pointermove, NOT :hover — expanding a panel reflows its siblings under the
+   cursor, and :hover re-fires on that reflow (even with no pointer movement,
+   and through the inter-panel gaps where every panel briefly equalises), which
+   cascaded a rightward move to the last panel and made the middle panels
+   unreachable. Keyboard keeps :focus-within. See projects-gallery.ts. */
+.acc.is-interacting .acc__panel:first-child,
 .acc:focus-within .acc__panel:first-child { flex-grow: 1; }
-.acc:hover .acc__panel:hover,
+.acc.is-interacting .acc__panel.is-active,
 .acc:focus-within .acc__panel:focus-within { flex-grow: 13; }
 
 .acc__media::after {
@@ -328,12 +352,12 @@
   pointer-events: none;
 }
 .acc__panel:first-child .acc__media::after { opacity: 0; }
-.acc:hover .acc__media::after,
+.acc.is-interacting .acc__media::after,
 .acc:focus-within .acc__media::after { opacity: 1; }
-.acc__panel:hover .acc__media::after,
+.acc__panel.is-active .acc__media::after,
 .acc__panel:focus-within .acc__media::after { opacity: 0; }
 /* re-dim while the Repo button is the target, so it reads distinctly */
-.acc__panel:hover:has(.cta--repo:hover) .acc__media::after { opacity: 1; }
+.acc__panel.is-active:has(.cta--repo:hover) .acc__media::after { opacity: 1; }
 
 .acc__spine {
   position: absolute;
@@ -353,17 +377,17 @@
   transition: opacity var(--duration-medium) var(--ease-smooth);
 }
 .acc__panel:first-child .acc__spine { opacity: 0; }
-.acc:hover .acc__spine,
+.acc.is-interacting .acc__spine,
 .acc:focus-within .acc__spine { opacity: 1; }
-.acc__panel:hover .acc__spine,
+.acc__panel.is-active .acc__spine,
 .acc__panel:focus-within .acc__spine { opacity: 0; }
 
 /* accordion info reuses .feat__info; reveal only when the panel is expanded */
 .acc__info { justify-content: flex-end; }
 .acc__panel:first-child .acc__info { opacity: 1; }
-.acc:hover .acc__info,
+.acc.is-interacting .acc__info,
 .acc:focus-within .acc__info { opacity: 0; }
-.acc__panel:hover .acc__info,
+.acc__panel.is-active .acc__info,
 .acc__panel:focus-within .acc__info { opacity: 1; }
 .acc__name {
   font-family: var(--theme-font-display);
@@ -373,6 +397,24 @@
   color: var(--theme-accent);
 }
 .acc__panel--soon { cursor: default; }
+
+/* ---------- ACCORDION reverse-collapse intro ---------- */
+/* engineering.astro arms `.acc--sweeping` off-screen with the RIGHTMOST panel
+   expanded, then walks an `.is-lead` marker right → left: each panel expands in
+   turn while the previous collapses, landing on the lead (Palmer, first child).
+   The container class suppresses the default first-child expansion so the sweep
+   fully owns which panel is open. Placed after the base/hover rules so the tie-
+   specificity grow/opacity swaps resolve in the sweep's favour, while hover
+   (higher specificity) still wins if the visitor interacts mid-intro. Added via
+   JS, so no-JS / reduced motion keep the static default-expanded lead. */
+.acc--sweeping .acc__panel { flex-grow: 1; }
+.acc--sweeping .acc__panel.is-lead { flex-grow: 11; }
+.acc--sweeping .acc__panel .acc__media::after { opacity: 1; }
+.acc--sweeping .acc__panel.is-lead .acc__media::after { opacity: 0; }
+.acc--sweeping .acc__panel .acc__spine { opacity: 1; }
+.acc--sweeping .acc__panel.is-lead .acc__spine { opacity: 0; }
+.acc--sweeping .acc__panel .acc__info { opacity: 0; }
+.acc--sweeping .acc__panel.is-lead .acc__info { opacity: 1; }
 
 /* ---------- SPA case overlay ---------- */
 .caseov {
@@ -471,8 +513,8 @@
   .acc { flex-direction: column; height: auto; }
   .acc__panel,
   .acc__panel:first-child,
-  .acc:hover .acc__panel:first-child,
-  .acc:hover .acc__panel:hover {
+  .acc.is-interacting .acc__panel:first-child,
+  .acc.is-interacting .acc__panel.is-active {
     flex: 0 0 auto;
     height: clamp(200px, 40vh, 300px);
   }
@@ -503,3 +545,20 @@
   .caseov,
   .caseov__panel { transition: none; }
 }
+
+/* The manual reduced-motion toggle (and mobile, which forces it) sets
+   html[data-sim-reduced] and never triggers the OS media query above. Mirror it
+   so the accordion's flex-grow sizing (and its sibling transitions) resolve
+   instantly instead of animating. */
+html[data-sim-reduced] .acc__panel,
+html[data-sim-reduced] .acc__info,
+html[data-sim-reduced] .acc__spine,
+html[data-sim-reduced] .acc__media::after,
+html[data-sim-reduced] .viewchip,
+html[data-sim-reduced] .feat__info,
+html[data-sim-reduced] .feat__media img,
+html[data-sim-reduced] .feat__media video,
+html[data-sim-reduced] .acc__media img,
+html[data-sim-reduced] .cta,
+html[data-sim-reduced] .caseov,
+html[data-sim-reduced] .caseov__panel { transition: none; }

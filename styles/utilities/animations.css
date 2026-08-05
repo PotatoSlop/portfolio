@@ -104,6 +104,12 @@ html[data-slide='backward']::view-transition-new(root) {
   animation: wave 2s ease-in-out infinite;
 }
 
+/* Manual reduced-motion toggle (and mobile, which forces it) — hold the scroll
+   hint letters still. The OS `prefers-reduced-motion` media query already neuters
+   the wave globally (styles/utilities/accessibility.css); this mirrors that for
+   the site's own html[data-sim-reduced] flag. */
+html[data-sim-reduced] .wave-text span { animation: none; }
+
 .wave-text span:nth-child(2) { animation-delay: 0s; }
 .wave-text span:nth-child(3) { animation-delay: 0.07s; }
 .wave-text span:nth-child(4) { animation-delay: 0.14s; }

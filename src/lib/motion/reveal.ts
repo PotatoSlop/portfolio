@@ -1,7 +1,6 @@
-import { animate, inView, stagger } from 'motion';
+import { animate, inView } from 'motion';
 import type { DOMKeyframesDefinition, AnimationOptions } from 'motion';
 import { prefersReducedMotion } from './reduced-motion';
-import { durations, eases, staggerBase } from './tokens';
 
 type Target = Element | string | NodeListOf<Element> | Element[];
 
@@ -88,46 +87,6 @@ export function reveal(target: Target, keyframes: DOMKeyframesDefinition, option
       if (!repeat) stop();
       // When repeating, re-arm on leave so the next entry animates in again.
       return repeat ? arm : undefined;
-    },
-    { amount, margin: margin as never },
-  );
-  return stop;
-}
-
-/**
- * Reveal a set of siblings with a stagger delay between them. Same triggering &
- * gating as reveal(); adds Motion's `stagger()` to the delay.
- *
- *   revealStagger('.timeline-item', { opacity: [0, 1], transform: ['translateY(24px)', 'none'] });
- */
-export function revealStagger(target: Target, keyframes: DOMKeyframesDefinition, options: RevealOptions & { each?: number } = {},): () => void {
-  const {
-    amount = 0.2,
-    margin,
-    repeat = false,
-    each = staggerBase / 2,
-    duration = durations.slow,
-    ease = eases.smooth,
-    ...rest
-  } = options;
-  const els = resolve(target);
-  if (!els.length) return () => {};
-
-  if (prefersReducedMotion()) {
-    animate(els, lastFrame(keyframes), { duration: 0 });
-    return () => {};
-  }
-
-  const from = firstFrame(keyframes);
-  animate(els, from, { duration: 0 });
-
-  // Observe the container-ish first element; when in view, animate the whole set.
-  let stop = () => {};
-  stop = inView(
-    els[0],
-    () => {
-      animate(els, keyframes, { duration, ease, delay: stagger(each), ...rest });
-      if (!repeat) stop();
     },
     { amount, margin: margin as never },
   );
