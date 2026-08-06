@@ -20,13 +20,18 @@
   align-items: center;
   min-height: min(92vh, 800px);
   padding: clamp(2rem, 6vh, 4rem) 0 9.5rem;
-  cursor: none; /* the 3D tool + brush ring stand in for the pointer */
+  /* Interactive drawing surface. The OS cursor is hidden ONLY while the tool
+     (pencil/eraser) is actually standing in for it — see `.tool-shown`, toggled
+     from about-reveal.ts in lockstep with the tool's visibility. Every other time
+     (no tool armed, or the pointer is over the toolbar / nav) the normal cursor
+     shows — the plain default pointer, unchanged from the rest of the page. */
+  cursor: default;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
 }
-.about-stage.no-tool {
-  cursor: crosshair;
+.about-stage.tool-shown {
+  cursor: none; /* the pencil/eraser is visible and replaces the pointer */
 }
 
 /* ---- image column (circle) ---- */
@@ -294,21 +299,13 @@
 .state-toggle:active {
   transform: scale(1.06);
 }
-/* The (single) active tool: a circular amber fill with a white glyph on top. It
-   carries both glyphs and shows one at a time — pencil for draw, eraser for hide. */
-.tool-btn.about-tool-active {
+/* The selected tool (pen OR eraser): a circular amber fill with a white glyph. Both
+   tool buttons can carry it; at most one is active at a time, and neither is at rest
+   (the interaction starts with no tool selected). */
+.tool-btn.is-active {
   background: var(--color-primary);
   color: var(--color-white);
   border-radius: 50%;
-}
-.about-tool-active .glyph-erase {
-  display: none;
-}
-.about-tool-active.is-hide .glyph-draw {
-  display: none;
-}
-.about-tool-active.is-hide .glyph-erase {
-  display: block;
 }
 .tool-btn:focus-visible,
 .state-toggle:focus-visible {

@@ -52,6 +52,9 @@ import { animate, scroll } from "motion"
   <section class="temp-section"></section>
 
   <script>
+    import { navigate } from 'astro:transitions/client';
+    import { onPageReady } from '../lib/motion/lifecycle';
+
     // Step 4a: intro animation — ported from the intro portion of
     // landing-page.js (typewriter types "Hi! I'm", then the DYLAN title + gif +
     // scroll hint reveal; scroll is locked during the intro). Scroll-reveal (4b)
@@ -254,8 +257,12 @@ import { animate, scroll } from "motion"
         updateArticle(id);
         const url = redirects[id];
         if (url) {
+          // SPA navigation (not window.location) so the home page uses the same
+          // ClientRouter lifecycle as the pull-tabs / navbar — one uniform routing
+          // model. The fade-out plays for the dwell, then the landing's teardown
+          // (below) clears it right before the swap so the destination is clean.
           document.body.classList.add('fade-out');
-          setTimeout(() => { window.location.href = url; }, 500);
+          setTimeout(() => { navigate(url); }, 500);
         }
       });
 
@@ -271,8 +278,20 @@ import { animate, scroll } from "motion"
       categorySelect.addEventListener('dragleave', () => categorySelect.classList.remove('drag-over'));
     }
 
-    document.addEventListener('astro:page-load', initLandingIntro);
-    document.addEventListener('astro:page-load', wireDrag);
+    // onPageReady mounts on every page-load AND as a first-SPA-entry catch-up
+    // (see src/lib/motion/lifecycle.ts). The teardown clears the body flags the
+    // intro sets — they'd otherwise ride the persistent <body> onto the next page
+    // (no-scroll would lock it; fade-out would leave it invisible after the drag
+    // navigation) — and cancels the pending scroll-hint fade.
+    onPageReady('.landing', () => {
+      initLandingIntro();
+      wireDrag();
+      return () => {
+        document.body.classList.remove('no-scroll', 'fade-out');
+        clearTimeout(scrollFadeTimeout);
+        introComplete = false;
+      };
+    });
     // Bound ONCE (window persists across View Transitions) to avoid listener
     // leaks; it queries elements fresh and no-ops when off the landing.
     window.addEventListener('scroll', onScroll);

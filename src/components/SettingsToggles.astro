@@ -74,6 +74,7 @@ import { Icon } from 'astro-icon/components';
       transform var(--duration-fast) var(--theme-motion-ease);
   }
   .st-toggle:hover {
+    color: var(--theme-accent); /* icon warms to amber on hover (was ink/black) */
     border-color: var(--theme-accent);
     transform: scale(1.05);
   }
@@ -103,9 +104,10 @@ import { Icon } from 'astro-icon/components';
     display: block;
   }
 
-  /* Toggled "on" (reduced motion active) — accent fill + contrast icon. */
+  /* Toggled "on" (reduced motion active) — accent fill + white icon.
+     (Engineering overrides this below to keep its accent-contrast icon.) */
   #toggle-motion[aria-pressed='true'] {
-    color: var(--theme-accent-contrast);
+    color: var(--color-white);
     background: var(--theme-accent);
     border-color: var(--theme-accent);
   }
@@ -181,13 +183,13 @@ import { Icon } from 'astro-icon/components';
   // ----- Colour scheme (dark mode) -----
   // Key + apply logic mirror the FOUC-safe head script and the before-swap
   // handler in Base.astro. Stored value is an explicit 'dark' | 'light' once the
-  // user has chosen; null = follow the OS.
+  // user has chosen; null = the LIGHT default (a style choice — we deliberately do
+  // NOT follow the OS, so a dark-OS visitor still starts light until they toggle).
   const THEME_KEY = 'color-scheme';
-  const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
   const storedScheme = () => localStorage.getItem(THEME_KEY); // 'dark' | 'light' | null
   const isDark = () => {
     const s = storedScheme();
-    return s ? s === 'dark' : darkMq.matches;
+    return s ? s === 'dark' : false;
   };
 
   function applyScheme(dark: boolean) {
@@ -248,11 +250,9 @@ import { Icon } from 'astro-icon/components';
   // state — so it doesn't need per-navigation teardown.
   mobileMq.addEventListener('change', () => applyMotionState(effectiveReduced()));
 
-  // Follow the OS scheme live, but only while the user hasn't made an explicit
-  // choice (an explicit 'dark'/'light' pins the scheme regardless of the OS).
-  darkMq.addEventListener('change', () => {
-    if (!storedScheme()) applyScheme(isDark());
-  });
-
-  document.addEventListener('astro:page-load', initSettingsToggles);
+  // onPageReady adds the first-SPA-entry catch-up (see src/lib/motion/lifecycle.ts)
+  // so the toggle buttons bind + re-sync their state whether a page is loaded
+  // directly or navigated into. Global behavior → no page-specific root.
+  import { onPageReady } from '../lib/motion/lifecycle';
+  onPageReady(null, initSettingsToggles);
 </script>

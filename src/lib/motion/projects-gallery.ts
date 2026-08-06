@@ -7,7 +7,7 @@
 
   Behaviours (each guards on its own elements, so a page missing a piece is fine):
     1. Feature card rides up from its crop on scroll-in; its shadow settles after.
-    2. Accordion "reverse-collapse" intro: the lead panel sweeps right → left.
+    2. Pointer-driven accordion expansion (panels expand under the cursor).
     3. Hero clip hover-scrub, the trailing "View Project" chip, and the FLIP
        case-study overlay.
 
@@ -15,10 +15,8 @@
   docs/routing-and-lifecycle.md — safe to mount on `astro:page-load` and destroy
   on `astro:before-swap`.
 */
-import { inView } from 'motion';
 import { reveal } from './reveal';
 import { eases } from './tokens';
-import { prefersReducedMotion } from './reduced-motion';
 import { mountVideoScrub, type VideoScrubHandle } from './video-scrub';
 import { mountChipTrail } from './cursor-chip';
 import { mountCaseOverlay } from './case-overlay';
@@ -70,53 +68,10 @@ export function mountProjectsGallery(root: ParentNode = document): () => void {
     );
   }
 
-  // 2. Accordion "reverse-collapse" intro: armed off-screen with the RIGHTMOST
-  // panel expanded, then an is-lead marker walks right → left once the strip
-  // scrolls into view — each panel expands as the previous collapses, landing on
-  // the lead (first child), which is also the CSS default, so the marker classes
-  // drop away seamlessly. No-JS / reduced motion keep the static default lead.
   const acc = root.querySelector<HTMLElement>('.acc');
   const panels = acc ? [...acc.querySelectorAll<HTMLElement>('.acc__panel')] : [];
-  if (acc && panels.length > 1 && !prefersReducedMotion()) {
-    const setLead = (i: number) =>
-      panels.forEach((p, k) => p.classList.toggle('is-lead', k === i));
 
-    // Arm: rightmost panel expanded, rest collapsed (off-screen).
-    acc.classList.add('acc--sweeping');
-    setLead(panels.length - 1);
-
-    const DWELL = 100; // ms each panel holds before handing off leftward
-
-    let stopAcc = () => {};
-    stopAcc = inView(
-      acc,
-      () => {
-        stopAcc();
-        let idx = panels.length - 1;
-        const step = () => {
-          idx -= 1;
-          setLead(idx);
-          if (idx <= 0) {
-            // Landed on the lead: let the last expand finish, then settle into
-            // the untouched CSS default (identical visual, no jump).
-            timers.push(
-              window.setTimeout(() => {
-                acc.classList.remove('acc--sweeping');
-                panels.forEach((p) => p.classList.remove('is-lead'));
-              }, 420)
-            );
-          } else {
-            timers.push(window.setTimeout(step, DWELL));
-          }
-        };
-        timers.push(window.setTimeout(step, DWELL)); // a beat, then sweep
-      },
-      { amount: 0.3, margin: '0px 0px -12% 0px' }
-    );
-    disposers.push(() => stopAcc());
-  }
-
-  // 2b. Pointer-driven accordion expansion (mouse). CSS :hover can't drive this
+  // 2. Pointer-driven accordion expansion (mouse). CSS :hover can't drive this
   // reliably: expanding a panel reflows its siblings under the cursor, and
   // :hover re-evaluates against whatever sits under the cursor AFTER the reflow
   // — which fires with no pointer movement at all, and passes through the 4px

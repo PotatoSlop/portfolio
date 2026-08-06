@@ -324,6 +324,7 @@ const multi = modes.length > 1;
 
 <script>
   import { prefersReducedMotion } from '../../lib/motion/reduced-motion';
+  import { onPageReady } from '../../lib/motion/lifecycle';
 
   interface Mode {
     tag: string;
@@ -467,13 +468,7 @@ const multi = modes.length > 1;
     };
   }
 
-  let destroy: (() => void) | null = null;
-  document.addEventListener('astro:page-load', () => {
-    destroy?.();
-    destroy = initHeroCycler();
-  });
-  document.addEventListener('astro:before-swap', () => {
-    destroy?.();
-    destroy = null;
-  });
+  // onPageReady adds the first-SPA-entry catch-up (see src/lib/motion/lifecycle.ts)
+  // so the hero cycler mounts whether /design is loaded directly or navigated into.
+  onPageReady('#heroFeature', () => initHeroCycler());
 </script>

@@ -253,6 +253,16 @@
 .cta--repo:hover::before,
 .cta--repo:focus-visible::before { clip-path: inset(0 0 0 0); }
 
+/* Engineering pins the Repo button to a fixed black-on-white block in BOTH
+   schemes — the default overrides --theme-bg/--theme-ink (which would otherwise
+   flip the box to white-on-dark in dark mode). Only the resting colors are
+   pinned; the accent wipe + accent-contrast label on hover still track the
+   theme, so hover is unchanged. */
+[data-theme='engineering'] .cta--repo {
+  color: #1e1e14;
+  background: #ffffff;
+}
+
 /* ---------- HERO ---------- */
 .feat {
   position: relative;
@@ -397,24 +407,6 @@
   color: var(--theme-accent);
 }
 .acc__panel--soon { cursor: default; }
-
-/* ---------- ACCORDION reverse-collapse intro ---------- */
-/* engineering.astro arms `.acc--sweeping` off-screen with the RIGHTMOST panel
-   expanded, then walks an `.is-lead` marker right → left: each panel expands in
-   turn while the previous collapses, landing on the lead (Palmer, first child).
-   The container class suppresses the default first-child expansion so the sweep
-   fully owns which panel is open. Placed after the base/hover rules so the tie-
-   specificity grow/opacity swaps resolve in the sweep's favour, while hover
-   (higher specificity) still wins if the visitor interacts mid-intro. Added via
-   JS, so no-JS / reduced motion keep the static default-expanded lead. */
-.acc--sweeping .acc__panel { flex-grow: 1; }
-.acc--sweeping .acc__panel.is-lead { flex-grow: 11; }
-.acc--sweeping .acc__panel .acc__media::after { opacity: 1; }
-.acc--sweeping .acc__panel.is-lead .acc__media::after { opacity: 0; }
-.acc--sweeping .acc__panel .acc__spine { opacity: 1; }
-.acc--sweeping .acc__panel.is-lead .acc__spine { opacity: 0; }
-.acc--sweeping .acc__panel .acc__info { opacity: 0; }
-.acc--sweeping .acc__panel.is-lead .acc__info { opacity: 1; }
 
 /* ---------- SPA case overlay ---------- */
 .caseov {

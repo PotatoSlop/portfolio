@@ -66,7 +66,7 @@ import headshot from '../assets/irlHeadshot.jpg';
         </span>
         <span class="about-hint__row">
           <Icon class="about-hint__ico" name="mdi:mouse-right-click-outline" width="20" height="20" />
-          Flip
+          Drop
         </span>
       </div>
 
@@ -77,13 +77,22 @@ import headshot from '../assets/irlHeadshot.jpg';
 
       <div class="about-toolbar" role="toolbar" aria-label="Drawing tools">
         <button
-          class="tool-btn about-tool-draw about-tool-active"
-          id="about-tool"
-          aria-label="Draw tool (right-click to flip)"
+          class="tool-btn about-tool-draw"
+          id="about-tool-pen"
+          aria-label="Draw tool"
+          aria-pressed="false"
           data-tooltip="Draw"
         >
-          <Icon class="glyph glyph-draw" name="tabler:pencil" width="22" height="22" />
-          <Icon class="glyph glyph-erase" name="tabler:eraser" width="22" height="22" />
+          <Icon class="glyph" name="tabler:pencil" width="22" height="22" />
+        </button>
+        <button
+          class="tool-btn about-tool-draw"
+          id="about-tool-eraser"
+          aria-label="Erase tool"
+          aria-pressed="false"
+          data-tooltip="Erase"
+        >
+          <Icon class="glyph" name="tabler:eraser" width="22" height="22" />
         </button>
         <div class="brush-size about-tool-draw" data-tooltip="Brush size">
           <input type="range" id="about-size" aria-label="Brush size" />
@@ -156,6 +165,7 @@ import headshot from '../assets/irlHeadshot.jpg';
 
   <script>
     import { mountAboutReveal } from '../lib/motion/about-reveal';
+    import { onPageReady } from '../lib/motion/lifecycle';
 
     // ---- Experience timeline (scroll-linked hand-drawn path) ----
     function mountTimeline(): () => void {
@@ -290,24 +300,15 @@ import headshot from '../assets/irlHeadshot.jpg';
       };
     }
 
-    // ---- Idempotent mount/teardown (routing-and-lifecycle contract) ----
-    let destroyReveal: (() => void) | null = null;
-    let destroyTimeline: (() => void) | null = null;
-
-    function mount() {
-      if (!document.querySelector('.about-stage')) return; // not on /about
-      if (!destroyReveal) destroyReveal = mountAboutReveal();
-      if (!destroyTimeline) destroyTimeline = mountTimeline();
-    }
-    function teardown() {
-      destroyReveal?.();
-      destroyReveal = null;
-      destroyTimeline?.();
-      destroyTimeline = null;
-    }
-
-    document.addEventListener('astro:page-load', mount);
-    document.addEventListener('astro:before-swap', teardown);
-    mount(); // catch-up: a first SPA entry can miss the page-load dispatch
+    // ---- Idempotent mount/teardown via the shared lifecycle primitive
+    //      (routing-and-lifecycle contract §3.1) ----
+    onPageReady('.about-stage', () => {
+      const destroyReveal = mountAboutReveal();
+      const destroyTimeline = mountTimeline();
+      return () => {
+        destroyReveal();
+        destroyTimeline();
+      };
+    });
   </script>
 </Base>

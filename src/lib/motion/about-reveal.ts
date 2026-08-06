@@ -106,7 +106,8 @@ function mountFullPath(stage: HTMLElement): () => void {
   const btnToggle = stage.querySelector<HTMLButtonElement>('#about-toggle')!;
   const sizeSlider = stage.querySelector<HTMLInputElement>('#about-size')!;
   const sizePct = stage.querySelector<HTMLElement>('#about-size-pct')!;
-  const btnTool = stage.querySelector<HTMLButtonElement>('#about-tool')!;
+  const btnPen = stage.querySelector<HTMLButtonElement>('#about-tool-pen')!;
+  const btnEraser = stage.querySelector<HTMLButtonElement>('#about-tool-eraser')!;
   const btnReset = stage.querySelector<HTMLButtonElement>('#about-reset')!;
   const toolLayer = stage.querySelector<HTMLElement>('#about-tool-layer')!;
   const cssTool = stage.querySelector<HTMLElement>('#about-css-tool')!;
@@ -123,11 +124,14 @@ function mountFullPath(stage: HTMLElement): () => void {
   const maskCanvas = document.createElement('canvas');
   const mctx = maskCanvas.getContext('2d')!;
 
-  // Single tool: one pencil whose brush DIRECTION is `mode`. `reveal` paints the
-  // real photo in (source-over); `hide` wipes it back to the sketch (destination-
-  // out). There is no "dropped" state — right-click / D / clicking the tool button
-  // all FLIP the mode. The pencil flips end-over-end (sharp tip ↔ eraser nub at the
-  // cursor) to signal which way the next stroke goes.
+  // One pencil whose brush DIRECTION is `mode`: `reveal` paints the real photo in
+  // (source-over); `hide` wipes it back to the sketch (destination-out). The tool is
+  // explicitly PICKED UP from the toolbar — click the pen icon (reveal) or the eraser
+  // icon (hide). `armed` is whether a tool is currently in hand; the interaction
+  // starts with NEITHER selected. Right-click / Esc DROP the tool (back to no tool).
+  // There is no manual flip: within a stroke you never swap, and reaching a terminal
+  // (fully revealed / fully sketch) auto-swaps the direction for the next stroke.
+  let armed = false;
   let mode: 'reveal' | 'hide' = 'reveal';
   let brush = 40; // radius, CSS px
   let maxBrush = 80;
@@ -143,8 +147,8 @@ function mountFullPath(stage: HTMLElement): () => void {
   // Pick-up state. `pickup` is the eased 0..1 scale of the 3D pencil (0 when the
   // cursor is off the drawing stage, so it shrinks into the cursor); driven by the
   // animate loop. `flipTarget` (0 reveal, 1 hide) drives the end-over-end flip.
-  let pickup = 1;
-  let pickupTarget = 1;
+  let pickup = 0;
+  let pickupTarget = 0;
   let flipTarget = 0;
   let setPickupTarget: (v: number) => void = () => {};
 
@@ -358,6 +362,7 @@ function mountFullPath(stage: HTMLElement): () => void {
   }
   function onDown(e: PointerEvent) {
     if (e.button !== 0) return; // left button only
+    if (!armed) return; // no tool in hand → clicking the portrait does nothing
     const t = e.target as HTMLElement;
     if (t.closest && t.closest('.about-toolbar, a, button, input, [role="toolbar"]')) return;
     e.preventDefault();
@@ -383,14 +388,23 @@ function mountFullPath(stage: HTMLElement): () => void {
     // previews the brush as you drag.
     const el = e.target as HTMLElement;
     const overBrush = !!(el.closest && el.closest('.brush-size'));
-    const overChrome = overBrush || !!(el.closest && el.closest('.about-toolbar, .resume-btn'));
-    pickupTarget = !overChrome && over ? 1 : 0;
+    // Over the navbar the pencil is HIDDEN but NOT dropped — pickupTarget 0 eases its
+    // scale to 0 (mode/armed state untouched), so it pops back when you leave the nav.
+    const overChrome =
+      overBrush || !!(el.closest && el.closest('.about-toolbar, .resume-btn, nav'));
+    // The pencil only shows when a tool is armed AND the cursor is over the drawing
+    // area (and not over chrome). Unarmed → it stays put away. The OS cursor is
+    // hidden EXACTLY when the tool is shown (`tool-shown`) — never otherwise — so an
+    // unarmed visitor (or one over the toolbar/nav) always keeps a real pointer.
+    const showTool = armed && !overChrome && over;
+    pickupTarget = showTool ? 1 : 0;
     setPickupTarget(pickupTarget);
+    stage.classList.toggle('tool-shown', showTool);
     // Derive "pressed" from e.buttons every move (not a latched flag) so a missed
     // pointerup can't leave us stuck drawing.
     const pressing = (e.buttons & 1) === 1;
     moveTool(e.clientX, e.clientY, pressing && drawing);
-    moveRing(e.clientX, e.clientY, overBrush || (over && !overChrome));
+    moveRing(e.clientX, e.clientY, overBrush || (armed && over && !overChrome));
     if (!pressing) {
       drawing = false;
       last = null;
@@ -404,34 +418,59 @@ function mountFullPath(stage: HTMLElement): () => void {
     drawing = false;
     last = null;
   }
-  // Right-click over the stage FLIPS the tool (reveal ↔ hide). This replaces the old
-  // drop-to-null cancel.
+  // Right-click over the stage DROPS the tool (back to no tool selected). Esc does the
+  // same (see onKey). Right-clicking the chrome is left alone (native menu).
   function onContextMenu(e: MouseEvent) {
     const t = e.target as HTMLElement;
     if (t.closest && t.closest('.about-toolbar, a, button, input')) return;
+    if (!armed) return;
     e.preventDefault();
-    flipMode();
+    dropTool();
+  }
+  function onKey(e: KeyboardEvent) {
+    if (e.key === 'Escape' && armed) dropTool();
   }
 
-  /* ---- toolbar / mode ---- */
-  // Single source of truth for the brush direction. Flipping updates the toolbar
-  // glyph (pencil ↔ eraser) + its tooltip, re-punches the hint, and kicks the 3D
-  // pencil's end-over-end flip (flipTarget, read by the animator).
+  /* ---- toolbar / tool selection ---- */
+  // Sync the two toolbar icons to the current armed/mode state: at most one carries
+  // the amber "selected" fill, and neither does when no tool is in hand.
+  function reflectTool() {
+    const penOn = armed && mode === 'reveal';
+    const eraserOn = armed && mode === 'hide';
+    btnPen.classList.toggle('is-active', penOn);
+    btnEraser.classList.toggle('is-active', eraserOn);
+    btnPen.setAttribute('aria-pressed', String(penOn));
+    btnEraser.setAttribute('aria-pressed', String(eraserOn));
+  }
+  // Set the brush DIRECTION (used by the draw compositing + the 3D flip). Called both
+  // by explicit toolbar selection and by the automated terminal swap. Keeps the 3D
+  // pencil's end-over-end flip (flipTarget) and the toolbar icons in sync.
   function setMode(next: 'reveal' | 'hide') {
-    if (next === mode) return;
     mode = next;
-    const hide = next === 'hide';
-    btnTool.classList.toggle('is-hide', hide);
-    btnTool.dataset.tooltip = hide ? 'Erase' : 'Draw';
-    btnTool.setAttribute(
-      'aria-label',
-      hide ? 'Erase tool (right-click to flip)' : 'Draw tool (right-click to flip)'
-    );
-    flipTarget = hide ? 1 : 0;
+    flipTarget = next === 'hide' ? 1 : 0;
+    reflectTool();
     updateHint(true);
   }
-  function flipMode() {
-    setMode(mode === 'hide' ? 'reveal' : 'hide');
+  // Pick a tool up from the toolbar. Arms the interaction and points the pencil.
+  function selectTool(next: 'reveal' | 'hide') {
+    armed = true;
+    setMode(next);
+  }
+  // Put the tool down: no tool selected, pencil eases away, drawing stops.
+  function dropTool() {
+    if (!armed) return;
+    armed = false;
+    drawing = false;
+    last = null;
+    pickupTarget = 0;
+    setPickupTarget(0);
+    // Tool is put down → it's no longer standing in for the pointer, so give the OS
+    // cursor back at once (don't wait for the next pointer move). Also clears the
+    // CSS-fallback emoji if that path is active.
+    stage.classList.remove('tool-shown');
+    cssTool.style.display = 'none';
+    reflectTool();
+    hint?.classList.remove('show');
   }
   // The controls tooltip tracks the current mode (Draw/Erase) and re-punches
   // (restarts its CSS entrance animation) whenever the mode flips.
@@ -445,7 +484,8 @@ function mountFullPath(stage: HTMLElement): () => void {
     }
     hint.classList.add('show');
   }
-  const onToolFlip = () => flipMode();
+  const onSelectPen = () => selectTool('reveal');
+  const onSelectEraser = () => selectTool('hide');
   function updateSizePct() {
     sizePct.textContent = `${Math.round((brush / maxBrush) * 100)}%`;
     // Paint the slider's filled portion to match the thumb position (which spans
@@ -463,7 +503,9 @@ function mountFullPath(stage: HTMLElement): () => void {
   const onReset = () => {
     mctx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
     maskDirty = true;
-    setMode('reveal'); // back to a blank sketch → next stroke draws
+    // Blank sketch → nothing to erase; if a tool is in hand, make it the pen. Leave
+    // the unarmed state alone (reset shouldn't silently pick a tool up).
+    if (armed) setMode('reveal');
   };
 
   let toggleState = 0;
@@ -531,7 +573,9 @@ function mountFullPath(stage: HTMLElement): () => void {
   window.addEventListener('resize', onResize);
   window.addEventListener('scroll', onScroll, { passive: true });
   stage.addEventListener('contextmenu', onContextMenu);
-  btnTool.addEventListener('click', onToolFlip);
+  window.addEventListener('keydown', onKey);
+  btnPen.addEventListener('click', onSelectPen);
+  btnEraser.addEventListener('click', onSelectEraser);
   sizeSlider.addEventListener('input', onSize);
   btnReset.addEventListener('click', onReset);
   btnToggle.addEventListener('click', onToggle);
@@ -765,9 +809,13 @@ function mountFullPath(stage: HTMLElement): () => void {
       };
     } catch (err) {
       console.warn('three.js / glTF unavailable — CSS tool fallback', err);
-      stage.classList.add('no-tool');
-      cssTool.style.display = 'block';
+      // The emoji stands in for the pointer, so it appears EXACTLY when the tool is
+      // shown (armed + over the stage), mirroring `.tool-shown` (which also hides the
+      // OS cursor). Unarmed / over chrome → no emoji, real cursor.
       moveTool = (x, y) => {
+        const shown = stage.classList.contains('tool-shown');
+        cssTool.style.display = shown ? 'block' : 'none';
+        if (!shown) return;
         cssTool.style.left = `${x}px`;
         cssTool.style.top = `${y}px`;
         cssTool.textContent = mode === 'hide' ? '🧽' : '✏️';
@@ -917,8 +965,21 @@ function mountFullPath(stage: HTMLElement): () => void {
           // and left SMOOTH-shaded so the round cone doesn't turn into hard facets.
           // NOTE: must stay ahead of the painted-body branch — the body material is
           // confusingly named "pencil wood", so a plain /wood/ test would grab it too.
-          if (typeof mat.roughness === 'number') mat.roughness = 0.92;
-          if (typeof mat.envMapIntensity === 'number') mat.envMapIntensity = 0.1;
+          // The GLB leaves metalnessFactor at the glTF default (1.0) and ships a
+          // metallic-roughness texture, so the cone was catching env reflections and
+          // reading glossy. Force it dielectric + uniformly rough and DROP the baked
+          // gloss maps (metalnessMap/roughnessMap) so a stray dark texel can't reflect;
+          // the grain reads from the base-colour + normal maps, which we keep.
+          const pm = mat as typeof mat & {
+            metalnessMap?: unknown;
+            roughnessMap?: unknown;
+          };
+          if (typeof pm.metalness === 'number') pm.metalness = 0;
+          if (typeof pm.roughness === 'number') pm.roughness = 0.97;
+          pm.metalnessMap = null;
+          pm.roughnessMap = null;
+          pm.needsUpdate = true;
+          if (typeof mat.envMapIntensity === 'number') mat.envMapIntensity = 0.03;
         } else {
           // The painted hex body ("pencil wood") + graphite tip. The GLB ships smooth
           // normals around the barrel, so light wraps it as one soft gradient and it
@@ -959,13 +1020,15 @@ function mountFullPath(stage: HTMLElement): () => void {
     window.removeEventListener('resize', onResize);
     window.removeEventListener('scroll', onScroll);
     stage.removeEventListener('contextmenu', onContextMenu);
-    btnTool.removeEventListener('click', onToolFlip);
+    window.removeEventListener('keydown', onKey);
+    btnPen.removeEventListener('click', onSelectPen);
+    btnEraser.removeEventListener('click', onSelectEraser);
     sizeSlider.removeEventListener('input', onSize);
     btnReset.removeEventListener('click', onReset);
     btnToggle.removeEventListener('click', onToggle);
     brushRing.remove();
     toolLayer.remove();
     cssTool.remove();
-    stage.classList.remove('is-ready', 'no-tool');
+    stage.classList.remove('is-ready', 'tool-shown');
   };
 }

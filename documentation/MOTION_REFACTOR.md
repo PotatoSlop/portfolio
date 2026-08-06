@@ -50,7 +50,7 @@ Build `sequence.ts` first; **Wordmark glyph intro is the reference implementatio
 - [x] `sequence.ts` — `entrance()` (on-load counterpart to `reveal()`, arms + gates + staggers) and `sequence()` (Motion timeline form, reduced-motion snaps each segment to final)
 - [x] `Wordmark.astro` per-glyph rise + arrow → per-glyph `animate()` on the SVG `y` attribute with `springs.snappy` + manual stagger loop (tspans don't honor CSS transforms, and each glyph has its own rest `y`, so `entrance()`'s single-keyframe-set form doesn't fit — kept inline). Arrow `<g>` rises on `transform`/`opacity`. Completion via `Promise.all(.finished)` restores CSS layout (removes `y` overrides) and flags the ink hit-mask stale. Kept `document.fonts.ready` await + all mask/fit machinery. Verified: intro settles, `y` cleared, `__engInkAt` still resolves glyphs.
 - [ ] `PullTabs.astro` `tabFlyInRight` → `revealStagger` / staggered `animate` (drops nth-child delay hack)
-- [ ] `engineering.astro` intro `cropRise` + chevron → `sequence()`; leave `gridRipple` (`@property --eng-ripple`) as CSS unless it needs JS coordination
+- [ ] `engineering.astro` intro `cropRise` + chevron → `sequence()`. (The old CSS `gridRipple`/`@property --eng-ripple` mask curtain is gone — the intro reveal is now a generative radial dot build inside the `DotLines.astro` canvas loop, driven by `revealStart`/`revealRadius`.)
 - [ ] `index.astro` typewriter reveal + title/gif overshoot → `animate()` timeline, overshoot via `springs.overshoot` (typewriter char loop stays JS)
 - [ ] **Leave as CSS:** role-chip `wave`/`shake` (ambient infinite loops)
 

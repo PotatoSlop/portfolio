@@ -142,6 +142,8 @@ const useWordmark = theme === 'engineering' || theme === 'design';
 </style>
 
 <script>
+  import { onPageReady } from '../lib/motion/lifecycle';
+
   function showSidebar() {
     const sidebar = document.querySelector('.sidebar') as HTMLElement | null;
     const overlay = document.querySelector('.sidebar-overlay');
@@ -333,5 +335,9 @@ const useWordmark = theme === 'engineering' || theme === 'design';
       else a.removeAttribute('aria-current');
     });
   }
-  document.addEventListener('astro:page-load', syncNavState);
+  // onPageReady adds the first-SPA-entry catch-up (see src/lib/motion/lifecycle.ts)
+  // so aria-current + reset run whether a page is loaded directly or navigated into.
+  // Global (the nav is on every page) → no page-specific root. The interaction
+  // listeners above stay bound once at module scope (window/document persist).
+  onPageReady(null, syncNavState);
 </script>

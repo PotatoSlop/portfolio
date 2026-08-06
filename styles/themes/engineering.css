@@ -54,7 +54,11 @@
   --theme-surface: #23201a;
   --theme-border: #3a352c;
 
-  --theme-ink: #ece7dd;
+  /* Pure white, not a warm cream — engineering reads crisp/technical in dark
+     mode. (The warm off-white cream is the DESIGN page's dark idiom: see
+     design.css #e9e2d2.) Used as text AND as the surface for ink-backed chrome
+     — the nav bars + settings-toggle block — so those flip to white here too. */
+  --theme-ink: #ffffff;
   --theme-ink-muted: #9c968a;
 
   --theme-accent: var(--color-primary-muted);

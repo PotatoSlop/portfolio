@@ -181,6 +181,7 @@ const clipH = (baseline: number) => baseline + CLIP_EPS - CLIP_TOP;
   import { animate } from 'motion';
   import { durations, eases, springs } from '../lib/motion/tokens';
   import { prefersReducedMotion } from '../lib/motion/reduced-motion';
+  import { onPageReady } from '../lib/motion/lifecycle';
 
   const THRESHOLD = 90;
   const MASK_DY = 0;
@@ -483,21 +484,17 @@ const clipH = (baseline: number) => baseline + CLIP_EPS - CLIP_TOP;
     else runIntro();
   }
 
-  // Idempotent mount + catch-up, so the intro reliably runs whether the page is
-  // reached by full load or by a first SPA navigation (where this module can
-  // evaluate after astro:page-load has already fired). Without this the wordmark,
-  // which is opacity:0 until `.intro-ready` is added by runIntro, would stay
-  // blank when navigated into. See docs/routing-and-lifecycle.md.
-  let mounted = false;
-  const mount = () => {
-    if (mounted || !document.querySelector('.eng-wordmark')) return;
-    mounted = true;
+  // Mount via the shared lifecycle primitive: it runs setup on every page-load AND
+  // as a first-SPA-entry catch-up, so the intro reliably runs whether the page is
+  // reached by a full load or navigated into. Without this the wordmark, which is
+  // opacity:0 until `.intro-ready` is added by runIntro, would stay blank when
+  // navigated into. See src/lib/motion/lifecycle.ts + docs/routing-and-lifecycle.md.
+  onPageReady('.eng-wordmark', () => {
     setup();
-  };
-  document.addEventListener('astro:page-load', mount);
-  document.addEventListener('astro:before-swap', () => {
-    mounted = false;
-    svg = null; // drop the reference to the outgoing page's (soon-detached) node
+    // Teardown: drop the reference to the outgoing page's (soon-detached) node so
+    // the bound-once resize/scroll handlers above no-op until the next mount.
+    return () => {
+      svg = null;
+    };
   });
-  mount(); // catch-up if page-load already fired before this module evaluated
 </script>

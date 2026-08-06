@@ -311,20 +311,15 @@ const recent = all.find((d) => d.data.recent) ?? featured;
   <script>
     import { mountCarousels } from '../lib/motion/carousel';
     import { mountDesignReveal } from '../lib/motion/design-reveal';
+    import { onPageReady } from '../lib/motion/lifecycle';
 
     let destroyDrift: (() => void) | null = null;
     let destroyReveal: (() => void) | null = null;
-    let mounted = false;
 
-    // Idempotent mount. Registered on astro:page-load AND invoked once directly
-    // below as a catch-up: on a first SPA entry into /design this module
-    // evaluates around the page-load dispatch and can miss the event, which would
-    // leave the CSS-hidden hero (.pre-anim / .crop-*) permanently un-revealed —
-    // the "different view when navigated into" bug. The `mounted` guard makes the
-    // double-call a no-op. See docs/routing-and-lifecycle.md.
-    const mount = () => {
-      if (mounted || !document.querySelector('.design-page')) return;
-      mounted = true;
+    // onPageReady mounts on every page-load AND as a first-SPA-entry catch-up, so
+    // the CSS-hidden hero (.pre-anim / .crop-*) is always revealed — never left
+    // blank when navigated into. See src/lib/motion/lifecycle.ts.
+    const behavior = onPageReady('.design-page', () => {
       // Mobile is reduced-motion (SettingsToggles enforces this site-wide and
       // hides the toggle). Set the flag BEFORE the reveal/drift read it, so it
       // holds even if SettingsToggles' page-load handler runs after this one.
@@ -333,34 +328,28 @@ const recent = all.find((d) => d.data.recent) ?? featured;
       }
       destroyReveal = mountDesignReveal();
       destroyDrift = mountCarousels();
-    };
-    const unmount = () => {
-      destroyDrift?.();
-      destroyDrift = null;
-      destroyReveal?.();
-      destroyReveal = null;
-      mounted = false;
-    };
+      return () => {
+        destroyDrift?.();
+        destroyDrift = null;
+        destroyReveal?.();
+        destroyReveal = null;
+      };
+    });
 
     // Rebuild ONLY the drift rows (the reveal is one-shot) when reduced-motion or
-    // the mobile breakpoint flips.
+    // the mobile breakpoint flips — hence a targeted rebuild rather than a full
+    // behavior.remount(), which would replay the one-shot hero reveal.
     const remountDrift = () => {
-      if (!mounted) return;
+      if (!behavior.active) return;
       destroyDrift?.();
       destroyDrift = mountCarousels();
     };
 
-    document.addEventListener('astro:page-load', mount);
-    document.addEventListener('astro:before-swap', unmount);
     // The corner toggle flips reduced-motion at runtime — rebuild the rows so the
     // drift actually stops/starts (mountCarousels now honors the manual flag).
     window.addEventListener('motionpreferencechange', remountDrift);
     // Crossing the mobile breakpoint swaps drift ↔ chevron pager — rebuild so the
     // right mode (and its DOM: clones vs. pager buttons) is in place.
     window.matchMedia('(max-width: 768px)').addEventListener('change', remountDrift);
-
-    // Catch-up: if astro:page-load already fired before this module evaluated
-    // (first SPA entry), mount now — the guard prevents a second mount.
-    mount();
   </script>
 </Base>

@@ -176,5 +176,8 @@ const tileTags = (e: CollectionEntry<'design'>) =>
       });
     });
   }
-  document.addEventListener('astro:page-load', initFilterGrid);
+  // onPageReady adds the first-SPA-entry catch-up (see src/lib/motion/lifecycle.ts)
+  // so filtering wires up whether /design is loaded directly or navigated into.
+  import { onPageReady } from '../../lib/motion/lifecycle';
+  onPageReady('.chip[data-filter]', initFilterGrid);
 </script>

@@ -222,18 +222,11 @@ const rest = projects.filter((p) => p !== featured);
   <script>
     // The entire projects-section lifecycle is shared — see
     // src/lib/motion/projects-gallery.ts (same primitive engineering uses).
+    // onPageReady adds the first-SPA-entry catch-up so the gallery mounts whether
+    // the page is reached by a full load or navigated into (pull-tab / navbar).
     import { mountProjectsGallery } from '../lib/motion/projects-gallery';
+    import { onPageReady } from '../lib/motion/lifecycle';
 
-    let destroy: (() => void) | null = null;
-
-    document.addEventListener('astro:page-load', () => {
-      if (!document.querySelector('.sw-gallery')) return;
-      destroy = mountProjectsGallery();
-    });
-
-    document.addEventListener('astro:before-swap', () => {
-      destroy?.();
-      destroy = null;
-    });
+    onPageReady('.sw-gallery', () => mountProjectsGallery());
   </script>
 </Base>

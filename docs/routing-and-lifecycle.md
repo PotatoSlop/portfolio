@@ -62,32 +62,47 @@ Four properties every mount must have:
 
 ## 3. Patterns (do this)
 
-### 3.1 A page or component script
+### 3.1 A page or component script — use `onPageReady`
+
+**Always wire client behavior through `onPageReady` (`src/lib/motion/lifecycle.ts`).**
+Do not hand-roll the `astro:page-load` / `astro:before-swap` listeners; the manual
+form is easy to get subtly wrong (see the mandatory catch-up below).
 
 ```astro
 <script>
   import { mountThing } from '../lib/motion/thing';
+  import { onPageReady } from '../lib/motion/lifecycle';
 
-  let destroy: (() => void) | null = null;
-
-  document.addEventListener('astro:page-load', () => {
-    // Guard: this page's root may not be present after navigating elsewhere.
-    if (!document.querySelector('.thing-root')) return;
-    destroy = mountThing();
-  });
-
-  document.addEventListener('astro:before-swap', () => {
-    destroy?.();
-    destroy = null;
-  });
+  // '.thing-root' must be present for this to mount, so the shared listeners
+  // no-op on pages that don't have it. mountThing may return a teardown.
+  onPageReady('.thing-root', () => mountThing());
 </script>
 ```
+
+`onPageReady` registers the mount on `astro:page-load`, runs its returned teardown
+on `astro:before-swap`, guards against a double-mount, **and — critically — runs one
+catch-up mount immediately** in case this bundled module evaluated *after*
+`astro:page-load` already fired on a first SPA entry (deferred ESM makes that
+ordering non-deterministic). Without the catch-up the behavior silently never mounts
+the first time the page is navigated into, only on refresh / a full reload — the
+exact dual-state bug this doc exists to kill.
 
 `mountThing()` returns a `() => void` that cancels every `requestAnimationFrame`,
 disconnects every `IntersectionObserver`/`ResizeObserver`, removes every listener it
 added to `window`/`document`, and removes any nodes it injected. This is the exact
 shape already used by `src/lib/motion/carousel.ts`, `design-reveal.ts`,
-`case-overlay.ts`, etc. — copy it.
+`case-overlay.ts`, etc. — copy it. If a behavior only rebinds listeners to nodes
+inside the swapped body (which the next swap discards), it may return nothing.
+
+If a behavior must also rebuild on a runtime event (motion-preference / colour-scheme
+change, a breakpoint cross), keep the handle `onPageReady` returns and call
+`handle.remount()` from that event — never a bare re-invoke that skips the guard.
+
+**Do NOT** navigate with `window.location.href` / `location.assign` to "make it
+work" — that forces a full reload, which papers over a missing catch-up on the
+destination and reintroduces two different runtime paths. Use `navigate()` (or a
+plain `<a href>`, which ClientRouter intercepts) so every entry exercises the same
+SPA lifecycle.
 
 ### 3.2 DOM the mount injected or mutated
 
@@ -212,6 +227,39 @@ stays hidden — while the rest of the page renders. That is the divergence.
   observer is now stored and stopped on `astro:before-swap`, and the footer nav-theme
   vars are explicitly restored there (inView's `stop()` does not fire the leave
   callback), fixing both an observer leak and nav colors bleeding into the next page.
+
+### Second pass — the `onPageReady` primitive (discipline galleries)
+
+A follow-up found the same missing-catch-up bug live on the **discipline projects
+galleries**: `engineering.astro` and `software.astro` registered
+`mountProjectsGallery()` on `astro:page-load` **without** a catch-up call. Reached by
+a full reload (the home-page drag-drop navigates with `window.location.href`) the
+module ran at parse time and the gallery mounted; reached by a **pull-tab or the
+navbar** (both SPA swaps) the module could evaluate after `page-load` fired, so the
+projects section never initialized. That is precisely the "loads via drag-drop but
+not via the tabs/navbar" report.
+
+Rather than paste another catch-up block, the pattern is now a single primitive —
+`onPageReady(root, mount)` in `src/lib/motion/lifecycle.ts` (§3.1) — and **every
+page/component behavior now routes through it**, so the correct pattern is the only
+pattern and a future behavior can't silently forget the catch-up:
+
+- Pages: `index.astro` (landing intro + drag), `engineering.astro`, `software.astro`,
+  `design.astro`, `about.astro`.
+- Components: `Wordmark.astro`, `DotLines.astro`, `Nav.astro` (`syncNavState`),
+  `SettingsToggles.astro`, `design/HeroProject.astro`, `design/FilterGrid.astro`, and
+  Base's footer effects.
+- Behaviors that also rebuild on a runtime event keep the `onPageReady` handle and
+  call `handle.remount()` (or a targeted partial rebuild): `DotLines` on
+  `motionpreferencechange`, `design.astro`'s drift rows on motion / breakpoint change.
+- `index.astro`'s drag-to-navigate now uses `navigate()` instead of
+  `window.location.href`, so the home page shares the one SPA routing model.
+
+Two deliberate exceptions, both already catch-up-safe by construction:
+`Scrollbar.astro` (bound-once global listeners + a `ResizeObserver`; its per-nav
+`update()` / `buildRail()` are already invoked directly at module eval as the
+catch-up) and `freeze-gifs.ts` (a bound-once global that `mountFreezeGifs()` invokes
+imperatively from Base and re-applies on `astro:page-load`).
 
 ### Deliberately NOT changed (verified safe)
 

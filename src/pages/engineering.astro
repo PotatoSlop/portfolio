@@ -60,7 +60,6 @@ const rest = projects.filter((p) => p !== featured);
   <CaseOverlay />
   <PullTabs discipline="engineering" />
   <DotLines />
-  <div class="eng-grid-reveal" aria-hidden="true"></div>
 
   <style>
     * {
@@ -70,21 +69,6 @@ const rest = projects.filter((p) => p !== featured);
 
     .eng {
       position: relative;
-    }
-    .eng-grid-reveal {
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      background: var(--theme-bg);
-      pointer-events: none;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .eng-grid-reveal { display: none; }
-    }
-    @property --eng-ripple {
-      syntax: '<percentage>';
-      inherits: false;
-      initial-value: 0%;
     }
 
     .eng-hero {
@@ -257,14 +241,6 @@ const rest = projects.filter((p) => p !== featured);
       from { transform: translateY(110%); }
       to   { transform: translateY(0); }
     }
-    @keyframes gridRipple {
-      from { --eng-ripple: 0%; }
-      to   { --eng-ripple: 140%; }
-    }
-    @keyframes gridRippleSafety {
-      to { opacity: 0; }
-    }
-
     @media (prefers-reduced-motion: no-preference) {
       .eng-reveal--crumbs > .eng-hero__crumbs {
         animation: cropRise 0.5s var(--ease-smooth) 0.05s backwards;
@@ -279,54 +255,32 @@ const rest = projects.filter((p) => p !== featured);
           wave 2s ease-in-out
             calc(var(--eng-intro-after) + var(--eng-intro-step) + 0.5s) infinite;
       }
-      .eng-grid-reveal {
-        -webkit-mask-image: radial-gradient(
-          circle at 50% 42%,
-          transparent var(--eng-ripple, 0%),
-          #000 calc(var(--eng-ripple, 0%) + 1.5%)
-        );
-        mask-image: radial-gradient(
-          circle at 50% 42%,
-          transparent var(--eng-ripple, 0%),
-          #000 calc(var(--eng-ripple, 0%) + 1.5%)
-        );
-        animation:
-          gridRipple 2.3s linear 0.05s forwards,
-          gridRippleSafety 0.3s linear 2s forwards;
-      }
     }
 
     /* Manual reduced-motion toggle (and mobile, which forces it) lives on <html>
        and doesn't hit the OS media queries above. Mirror the OS-reduce path: no
        crop-rise on the intro (crumbs/CTA rest in place — none carry an opacity
-       fade, so they simply appear), no chevron bob, and no grid ripple. The
-       ancestor is external to these scoped elements, so it needs :global(). */
+       fade, so they simply appear) and no chevron bob. The generative dot-field
+       reveal needs no handling here: under reduced motion DotLines tears the
+       canvas down and the plain CSS grid takes over. The ancestor is external to
+       these scoped elements, so it needs :global(). */
     :global(html[data-sim-reduced]) .eng-reveal--crumbs > .eng-hero__crumbs,
     :global(html[data-sim-reduced]) .eng-reveal--cta > .eng-hero__cta,
     :global(html[data-sim-reduced]) .eng-chevron svg {
       animation: none;
     }
-    :global(html[data-sim-reduced]) .eng-grid-reveal {
-      display: none;
-    }
   </style>
 
   <script>
-    // The whole projects-section lifecycle (feature reveal, accordion sweep,
-    // hero video scrub, trailing chip, FLIP case overlay) is shared across
-    // disciplines — see src/lib/motion/projects-gallery.ts.
+    // The whole projects-section lifecycle (feature reveal, accordion
+    // hover-expand, hero video scrub, trailing chip, FLIP case overlay) is shared across
+    // disciplines — see src/lib/motion/projects-gallery.ts. onPageReady adds the
+    // first-SPA-entry catch-up, so the gallery mounts whether the page is reached
+    // by a full load or navigated into (pull-tab / navbar). See
+    // src/lib/motion/lifecycle.ts + docs/routing-and-lifecycle.md.
     import { mountProjectsGallery } from '../lib/motion/projects-gallery';
+    import { onPageReady } from '../lib/motion/lifecycle';
 
-    let destroy: (() => void) | null = null;
-
-    document.addEventListener('astro:page-load', () => {
-      if (!document.querySelector('.eng-gallery')) return;
-      destroy = mountProjectsGallery();
-    });
-
-    document.addEventListener('astro:before-swap', () => {
-      destroy?.();
-      destroy = null;
-    });
+    onPageReady('.eng-gallery', () => mountProjectsGallery());
   </script>
 </Base>

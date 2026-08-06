@@ -38,9 +38,10 @@ const {
       (function () {
         try {
           var stored = localStorage.getItem('color-scheme');
-          var dark = stored
-            ? stored === 'dark'
-            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          // Default to LIGHT for first-time visitors (style choice), regardless of the
+          // OS preference. An explicit stored choice still wins, so anyone who toggles
+          // to dark keeps it.
+          var dark = stored ? stored === 'dark' : false;
           if (dark) document.documentElement.dataset.scheme = 'dark';
           else delete document.documentElement.dataset.scheme;
         } catch (e) {}
@@ -118,22 +119,23 @@ const {
 
     <script>
       import { inView } from 'motion';
+      import { onPageReady } from '../lib/motion/lifecycle';
 
-      // Kept at module scope so the before-swap teardown can stop the observer
-      // and undo the nav-theme vars. Without this, each navigation added another
-      // footer observer (leak) and — because inView's stop() does NOT fire the
-      // leave callback — navigating away while the footer was in view left the
-      // footer nav colors stuck on the next page (a routing dual-state).
-      let stopFooterInView: (() => void) | null = null;
-      let resetNavTheme: (() => void) | null = null;
-
-      function initPageEffects() {
+      // onPageReady runs this on every page that has a footer (and adds the
+      // first-SPA-entry catch-up), returning a teardown that stops the observer and
+      // undoes the nav-theme vars on navigation away. Without that teardown each
+      // navigation added another footer observer (leak) and — because inView's
+      // stop() does NOT fire the leave callback — navigating away while the footer
+      // was in view left the footer nav colors stuck on the next page.
+      onPageReady('.contact-footer', () => {
         const footer = document.querySelector('.contact-footer') as HTMLElement | null;
         const cursorEffect = document.querySelector('.cursor-effects') as HTMLElement | null;
         const root = document.documentElement;
         if (!footer || !cursorEffect) return;
 
-        // Footer cursor blob — follows the pointer while hovering the footer.
+        // Footer cursor blob — follows the pointer while hovering the footer. These
+        // listeners are on the footer node, which is discarded on the next swap, so
+        // they don't leak and need no explicit removal.
         footer.addEventListener('mouseenter', () => {
           cursorEffect.style.opacity = '1';
           cursorEffect.style.transform = 'scale(1)';
@@ -169,8 +171,7 @@ const {
         // Recolor while the footer is in view; restore on leave. Not a tween —
         // a two-way token toggle — so we use inView's enter/leave callbacks
         // directly rather than reveal().
-        resetNavTheme = () => applyNavTheme(defaultTheme);
-        stopFooterInView = inView(
+        const stopFooterInView = inView(
           footer,
           () => {
             applyNavTheme(footerTheme);
@@ -178,17 +179,12 @@ const {
           },
           { margin: '0px 0px -95% 0px' }
         );
-      }
 
-      function teardownPageEffects() {
-        stopFooterInView?.();
-        stopFooterInView = null;
-        resetNavTheme?.(); // stop() won't fire the leave cb — undo colors ourselves
-        resetNavTheme = null;
-      }
-
-      document.addEventListener('astro:page-load', initPageEffects);
-      document.addEventListener('astro:before-swap', teardownPageEffects);
+        return () => {
+          stopFooterInView();
+          applyNavTheme(defaultTheme); // stop() won't fire the leave cb — undo ourselves
+        };
+      });
     </script>
 
     <script>

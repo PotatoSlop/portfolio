@@ -87,6 +87,13 @@ const others = ORDER.filter((d) => d !== discipline);
 
   /* ----- Grip: visible handle on the right edge ----- */
   .pull-tab__grip {
+    /* Tonal self-edge: a shade of the tab's OWN palette (ink mixed toward bg),
+       so the grip keeps a defined silhouette against any page background in
+       either scheme — cream-on-white and navy-on-navy both stay legible —
+       without borrowing a color from outside the destination's palette. */
+    --door-edge: color-mix(in srgb, var(--door-ink) 34%, var(--door-bg));
+    --door-edge-soft: color-mix(in srgb, var(--door-ink) 16%, var(--door-bg));
+
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -95,10 +102,17 @@ const others = ORDER.filter((d) => d !== discipline);
     padding: 0.6rem 0.5rem;
     background: var(--door-bg);
     color: var(--door-ink);
+    /* Left/top/bottom get the crisp tonal edge; the right side meets the
+       screen seam so it stays borderless. */
+    border: 1px solid var(--door-edge);
+    border-right: 0;
     border-radius: 10px 0 0 10px;
-    /* Shadow cast only to the LEFT (onto the page) so the grip's right edge
-       stays a clean seam where it meets the door strip. */
-    box-shadow: -5px 0 16px rgba(0, 0, 0, 0.12);
+    /* Two layers: a tight tonal edge-shadow that survives on light-on-light
+       pages, plus the original soft ambient cast to the LEFT (onto the page)
+       so the grip's right edge stays a clean seam where it meets the door. */
+    box-shadow:
+      -1px 0 0 var(--door-edge-soft),
+      -5px 0 16px rgba(0, 0, 0, 0.16);
   }
   /* Slimmer chevron to match the smaller label (keeps the grip compact so the
      design scroll rail can tuck closer to the right edge). */

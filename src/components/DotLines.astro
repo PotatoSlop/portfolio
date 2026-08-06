@@ -3,6 +3,7 @@
 ---
 
 <canvas class="dot-lines" aria-hidden="true"></canvas>
+<div class="dot-vignette" aria-hidden="true"></div>
 
 <style>
   .dot-lines {
@@ -12,6 +13,22 @@
     height: 100dvh;
     z-index: -1;
     pointer-events: none;
+  }
+
+  /* Slight vignette over the dot field: transparent through the centre, easing to
+     a faint ink darkening at the rim. Same z-index as the canvas but later in the
+     DOM, so it paints on top of the dots (and under the page content). Tune the
+     inner stop (spread) and the ink percentage (strength) to taste. */
+  .dot-vignette {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at 50% 45%,
+      transparent 52%,
+      color-mix(in srgb, var(--theme-ink) 10%, transparent) 100%
+    );
   }
   @media (prefers-reduced-motion: reduce) {
     .dot-lines {
@@ -27,15 +44,19 @@
 <script>
   import { prefersReducedMotion } from '../lib/motion/reduced-motion';
   import { createBarrelLens, distort, undistort, screenGridPitch } from '../lib/motion/barrel';
+  import { onPageReady } from '../lib/motion/lifecycle';
 
-  // --- tunables --------------------------------------------------------------
   const DOT_BASE_RADIUS = 1.5;
-  const DOT_ALPHA_CENTER = 0.17; // opacity at the lens centre (darker)
+  const DOT_ALPHA_CENTER = 0.27; // opacity at the lens centre (darker)
   const DOT_ALPHA_EDGE = 0.07; // opacity at the rim (lighter)
-  const LENS_STRENGTH = 0.18; // peak barrel magnification
+  const LENS_STRENGTH = 0.2; // peak barrel magnification
   const PARALLAX_DEPTH = -0.025; // negative pushes the field opposite the cursor for depth
   const PARALLAX_SMOOTHING = 0.07; // easing factor toward the target parallax
   const GRID_MARGIN = 72; // extra ring of dots drawn beyond the viewport edge
+
+  const REVEAL_DURATION_MS = 1800; 
+  const REVEAL_FEATHER = 80; // px width of the soft leading edge (bigger = softer)
+  const revealEase = (t: number) => 1 - Math.pow(1 - t, 2); // easeOutCubic: quick, then settle
 
   const MAX_TRAILS = 30;
   const TRAIL_LIFETIME_MS = 2000; // a segment starts fading this long after it's drawn
@@ -71,6 +92,11 @@
   let lastNode: { x: number; y: number; key: string } | null = null;
   let animationFrameId = 0;
   let running = false;
+
+  // Intro wave state. revealRadius is the wave front in screen px; Infinity means
+  // the field is fully built and no dot gating is applied.
+  let revealStart = 0; // performance.now() when the wave began; 0 once finished
+  let revealRadius = Infinity;
 
   function readThemeTokens() {
     const styles = getComputedStyle(document.documentElement);
@@ -113,12 +139,24 @@
     for (let col = firstCol; col <= lastCol; col++) {
       for (let row = firstRow; row <= lastRow; row++) {
         const [screenX, screenY, radiusScale] = distort(lens, col * gridSize + gridOffset, row * gridSize + gridOffset);
+        const dist = Math.hypot(screenX - lens.centerX, screenY - lens.centerY);
+
+        // Intro wave: draw only dots the expanding radius has reached, each fading
+        // (and growing) in across a soft leading band, so the field builds ring by
+        // ring instead of a curtain wiping off a pre-drawn grid.
+        let revealAlpha = 1;
+        if (revealRadius < Infinity) {
+          revealAlpha = (revealRadius - dist) / REVEAL_FEATHER;
+          if (revealAlpha <= 0) continue; // wave hasn't reached this dot yet
+          if (revealAlpha > 1) revealAlpha = 1;
+        }
+
         // Fade from centre to rim to match the fisheye: centre dots spread apart
         // and read bolder, so we dim them; rim dots compress, so we lift them.
-        const rimFraction = Math.min(Math.hypot(screenX - lens.centerX, screenY - lens.centerY) / lens.radius, 1);
-        ctx.globalAlpha = DOT_ALPHA_CENTER + (DOT_ALPHA_EDGE - DOT_ALPHA_CENTER) * rimFraction;
+        const rimFraction = Math.min(dist / lens.radius, 1);
+        ctx.globalAlpha = (DOT_ALPHA_CENTER + (DOT_ALPHA_EDGE - DOT_ALPHA_CENTER) * rimFraction) * revealAlpha;
         ctx.beginPath();
-        ctx.arc(screenX, screenY, DOT_BASE_RADIUS * radiusScale, 0, Math.PI * 2);
+        ctx.arc(screenX, screenY, DOT_BASE_RADIUS * radiusScale * (0.6 + 0.4 * revealAlpha), 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -202,17 +240,31 @@
       running = false;
       return;
     }
+    const now = performance.now();
+
+    // Advance the intro wave. easeOut so it leaps out from the centre then eases
+    // into the corners; +FEATHER on the target so the soft edge fully clears them.
+    if (revealStart) {
+      const t = (now - revealStart) / REVEAL_DURATION_MS;
+      if (t >= 1) {
+        revealStart = 0;
+        revealRadius = Infinity;
+      } else {
+        revealRadius = revealEase(t) * (lens.radius + REVEAL_FEATHER);
+      }
+    }
+
     lens.parallaxX += (targetParallaxX - lens.parallaxX) * PARALLAX_SMOOTHING;
     lens.parallaxY += (targetParallaxY - lens.parallaxY) * PARALLAX_SMOOTHING;
 
     ctx.clearRect(0, 0, viewportWidth, viewportHeight);
     drawDotField();
-    drawTrails(performance.now());
+    drawTrails(now);
     lightLettersAlongTrails();
 
-    // Keep animating until the parallax has eased to rest and every trail has
-    // drained, then hold the last frame — no idle rAF burn.
-    if (!parallaxAtRest() || trails.length > 0) {
+    // Keep animating until the intro wave finishes, the parallax has eased to
+    // rest and every trail has drained, then hold the last frame — no idle rAF burn.
+    if (revealStart || !parallaxAtRest() || trails.length > 0) {
       animationFrameId = requestAnimationFrame(renderFrame);
     } else {
       running = false;
@@ -285,7 +337,11 @@
     lastNode = null;
     resizeCanvas();
     lens.parallaxX = lens.parallaxY = targetParallaxX = targetParallaxY = 0;
-    drawStaticFrame(); // show the distorted grid immediately, under the intro overlay
+    // Kick off the generative intro: start from an empty field and let the wave
+    // build it outward from the centre. Runs once per mount (i.e. once on entry).
+    revealStart = performance.now();
+    revealRadius = 0;
+    ensureAnimating();
   }
 
   // Bound once (window persists across navigations); each handler no-ops under
@@ -317,7 +373,29 @@
     if (!running) drawStaticFrame();
   }
 
-  document.addEventListener('astro:page-load', setup);
-  window.addEventListener('motionpreferencechange', setup);
+  // Stop the rAF loop and drop the canvas context on navigation away, so a
+  // detached canvas is never left drawing (before-swap teardown).
+  function teardown() {
+    cancelAnimationFrame(animationFrameId);
+    running = false;
+    revealStart = 0;
+    revealRadius = Infinity;
+    if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx = null;
+    trails = [];
+    lastNode = null;
+    document.documentElement.style.removeProperty('--theme-grid');
+  }
+
+  // onPageReady adds the first-SPA-entry catch-up (see src/lib/motion/lifecycle.ts)
+  // so the interactive dot field mounts whether /engineering is loaded directly or
+  // navigated into. The bound-once pointer/resize listeners above stay as they are.
+  const dotField = onPageReady('.dot-lines', () => {
+    setup();
+    return teardown;
+  });
+  // Runtime toggles rebuild the field: a motion-preference flip fully remounts
+  // (reduced tears the canvas down; full restores it); a scheme flip just repaints.
+  window.addEventListener('motionpreferencechange', () => dotField.remount());
   window.addEventListener('colorschemechange', refreshTheme);
 </script>
