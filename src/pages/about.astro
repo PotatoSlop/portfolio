@@ -12,7 +12,7 @@ import headshot from '../assets/irlHeadshot.jpg';
         <div class="headshot">
           <div class="about-layer about-layer-sketch">
             <img
-              class="doodle-image"
+              class="doodle-image asset-recolor"
               src="/Assets/motion/wavingDude-static.png"
               alt="Hand-drawn doodle of Dylan Chen"
               draggable="false"
@@ -61,12 +61,16 @@ import headshot from '../assets/irlHeadshot.jpg';
 
       <div class="about-hint" aria-hidden="true">
         <span class="about-hint__row">
-          <Icon class="about-hint__ico" name="mdi:mouse-left-click-outline" width="20" height="20" />
+          <span class="about-hint__key">[LMB]</span>
           <span id="about-hint-action">Draw</span>
         </span>
         <span class="about-hint__row">
-          <Icon class="about-hint__ico" name="mdi:mouse-right-click-outline" width="20" height="20" />
+          <span class="about-hint__key">[RMB]</span>
           Drop
+        </span>
+        <span class="about-hint__row">
+          <span class="about-hint__key" id="about-hint-swap-key">[E]</span>
+          <span id="about-hint-swap-action">Erase</span>
         </span>
       </div>
 
@@ -81,7 +85,7 @@ import headshot from '../assets/irlHeadshot.jpg';
           id="about-tool-pen"
           aria-label="Draw tool"
           aria-pressed="false"
-          data-tooltip="Draw"
+          data-tooltip="Draw [D]"
         >
           <Icon class="glyph" name="tabler:pencil" width="22" height="22" />
         </button>
@@ -90,7 +94,7 @@ import headshot from '../assets/irlHeadshot.jpg';
           id="about-tool-eraser"
           aria-label="Erase tool"
           aria-pressed="false"
-          data-tooltip="Erase"
+          data-tooltip="Erase [E]"
         >
           <Icon class="glyph" name="tabler:eraser" width="22" height="22" />
         </button>

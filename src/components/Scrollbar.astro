@@ -41,6 +41,13 @@
   .scrollbar.is-visible {
     opacity: 1;
   }
+  /* Dark scheme: the track is a % of --theme-ink (soft-white here) over
+     transparent, so 14% reads too faint on the dark field. Lift it a little so
+     the slot stays legible. :global() on the ancestor because data-scheme lives
+     on <html>, which a scoped selector would never match. */
+  :global([data-scheme='dark']) .scrollbar {
+    background: color-mix(in srgb, var(--theme-ink, #e9e8ec) 24%, transparent);
+  }
   /* Widen the whole slot when the thumb is grabbed/hovered. */
   .scrollbar:has(.scrollbar__thumb:hover),
   .scrollbar:has(.scrollbar__thumb.is-dragging) {
@@ -332,6 +339,7 @@
     attributeFilter: ['data-flip-locked'],
   });
 
+  // eslint-disable-next-line no-restricted-syntax -- bound-once global; update()/buildRail() below are the catch-up (docs/routing-and-lifecycle.md §6 exceptions)
   document.addEventListener('astro:page-load', () => {
     if (document.body) ro.observe(document.body);
     update();

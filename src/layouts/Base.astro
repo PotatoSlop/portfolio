@@ -225,6 +225,7 @@ const {
       });
 
 
+      // eslint-disable-next-line no-restricted-syntax -- bound-once global reset of the transition:persist nav curtain, not page content (docs/routing-and-lifecycle.md §3.5)
       document.addEventListener('astro:page-load', () => {
         const curtain = document.getElementById('nav-curtain');
         if (!curtain || !curtain.classList.contains('is-covering')) return;

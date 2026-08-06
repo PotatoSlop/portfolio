@@ -140,6 +140,31 @@
   }
 }
 
+/* ===== Dark scheme =====
+   The timeline paints with raw primitives (--color-black, --color-text-light)
+   that don't flip on the dark axis, so the spine, dots, and text would vanish
+   on the dark field. Re-point them at the dark neutral ramp: spine + dots +
+   both headings go soft-white, and the company/description muted greys lift to
+   the readable --dark-ink-muted (from #555666, which is near-invisible here). */
+[data-scheme='dark'] .timeline-heading,
+[data-scheme='dark'] .timeline-title {
+  color: var(--dark-ink);
+}
+
+[data-scheme='dark'] .timeline-path {
+  stroke: var(--dark-ink);
+}
+
+[data-scheme='dark'] .timeline-dot {
+  background: var(--dark-ink);
+  border-color: var(--dark-ink);
+}
+
+[data-scheme='dark'] .timeline-company,
+[data-scheme='dark'] .timeline-desc {
+  color: var(--dark-ink-muted);
+}
+
 /* Reduced motion: skip draw animation, show everything immediately */
 @media (prefers-reduced-motion: reduce) {
   .timeline-dot {

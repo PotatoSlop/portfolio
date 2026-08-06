@@ -25,8 +25,9 @@
   display: flex;
   flex-direction: column;
   gap: clamp(0.35rem, 1vw, 0.7rem);
-  /* Subtle lift off the (white) page — shared by the hero crop + accordion cards. */
-  --card-shadow: 0 6px 22px -6px rgba(30, 30, 20, 0.22);
+  /* Drop shadow that lifts the cards off the (white) page — shared by the hero
+     crop + accordion panels so the whole projects section reads as one system. */
+  --card-shadow: 0 14px 38px -10px rgba(30, 30, 20, 0.4);
 }
 
 /* ---------- feature crop (hero reveal container) ----------
@@ -39,7 +40,7 @@
 .feature-crop {
   overflow: hidden;
   line-height: 0;
-  box-shadow: 0 6px 22px -6px rgba(30, 30, 20, 0);
+  box-shadow: 0 14px 38px -10px rgba(30, 30, 20, 0);
 }
 
 /* ---------- media (shared) ---------- */
@@ -268,14 +269,42 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  /* Full column width (matches the accordion). Ratio matches the 21:9 (64:27)
-     hero clip so it fills edge-to-edge with no crop or distortion. */
-  aspect-ratio: 64 / 27;
+  /* Full column width (matches the accordion). We DON'T use aspect-ratio here:
+     paired with a forced-taller height it would derive the WIDTH from the height
+     (height * 64/27) and overflow the column to the right. Instead the height is
+     set explicitly — the 21:9 aspect height reconstructed from the column width
+     (viewport minus the gallery's ~2rem gutters, capped at .wrap's 1600px) PLUS
+     a fixed +20vh — so width stays column-governed and the hero lands a
+     consistent ~20vh taller everywhere. The media just covers the taller frame.
+     Mobile restores the compact aspect strip (see the 820px query). */
+  height: calc(min(100vw - 2rem, 1600px) * 27 / 64 + 20vh);
   background: #f0f0ec;
   cursor: pointer;
 }
 .feat:focus-visible,
 .card:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 3px; }
+
+/* "Featured" corner tag — pinned top-right, ALWAYS visible (unlike .feat__info,
+   which only fades in on hover) so the hero reads as the featured project even
+   at rest. z-index sits above the media/gradient; inert to pointer so it never
+   intercepts the card's case-study click. Rides up inside .feat on the reveal. */
+.feat__badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  padding: 0.45rem 0.9rem;
+  background: var(--theme-accent);
+  color: var(--theme-accent-contrast);
+  font-family: var(--theme-font-body);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 4px 14px -4px rgba(30, 30, 20, 0.45);
+}
 .feat__info {
   position: absolute;
   inset: 0;
@@ -322,7 +351,11 @@
   padding: 0;
   display: flex;
   gap: 4px;
-  height: clamp(300px, 42vh, 480px);
+  /* Grown ~10vh taller — half the hero's +20vh floor — so the two blocks scale
+     together (see .feat min-height). Was clamp(300px, 42vh, 480px); the middle
+     42vh→52vh carries the +10vh, and the px bounds are widened so they don't
+     clamp the increase away on common laptop heights. */
+  height: clamp(360px, 52vh, 620px);
 }
 .acc__panel {
   position: relative;
@@ -502,6 +535,10 @@
 
 /* ---------- responsive ---------- */
 @media (max-width: 820px) {
+  /* Restore the compact 21:9 aspect strip: on phones the desktop tall-hero
+     height would crop the clip toward a near-square. Safe to use aspect-ratio
+     here because the height is back to auto (no forced height to inflate width). */
+  .feat { height: auto; aspect-ratio: 64 / 27; }
   .acc { flex-direction: column; height: auto; }
   .acc__panel,
   .acc__panel:first-child,

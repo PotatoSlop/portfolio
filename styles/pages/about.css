@@ -48,6 +48,18 @@
   border: var(--border-width-thick) solid var(--theme-border, var(--color-black));
   border-radius: 50%;
   overflow: hidden;
+  /* Border eases so the amber toolbar-hover highlight (below) fades in/out. */
+  transition: border-color var(--duration-medium) var(--ease-default),
+    border-width var(--duration-medium) var(--ease-default);
+}
+
+/* Hovering ANYWHERE on the drawing toolbar spotlights the portrait it controls:
+   the circular border thickens and lifts to amber, isolating the drawing tool's
+   target. --color-primary is amber in BOTH light and dark (dark only remaps
+   --color-primary-muted), so the highlight reads warm either way. */
+.about-stage:has(.about-toolbar:hover) .headshot {
+  border-width: 5px;
+  border-color: var(--color-primary);
 }
 
 .about-layer {
@@ -194,8 +206,10 @@
   align-items: center;
   gap: 0.5rem;
 }
-.about-hint__ico {
+/* Input glyphs ([LMB]/[RMB]/[D]/[E]) in the hint rows — amber accent. */
+.about-hint__key {
   flex-shrink: 0;
+  font-weight: 600;
   color: var(--color-primary-dark);
 }
 
@@ -312,6 +326,18 @@
   outline: 3px solid var(--color-primary-dark);
   outline-offset: 2px;
 }
+/* Disabled tool — the mask is fully set the way this tool would push it, so it
+   would do nothing (fully revealed → pen; fully sketch → eraser). Dimmed and
+   inert: no hover scale, no amber fill, not-allowed cursor. `disabled` is set from
+   about-reveal.ts (updateToolAvailability), which also blocks the click natively. */
+.tool-btn:disabled {
+  opacity: 0.28;
+  pointer-events: none; /* dead control: no hover scale, no tooltip, no click */
+  background: transparent;
+  color: var(--theme-ink, var(--color-black));
+  border-radius: 9px;
+  transform: none;
+}
 
 /* Show Real / Show Sketch — a preset chevron that flips 180° for the real state. */
 .state-toggle .glyph {
@@ -369,40 +395,64 @@
   text-align: left;
 }
 
-/* Thicker track whose filled portion (up to --fill, set in about-reveal.ts)
-   shows the current value; only the thumb is hidden. */
+/* Slider styled as a rounded progress bar. The filled portion is drawn FROM the
+   thumb (WebKit: a clipped box-shadow; Firefox: ::-moz-range-progress) rather than
+   as a %-of-track gradient, so the rounded cap always stays anchored to the thumb
+   with no gap — a %-gradient drifts out of sync because the thumb is inset by half
+   its width. Track + thumb share --about-slider-h so the cap is exactly as tall as
+   the bar and its edges sit flush. --fill (set in about-reveal.ts) is unused here. */
 .about-toolbar input[type='range'] {
+  --about-slider-h: 8px;
+  --about-slider-fill: var(--color-primary-dark);
+  --about-slider-empty: color-mix(
+    in srgb,
+    var(--theme-ink, var(--color-black)) 20%,
+    transparent
+  );
   -webkit-appearance: none;
   appearance: none;
   width: 84px;
-  height: 8px;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(
-    to right,
-    var(--color-primary-dark) 0 var(--fill, 50%),
-    color-mix(in srgb, var(--theme-ink, var(--color-black)) 20%, transparent) var(--fill, 50%) 100%
-  );
+  height: var(--about-slider-h);
+  background: transparent;
   cursor: pointer;
 }
-.about-toolbar input[type='range']::-moz-range-track {
-  height: 8px;
+.about-toolbar input[type='range']::-webkit-slider-runnable-track {
+  height: var(--about-slider-h);
   border: none;
-  background: transparent;
+  border-radius: var(--radius-pill);
+  background: var(--about-slider-empty);
+  overflow: hidden; /* clip the thumb's fill box-shadow to the rounded track */
 }
+.about-toolbar input[type='range']::-moz-range-track {
+  height: var(--about-slider-h);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--about-slider-empty);
+}
+.about-toolbar input[type='range']::-moz-range-progress {
+  height: var(--about-slider-h);
+  border-radius: var(--radius-pill);
+  background: var(--about-slider-fill);
+}
+/* Rounded cap; equal track/thumb heights → margin-top:0 keeps it centred. The
+   wide box-shadow paints the filled portion, clipped by the track's overflow. */
 .about-toolbar input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 8px;
-  height: 8px;
+  width: var(--about-slider-h);
+  height: var(--about-slider-h);
+  margin-top: 0;
   border-radius: 50%;
   border: none;
-  opacity: 0;
+  background: var(--about-slider-fill);
+  box-shadow: -405px 0 0 400px var(--about-slider-fill);
 }
 .about-toolbar input[type='range']::-moz-range-thumb {
-  width: 8px;
-  height: 8px;
+  width: var(--about-slider-h);
+  height: var(--about-slider-h);
+  border-radius: 50%;
   border: none;
-  opacity: 0;
+  background: var(--about-slider-fill);
 }
 
 /* ============================================================

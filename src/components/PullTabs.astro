@@ -519,6 +519,7 @@ const others = ORDER.filter((d) => d !== discipline);
     drag = null;
     isNavigating = false; // a door-nav sets this true; the new page must clear it
   };
+  // eslint-disable-next-line no-restricted-syntax -- bound-once global; the init() below is the catch-up (docs/routing-and-lifecycle.md §6 exceptions)
   document.addEventListener('astro:page-load', init);
   init();
 </script>

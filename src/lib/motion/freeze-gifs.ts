@@ -40,6 +40,7 @@ export function mountFreezeGifs() {
     wired = true;
     // Re-assert after each navigation (the nav — and its logo — re-renders per
     // swap) and whenever the reduced-motion preference changes live.
+    // eslint-disable-next-line no-restricted-syntax -- bound-once global; the apply() below is the catch-up (docs/routing-and-lifecycle.md §6 exceptions)
     document.addEventListener('astro:page-load', apply);
     window.addEventListener('motionpreferencechange', apply);
   }

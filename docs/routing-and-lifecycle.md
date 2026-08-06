@@ -60,6 +60,24 @@ Four properties every mount must have:
 
 ---
 
+### Enforcement (this is now a lint error, not just a convention)
+
+The rule above kept getting re-violated because it lived only in this doc. It is
+now enforced by ESLint (`eslint.config.js`, run via `npm run lint`): a
+`no-restricted-syntax` rule errors on any hand-rolled
+`document.addEventListener('astro:page-load', …)` or `'DOMContentLoaded'` listener.
+Route the behavior through `onPageReady` (§3.1) and the error goes away.
+
+`astro:before-swap` is **not** banned — a lone before-swap handler is legitimate
+transition plumbing (scheme copy, slide direction), not the missing-catch-up bug.
+The two sanctioned bases are exempt: `src/lib/motion/lifecycle.ts` (it *is* the
+primitive) by path, and the genuinely-global bound-once handlers (`Scrollbar`,
+`PullTabs`, `freeze-gifs`, Base's curtain reset — see §6) carry an inline
+`// eslint-disable-next-line no-restricted-syntax` with a one-line justification.
+Any *new* raw `astro:page-load` listener fails CI/`npm run lint` — which is
+exactly how the contact-page regression (a hand-rolled listener with no catch-up)
+should have been caught before it shipped.
+
 ## 3. Patterns (do this)
 
 ### 3.1 A page or component script — use `onPageReady`

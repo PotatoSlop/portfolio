@@ -234,6 +234,41 @@ form textarea {
   margin-right: 0.5rem;
 }
 
+/* ===== Dark scheme =====
+   The form paints with raw primitives that don't flip on the dark axis: the
+   title + labels stay near-black, the inputs stay white boxes, and the submit
+   button's charcoal gradient reads as black-on-black. Re-point them at the dark
+   ramp — title + field labels take the amber anchor, the inputs become dark
+   surfaces with soft-white (not pure #fff) text, and the resting button lifts
+   to a visible neutral so it's no longer swallowed by the background. */
+[data-scheme='dark'] .container h1,
+[data-scheme='dark'] form label {
+  color: var(--color-primary);
+}
+
+[data-scheme='dark'] form input[type="text"],
+[data-scheme='dark'] form input[type="email"],
+[data-scheme='dark'] form input[type="tel"],
+[data-scheme='dark'] form textarea {
+  background-color: var(--dark-surface);
+  border-color: var(--dark-border);
+  color: var(--dark-ink);
+}
+
+[data-scheme='dark'] .submit-button:not(:disabled) {
+  background: var(--dark-surface-2);
+  border: var(--border-width-medium) solid var(--dark-border);
+  color: var(--dark-ink);
+}
+
+/* Keep the amber hover — the resting rule above ties the base :hover rule on
+   specificity, so re-assert the gradient at higher specificity here. */
+[data-scheme='dark'] .submit-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border-color: transparent;
+  color: var(--color-white);
+}
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);

@@ -53,8 +53,8 @@ export function mountProjectsGallery(root: ParentNode = document): () => void {
         '.feature-crop',
         {
           boxShadow: [
-            '0 6px 22px -6px rgba(30, 30, 20, 0)',
-            '0 6px 22px -6px rgba(30, 30, 20, 0.22)',
+            '0 14px 38px -10px rgba(30, 30, 20, 0)',
+            '0 14px 38px -10px rgba(30, 30, 20, 0.4)',
           ],
         },
         {

@@ -15,7 +15,9 @@
    three.js is dynamically imported so its bundle only loads on /about, and only
    on the full-motion, fine-pointer path (the 2D reveal works without it). */
 
+import { animate, inView } from 'motion';
 import { prefersReducedMotion } from './reduced-motion';
+import { durations, eases } from './tokens';
 
 /* The pencil model (served from /public). pencil.glb is a whole-scene export; we
    pull out the `Cylinder` node, which is the pencil complete with its own eraser
@@ -111,6 +113,7 @@ function mountFullPath(stage: HTMLElement): () => void {
   const btnReset = stage.querySelector<HTMLButtonElement>('#about-reset')!;
   const toolLayer = stage.querySelector<HTMLElement>('#about-tool-layer')!;
   const cssTool = stage.querySelector<HTMLElement>('#about-css-tool')!;
+  const toolbar = stage.querySelector<HTMLElement>('.about-toolbar')!;
   const maskedEls = Array.from(stage.querySelectorAll<HTMLElement>('[data-mask]'));
 
   // These three are `position: fixed` and must map to the VIEWPORT, but `main`
@@ -138,6 +141,9 @@ function mountFullPath(stage: HTMLElement): () => void {
   let drawing = false;
   let didPaint = false;
   let last: [number, number] | null = null;
+  // Last seen cursor position in client coords. Tracked on every pointermove so a
+  // hotkey (D/E) can spawn the pencil at the cursor WITHOUT waiting for a move.
+  let lastClient: [number, number] | null = null;
   let dpr = Math.min(window.devicePixelRatio || 1, 2);
   let imgRegion = { ox: 0, oy: 0, w: 0, h: 0 };
   let maskDirty = true;
@@ -277,7 +283,19 @@ function mountFullPath(stage: HTMLElement): () => void {
     return total ? on / total : 0;
   }
   function sampleAndSwitch() {
-    setCaption(computeCoverage() > 0.5 ? 'real' : 'sketch');
+    const frac = computeCoverage();
+    setCaption(frac > 0.5 ? 'real' : 'sketch');
+    updateToolAvailability(frac);
+  }
+
+  // A tool that can't do anything at a terminal is DISABLED — both visually (the
+  // `disabled` attribute → the :disabled styling in about.css) and programmatically
+  // (native `disabled` blocks clicks; selectTool re-checks it for the hotkey path).
+  // Fully revealed (mask filled) → drawing paints nothing, so the pen is disabled;
+  // fully sketch (mask empty) → there's nothing to rub back, so the eraser is.
+  function updateToolAvailability(frac = computeCoverage()) {
+    btnPen.disabled = frac >= 0.999; // nothing left to reveal
+    btnEraser.disabled = frac <= 0.001; // nothing to erase
   }
 
   // Within 15% of fully revealed / hidden, snap the rest with a quick crossfade so
@@ -377,26 +395,21 @@ function mountFullPath(stage: HTMLElement): () => void {
     }
     paintAt(e);
   }
+  // Decide how the tool chrome presents for a cursor at (clientX, clientY) over
+  // element `el`. The pencil shows only when a tool is armed AND the cursor is over
+  // the drawing stage AND off the interactive chrome (toolbar / resume / nav) — over
+  // chrome you're operating a control, not drawing (and the OS cursor, hidden exactly
+  // when the pencil shows, must come back). The one exception is the brush-size
+  // slider: hide the pencil but KEEP the ring so its radius previews the brush.
+  function resolveChrome(clientX: number, clientY: number, el: HTMLElement | null) {
+    const overBrush = !!el?.closest?.('.brush-size');
+    const overChrome = overBrush || !!el?.closest?.('.about-toolbar, .resume-btn, nav');
+    const showTool = armed && overStage(clientX, clientY) && !overChrome;
+    return { showTool, showRing: overBrush || showTool };
+  }
   function onMove(e: PointerEvent) {
-    // The pencil + ring are shown only while the cursor is over the drawing stage;
-    // moving off eases them away (pickup → 0). The mode is unchanged — leaving is no
-    // longer a cancel.
-    const over = overStage(e.clientX, e.clientY);
-    // Over the interactive chrome (toolbar / resume button) neither the pencil nor
-    // the ring belong — you're operating a control, not drawing. The one exception
-    // is the brush-size slider: hide the pencil but KEEP the ring so its radius
-    // previews the brush as you drag.
-    const el = e.target as HTMLElement;
-    const overBrush = !!(el.closest && el.closest('.brush-size'));
-    // Over the navbar the pencil is HIDDEN but NOT dropped — pickupTarget 0 eases its
-    // scale to 0 (mode/armed state untouched), so it pops back when you leave the nav.
-    const overChrome =
-      overBrush || !!(el.closest && el.closest('.about-toolbar, .resume-btn, nav'));
-    // The pencil only shows when a tool is armed AND the cursor is over the drawing
-    // area (and not over chrome). Unarmed → it stays put away. The OS cursor is
-    // hidden EXACTLY when the tool is shown (`tool-shown`) — never otherwise — so an
-    // unarmed visitor (or one over the toolbar/nav) always keeps a real pointer.
-    const showTool = armed && !overChrome && over;
+    lastClient = [e.clientX, e.clientY];
+    const { showTool, showRing } = resolveChrome(e.clientX, e.clientY, e.target as HTMLElement);
     pickupTarget = showTool ? 1 : 0;
     setPickupTarget(pickupTarget);
     stage.classList.toggle('tool-shown', showTool);
@@ -404,7 +417,7 @@ function mountFullPath(stage: HTMLElement): () => void {
     // pointerup can't leave us stuck drawing.
     const pressing = (e.buttons & 1) === 1;
     moveTool(e.clientX, e.clientY, pressing && drawing);
-    moveRing(e.clientX, e.clientY, overBrush || (armed && over && !overChrome));
+    moveRing(e.clientX, e.clientY, showRing);
     if (!pressing) {
       drawing = false;
       last = null;
@@ -412,6 +425,20 @@ function mountFullPath(stage: HTMLElement): () => void {
     }
     if (!drawing) return;
     paintAt(e);
+  }
+  // Spawn the picked-up pencil at a client point WITHOUT a pointer move, so a hotkey
+  // (D/E) makes it appear immediately even while the cursor is still. Uses the same
+  // show-decision as onMove, so pressing the hotkey over the toolbar keeps it hidden
+  // (you then get it when you move onto the stage, via onMove as usual).
+  function spawnToolAt(clientX: number, clientY: number) {
+    const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+    const { showTool, showRing } = resolveChrome(clientX, clientY, el);
+    if (!showTool) return;
+    pickupTarget = 1;
+    setPickupTarget(1);
+    stage.classList.add('tool-shown');
+    moveTool(clientX, clientY, false);
+    moveRing(clientX, clientY, showRing);
   }
   function onUp() {
     if (drawing && didPaint) maybeAutoComplete();
@@ -429,6 +456,17 @@ function mountFullPath(stage: HTMLElement): () => void {
   }
   function onKey(e: KeyboardEvent) {
     if (e.key === 'Escape' && armed) dropTool();
+    // Bare D / E pick up the pencil / eraser (ignore while typing / with modifiers).
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const t = e.target as HTMLElement | null;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    const k = e.key.toLowerCase();
+    if (k !== 'd' && k !== 'e') return;
+    selectTool(k === 'd' ? 'reveal' : 'hide');
+    // Picking a tool up by hotkey should spawn the pencil right away, without a
+    // mouse move first — but only if the pick-up actually took (not a disabled
+    // tool) and we know where the cursor is.
+    if (armed && lastClient) spawnToolAt(lastClient[0], lastClient[1]);
   }
 
   /* ---- toolbar / tool selection ---- */
@@ -452,7 +490,10 @@ function mountFullPath(stage: HTMLElement): () => void {
     updateHint(true);
   }
   // Pick a tool up from the toolbar. Arms the interaction and points the pencil.
+  // A disabled tool (the mask is fully set the way that tool would push it) can't
+  // be picked up — the native `disabled` blocks clicks, and this guards the hotkey.
   function selectTool(next: 'reveal' | 'hide') {
+    if ((next === 'reveal' ? btnPen : btnEraser).disabled) return;
     armed = true;
     setMode(next);
   }
@@ -475,9 +516,22 @@ function mountFullPath(stage: HTMLElement): () => void {
   // The controls tooltip tracks the current mode (Draw/Erase) and re-punches
   // (restarts its CSS entrance animation) whenever the mode flips.
   const hintAction = stage.querySelector<HTMLElement>('#about-hint-action');
+  const hintSwapKey = stage.querySelector<HTMLElement>('#about-hint-swap-key');
+  const hintSwapAction = stage.querySelector<HTMLElement>('#about-hint-swap-action');
   function updateHint(punch = false) {
     if (!hint) return;
+    // The LMB/RMB hints describe what a held tool does; with no tool in hand they
+    // mean nothing, so keep them hidden until a tool is armed (setMode calls in from
+    // the toggle/reset paths while unarmed, so this guard covers those too).
+    if (!armed) {
+      hint.classList.remove('show');
+      return;
+    }
     if (hintAction) hintAction.textContent = mode === 'hide' ? 'Erase' : 'Draw';
+    // Swap hint points at the OTHER tool: while drawing it offers Erase ([E]),
+    // while erasing it offers Draw ([D]).
+    if (hintSwapKey) hintSwapKey.textContent = mode === 'hide' ? '[D]' : '[E]';
+    if (hintSwapAction) hintSwapAction.textContent = mode === 'hide' ? 'Draw' : 'Erase';
     if (punch) {
       hint.classList.remove('show');
       void hint.offsetWidth; // reflow → replay the punch entrance
@@ -487,13 +541,13 @@ function mountFullPath(stage: HTMLElement): () => void {
   const onSelectPen = () => selectTool('reveal');
   const onSelectEraser = () => selectTool('hide');
   function updateSizePct() {
-    sizePct.textContent = `${Math.round((brush / maxBrush) * 100)}%`;
-    // Paint the slider's filled portion to match the thumb position (which spans
-    // the slider's own min..max, not 0..maxBrush).
+    // Show the value as a position along the slider's own min..max range,
+    // normalised to 1%..100% (the smallest brush ≈ 9% of maxBrush, but the
+    // readout should read 1% at the low end). The actual brush radius is unchanged.
     const lo = +sizeSlider.min || 0;
     const hi = +sizeSlider.max || 100;
-    const fill = hi > lo ? ((brush - lo) / (hi - lo)) * 100 : 50;
-    sizeSlider.style.setProperty('--fill', `${Math.max(0, Math.min(100, fill))}%`);
+    const frac = hi > lo ? (brush - lo) / (hi - lo) : 0.5;
+    sizePct.textContent = `${Math.round(1 + Math.max(0, Math.min(1, frac)) * 99)}%`;
   }
   const onSize = () => {
     brush = +sizeSlider.value;
@@ -506,6 +560,7 @@ function mountFullPath(stage: HTMLElement): () => void {
     // Blank sketch → nothing to erase; if a tool is in hand, make it the pen. Leave
     // the unarmed state alone (reset shouldn't silently pick a tool up).
     if (armed) setMode('reveal');
+    updateToolAvailability(0); // empty now → eraser disabled, pen enabled
   };
 
   let toggleState = 0;
@@ -586,15 +641,35 @@ function mountFullPath(stage: HTMLElement): () => void {
   let loopRaf = 0;
   let toggleRaf = 0;
   let autoRaf = 0;
-  let hintTimer1: ReturnType<typeof setTimeout> | undefined;
   const boot = () => {
     sizeCanvases();
     applyMask();
+    updateToolAvailability(); // empty mask at boot → eraser starts disabled
     loopRaf = requestAnimationFrame(loop);
-    // Controls tooltip punches in shortly after mount; thereafter setMode drives it.
-    hintTimer1 = setTimeout(() => updateHint(true), 700);
+    // The LMB/RMB hint stays hidden until a tool is picked up (updateHint gates on
+    // `armed`), so there's nothing to punch in at mount — selectTool drives it.
   };
   const bootRaf = requestAnimationFrame(() => requestAnimationFrame(boot));
+
+  /* ---- toolbar drift: the drawing toolbar fades + drifts up as the bio section
+     scrolls into view (and on page entry), and drops back down + out as it
+     leaves. Unlike reveal()'s snap-on-leave, this is a true two-way tween so the
+     EXIT animates while the toolbar is still on screen. Full transform strings
+     keep the CSS `translateX(-50%)` centering intact through the tween. Only the
+     full path reaches here (mobile/reduced widths take mountReducedPath, where
+     the toolbar is statically centred), so the transform is always safe. ---- */
+  const toolbarShown = { opacity: 1, transform: 'translate(-50%, 0px)' };
+  const toolbarHidden = { opacity: 0, transform: 'translate(-50%, 26px)' };
+  const toolbarTween = { duration: durations.slow, ease: eases.smooth };
+  animate(toolbar, toolbarHidden, { duration: 0 }); // arm hidden — no flash before entry
+  const stopToolbarReveal = inView(
+    stage,
+    () => {
+      animate(toolbar, toolbarShown, toolbarTween);
+      return () => animate(toolbar, toolbarHidden, toolbarTween);
+    },
+    { amount: 0.2 }
+  );
 
   /* ---- three.js floating tool (glTF). CSS fallback on failure. ---- */
   let moveTool: (x: number, y: number, press: boolean) => void = () => {};
@@ -1011,8 +1086,12 @@ function mountFullPath(stage: HTMLElement): () => void {
     cancelAnimationFrame(loopRaf);
     if (toggleRaf) cancelAnimationFrame(toggleRaf);
     if (autoRaf) cancelAnimationFrame(autoRaf);
-    clearTimeout(hintTimer1);
     disposeThree();
+    // Stop the drift observer and drop the tweened inline styles so a re-mount
+    // (SPA nav back to /about) re-arms cleanly from the stylesheet's resting state.
+    stopToolbarReveal();
+    toolbar.style.opacity = '';
+    toolbar.style.transform = '';
     window.removeEventListener('pointerdown', onDown);
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);

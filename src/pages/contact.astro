@@ -354,12 +354,20 @@ import Base from '../layouts/Base.astro';
       textarea.style.height = height + 'px';
     }
 
-    // ---- Wire up (per astro:page-load; window resize cleaned on before-swap) ----
-    let resizeHandler: (() => void) | null = null;
+    // ---- Wire up through onPageReady ----
+    // Routed through the shared lifecycle primitive (NOT a hand-rolled
+    // astro:page-load listener) so it gets the mandatory first-SPA-entry
+    // catch-up: without it, arriving at /contact via an in-app navigation could
+    // evaluate this module after page-load had already fired, leaving the form
+    // completely un-wired until a hard refresh. See docs/routing-and-lifecycle.md §3.1.
+    import { onPageReady } from '../lib/motion/lifecycle';
 
-    function initContact() {
+    // Root '#contact-form' means this only mounts on /contact and no-ops
+    // everywhere else. The returned closure is the teardown run on before-swap —
+    // it removes the one window listener that would otherwise leak across nav.
+    onPageReady('#contact-form', () => {
       const form = document.getElementById('contact-form') as HTMLFormElement | null;
-      if (!form) return; // not on /contact
+      if (!form) return;
       loadEmailJS(); // preload the SDK so submit is instant
 
       form.addEventListener('submit', sendEmail);
@@ -372,18 +380,10 @@ import Base from '../layouts/Base.astro';
         .querySelectorAll('input, textarea')
         .forEach((input) => input.addEventListener('input', clearFormMessages));
 
-      resizeHandler = adjustTextareaHeight;
+      const resizeHandler = adjustTextareaHeight;
       window.addEventListener('resize', resizeHandler);
-    }
 
-    function teardownContact() {
-      if (resizeHandler) {
-        window.removeEventListener('resize', resizeHandler);
-        resizeHandler = null;
-      }
-    }
-
-    document.addEventListener('astro:page-load', initContact);
-    document.addEventListener('astro:before-swap', teardownContact);
+      return () => window.removeEventListener('resize', resizeHandler);
+    });
   </script>
 </Base>

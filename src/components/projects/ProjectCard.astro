@@ -79,6 +79,8 @@ const phClass = isFeature ? 'ph' : 'ph ph--sm';
     }
   </div>
 
+  {isFeature && <span class="feat__badge">Featured</span>}
+
   {!isFeature && <span class="acc__spine" aria-hidden="true">{d.title}</span>}
 
   <div class:list={['feat__info', !isFeature && 'acc__info']}>
