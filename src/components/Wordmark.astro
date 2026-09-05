@@ -116,8 +116,7 @@ const clipH = (baseline: number) => baseline + CLIP_EPS - CLIP_TOP;
     width: 100%; 
     max-width: 1280px;
     height: auto;
-    /* The exact desktop constant offset you requested */
-    margin: 0 0 0 -2.2rem; 
+    margin: 0 0 0 -2.2rem;
     overflow: visible;
     color: var(--theme-ink);
     pointer-events: none;
@@ -417,7 +416,7 @@ const clipH = (baseline: number) => baseline + CLIP_EPS - CLIP_TOP;
 
     // tspans honor neither CSS transforms nor Motion's CSS `y` geometry prop, so
     // we animate a plain numeric offset and write the SVG `y` ATTRIBUTE ourselves
-    // each frame via onUpdate (what the original rAF loop did). Manual stagger
+    // each frame via onUpdate. Manual stagger
     // loop because each glyph rises to its own rest `y`.
     const spring = { type: 'spring' as const, ...springs.snappy };
     const anims = glyphs.map((g, i) =>

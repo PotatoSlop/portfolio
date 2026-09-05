@@ -1,4 +1,5 @@
 ---
+import { getImage } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 
 interface Props {
@@ -21,15 +22,25 @@ const ctaLabel = (e: CollectionEntry<'design'>) => {
   }
 };
 
-const item = (e: CollectionEntry<'design'>, tag: string) => ({
+// Resolve the cover through the image pipeline to a plain URL string — the hero
+// card interior is rebuilt in JS (the cross-fade cycler), so it can't hold an
+// <Image>; it takes the optimized URL and paints it as a background instead.
+const coverUrl = async (e: CollectionEntry<'design'>) =>
+  e.data.cover ? (await getImage({ src: e.data.cover, format: 'webp' })).src : '';
+
+const item = async (e: CollectionEntry<'design'>, tag: string) => ({
   tag,
   title: e.data.title,
   meta: meta(e),
   href: e.data.href ?? '#',
   cta: ctaLabel(e),
+  cover: await coverUrl(e),
 });
 
-const modes = featured.id === recent.id ? [item(featured, 'Featured')] : [item(featured, 'Featured'), item(recent, 'Most recent')];
+const modes =
+  featured.id === recent.id
+    ? [await item(featured, 'Featured')]
+    : [await item(featured, 'Featured'), await item(recent, 'Most recent')];
 const first = modes[0];
 const multi = modes.length > 1;
 ---
@@ -53,7 +64,7 @@ const multi = modes.length > 1;
 
   <div class="hero-feature pre-anim" id="heroFeature" data-hero={JSON.stringify(modes)}>
     <div class="hf-inner">
-      <div class="hf-media"></div>
+      <div class="hf-media" style={first.cover ? `background-image:url('${first.cover}')` : undefined}></div>
       <span class="hf-tag">{first.tag}</span>
       <div class="hf-label">
         <span class="hf-title">{first.title}</span>
@@ -93,15 +104,12 @@ const multi = modes.length > 1;
     font-size: clamp(52px, 12vw, 188px);
     line-height: 0.9;
     letter-spacing: 0.01em;
-    margin: 0.03em 0 0 -0.02em; /* Slight offset for font */
+    margin: 0.03em 0 0 -0.02em;
     color: var(--dp-ink);
   }
 
   /* ===== Hero project cycler =====
-     Auto cross-fades between the featured + most-recent project on a timer. The
-     segmented "story" countdown is now a full-width bar spanning the hero: the
-     kicker label sits at the left, the bar flexes across the middle, and the
-     manual chevrons cap the right. Slim so the feature card claims more height. */
+     Auto cross-fades between the featured + most-recent project on a timer. */
   .hero-cycler {
     display: flex;
     align-items: center;
@@ -232,6 +240,8 @@ const multi = modes.length > 1;
     position: absolute;
     inset: 0;
     background: linear-gradient(150deg, #e9e3d6, #d5ccb9);
+    background-size: cover;
+    background-position: center;
     transition: transform 0.6s var(--dp-ease);
   }
   .hero-feature:hover :global(.hf-media) {
@@ -332,6 +342,7 @@ const multi = modes.length > 1;
     meta: string;
     href: string;
     cta: string;
+    cover?: string;
   }
 
   const AUTO_MS = 6000; // dwell before the hero cross-fades to the next project
@@ -340,7 +351,7 @@ const multi = modes.length > 1;
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
   const buildInner = (m: Mode) =>
-    `<div class="hf-media"></div>` +
+    `<div class="hf-media"${m.cover ? ` style="background-image:url('${esc(m.cover)}')"` : ''}></div>` +
     `<span class="hf-tag">${esc(m.tag)}</span>` +
     `<div class="hf-label"><span class="hf-title">${esc(m.title)}</span><span class="hf-meta">${esc(m.meta)}</span>` +
     `<a class="hf-cta" href="${esc(m.href)}">${esc(m.cta)}</a></div>`;

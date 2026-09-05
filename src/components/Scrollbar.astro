@@ -3,8 +3,7 @@
 // renders a compact rounded "slot" centred on the right edge — a scaled-down
 // track (~25% of the viewport height) whose thumb maps the full document
 // scroll into that short slot. Draggable, hides when the page doesn't overflow,
-// and re-syncs on View Transitions + content-size changes. Kept vertically
-// centred and short on purpose so it no longer collides with the pull-tabs.
+// and re-syncs on View Transitions + content-size changes.
 ---
 
 <div class="scrollbar" aria-hidden="true">
@@ -90,7 +89,7 @@
        of the top-anchored pull-tab grips (which render above it), so the rail is
        never covered by the lower "software" tab in the centre band. */
     top: 50%;
-    right: 16px; /* tucked to the edge, matching the nav's 16px top inset */
+    right: 16px;
     transform: translateY(-50%);
     z-index: 1000;
     padding: 10px 9px;
@@ -128,9 +127,6 @@
      silently fail to match (black text, un-positioned buttons). */
   :global(.scroll-rail__tick) {
     position: absolute;
-    /* Sit the numbers left of the progress line with a clear gap on both sides
-       (was flush against the line). Right-anchored 8px off the line; the number
-       is free to breathe into the space on its left. */
     left: 0;
     right: 8px;
     transform: translateY(-50%);
@@ -184,9 +180,6 @@
   let dragStartScroll = 0;
   let raf = 0;
 
-  // The About-page flip locks the body (position:fixed) and drives scroll via
-  // wheel/touch; a custom scrollbar can't act on a frozen body, so we hide it
-  // for the duration and restore it the moment the flip unlocks.
   const isFlipLocked = () => document.documentElement.dataset.flipLocked === '1';
 
   // The About flip locks the body (position:fixed; top:-scrollY) and drives

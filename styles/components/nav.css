@@ -412,6 +412,26 @@ body > nav ul {
   }
 }
 
+/* ===== Software nav skin — wordmark logo =====
+   Software joins engineering/design in using the chip + "DYLAN CHEN" wordmark
+   instead of the boiling-name gif. It reuses the shared amber-chip-on-ink-block
+   design (.logo-text / .logo-chip / .logo-name above); the only change is the
+   wordmark font, swapped to software's mono display face so the logo reads as
+   software. Positioned like engineering's (vertically centred, edge-inset). */
+[data-theme='software'] .logo {
+  top: 50%;
+  transform: translateY(-50%);
+  left: clamp(0.75rem, 2vw, 1.5rem);
+  display: flex;
+  align-items: center;
+}
+[data-theme='software'] .logo-name {
+  font-family: var(--theme-font-display); /* interstate-mono */
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
 /* ===== Design nav skin — floating islands =====
    No bar, no divider: the logo wordmark and the Home/About/Contact links become
    discrete translucent-cream "islands" (blur + 1px border + 5px radius + soft

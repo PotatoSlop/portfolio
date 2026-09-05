@@ -57,8 +57,7 @@ import { animate, scroll } from "motion"
 
     // Step 4a: intro animation — ported from the intro portion of
     // landing-page.js (typewriter types "Hi! I'm", then the DYLAN title + gif +
-    // scroll hint reveal; scroll is locked during the intro). Scroll-reveal (4b)
-    // and drag-to-navigate (4c) are separate, later steps.
+    // scroll hint reveal; scroll is locked during the intro).
     //
     // Runs on astro:page-load so it also replays when navigating back to "/".
     const initialText = "Hi! I'm";
@@ -168,8 +167,6 @@ import { animate, scroll } from "motion"
         typewriter.textContent = initialText;
         typewriter.classList.remove('scrolled', 'shift-left');
         reveals.forEach((el) => el?.classList.remove('scrolled'));
-        // NOTE (4c): the original also returns a role dropped in the zone back to
-        // the bank here — deferred until drag-and-drop is ported.
       }
 
       // Scroll hint fades out while scrolling, back in when near the top.
@@ -188,10 +185,9 @@ import { animate, scroll } from "motion"
       }
     }
 
-    // Step 4c: drag-and-drop → navigate (faithful HTML5 DnD port).
+    // Step 4c: drag-and-drop → navigate.
     // Drag a role chip into the drop zone → the "a/an" article updates and the
     // chip docks next to it → fade out + navigate to that discipline.
-    // 4→3: Photographer dropped, third role is Developer → /software.
     // Re-wired per astro:page-load because the chips/zone are recreated on nav.
     function wireDrag() {
       const typewriter = document.querySelector('.typewriter-animation') as HTMLElement | null;

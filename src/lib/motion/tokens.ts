@@ -27,7 +27,7 @@ export const eases = {
 /** Base stagger step between siblings, seconds. Mirrors --wave-delay-base. */
 export const staggerBase = 0.25;
 
-/** Spring presets for gesture / cursor-chip work (Phases 2 & 4).
+/** Spring presets for gesture / cursor-chip work.
    Passed as `{ type: 'spring', ...springs.snappy }` to Motion's animate(). */
 export const springs = {
   snappy: { stiffness: 400, damping: 32 },

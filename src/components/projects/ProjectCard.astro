@@ -41,6 +41,11 @@ const timeline = `${d.started} – ${d.ended ?? 'Present'}`;
 const others = d.disciplines.filter((x) => x !== current);
 const repo = d.links?.repo ?? null;
 
+// Clicking the card body opens the project's repo, falling back to the GitHub
+// profile when a project has no repo of its own.
+const GITHUB_PROFILE = 'https://github.com/PotatoSlop';
+const caseHref = repo ?? GITHUB_PROFILE;
+
 const isFeature = variant === 'feature';
 const Wrapper = isFeature ? 'article' : 'li';
 const mediaClass = isFeature ? 'feat__media' : 'acc__media';
@@ -50,11 +55,12 @@ const phClass = isFeature ? 'ph' : 'ph ph--sm';
 <Wrapper
   class:list={[isFeature ? 'feat' : 'acc__panel', 'card']}
   data-case
+  data-case-href={caseHref}
   data-title={d.title}
   data-tech={(d.tech ?? []).join('|')}
   tabindex="0"
-  role="button"
-  aria-label={`Open ${d.title} case study`}
+  role="link"
+  aria-label={repo ? `Open ${d.title} repository` : `View projects on GitHub`}
 >
   <div class={mediaClass} data-media>
     {

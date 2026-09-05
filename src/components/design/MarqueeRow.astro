@@ -1,4 +1,5 @@
 ---
+import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 
 interface Props {
@@ -6,6 +7,12 @@ interface Props {
   dir?: number; // -1 drifts left, 1 drifts right
 }
 const { items, dir = -1 } = Astro.props;
+
+// One corner badge per card. A 'stub' marker (placeholder entry — e.g. a 3D
+// model with no viewer wired up yet) takes precedence over 'game-asset', since
+// flagging the unfinished state is the point of showing it at all.
+const badgeFor = (it: CollectionEntry<'design'>) =>
+  it.data.tags?.includes('stub') ? 'stub' : it.data.tags?.includes('game-asset') ? 'game-asset' : null;
 ---
 
 <div class="row-viewport crop-tb">
@@ -13,8 +20,12 @@ const { items, dir = -1 } = Astro.props;
     {
       items.map((it) => (
         <a class="d-card" href={it.data.href ?? '#'} draggable={false}>
-          <div class="d-media" />
-          {it.data.tags?.includes('game-asset') && <span class="d-tag">game-asset</span>}
+          <div class="d-media">
+            {it.data.cover && (
+              <Image src={it.data.cover} alt="" format="webp" widths={[420, 640]} sizes="(max-width: 768px) 90vw, 34vw" />
+            )}
+          </div>
+          {badgeFor(it) && <span class="d-tag" data-stub={badgeFor(it) === 'stub' ? 'true' : 'false'}>{badgeFor(it)}</span>}
           <div class="d-label">
             <b>{it.data.title}</b>
             <span>{it.data.category}</span>
@@ -28,14 +39,7 @@ const { items, dir = -1 } = Astro.props;
 <style>
   .row-viewport {
     overflow: hidden;
-    /* Horizontal swipes scrub the row; vertical stays page scroll. */
     touch-action: pan-y;
-    /* The clip region (overflow + the crop-tb reveal's clip-path) sits at the
-       padding box, so pad the frame and pull it back out by the same amount:
-       layout is unchanged but a hover-scaled card (1.05) now has vertical room
-       to grow into instead of being cropped at the top/bottom edge. Sized to the
-       shadow's reach via the shared bleed token. The row is still a horizontal
-       scrub window, so left/right stay clipped by design. */
     padding-block: var(--dp-bleed);
     margin-block: calc(-1 * var(--dp-bleed));
   }
@@ -54,8 +58,6 @@ const { items, dir = -1 } = Astro.props;
     background: var(--dp-card);
     cursor: pointer;
     text-decoration: none;
-    /* So grabbing ON a card scrubs the row instead of starting a native
-       link/image drag (which otherwise swallows the pointer stream). */
     -webkit-user-drag: none;
     user-select: none;
     transition: box-shadow 0.5s var(--dp-ease), transform 0.4s var(--dp-ease);
@@ -70,6 +72,16 @@ const { items, dir = -1 } = Astro.props;
     inset: 0;
     background: linear-gradient(155deg, #2a2a2e, #141416);
     transition: transform 0.6s var(--dp-ease);
+  }
+  /* Cover image fills the media frame; the gradient shows through only when a
+     card has no cover yet (stubs). */
+  .d-media :global(img) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
   .d-card:hover .d-media {
     transform: scale(1.07);
@@ -113,21 +125,22 @@ const { items, dir = -1 } = Astro.props;
     padding: 4px 9px;
     border-radius: 3px;
   }
+  /* Stub marker — amber fill so an unfinished/placeholder card reads distinctly
+     from the neutral game-asset tag. */
+  .d-tag[data-stub='true'] {
+    background: var(--dp-accent);
+    color: var(--dp-ink);
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .row-viewport {
       overflow-x: auto;
     }
-    /* No scale-on-hover under reduced motion — the box-shadow lift stays (it's
-       not motion), but the card + inner media hold their size. */
     .d-card:hover,
     .d-card:hover .d-media {
       transform: none;
     }
   }
-  /* Manual reduced-motion (corner toggle sets html[data-sim-reduced]) — the row
-     falls back to native horizontal scroll, mirroring the media-query path. The
-     drift rAF + loop clones are torn down in JS on the same signal. */
   :global([data-sim-reduced]) .row-viewport {
     overflow-x: auto;
   }
@@ -136,19 +149,13 @@ const { items, dir = -1 } = Astro.props;
     transform: none;
   }
 
-  /* ===== Mobile: FIFO card queue =====
-     A different structure from the desktop drift (src/lib/motion/mobile-queue.ts):
-     JS adds `.is-queue` and shows only the FRONT card; the amber chevrons in
-     `.queue-nav` rotate the queue (front → back). No track transform is involved,
-     so resizing out of the desktop drift can't leave the card misaligned. */
+  /* ===== Mobile: FIFO card queue ===== */
   @media (max-width: 768px) {
     .row-viewport {
-      position: relative; /* anchors the .queue-nav control layer */
+      position: relative;
       padding-block: 0;
       margin-block: 0;
     }
-    /* Queue mode is switched on by JS (.is-queue), so the plain server DOM is
-       untouched until the queue mounts. */
     .row-viewport.is-queue .row-track {
       display: block;
     }
@@ -164,15 +171,12 @@ const { items, dir = -1 } = Astro.props;
     }
   }
 
-  /* Chevron controls — their OWN layer over the queue, NOT attached to the card,
-     so a resize can never displace them relative to it. JS-created → :global.
-     Bare amber chevrons: no box, no background — just the glyph, with a soft
-     shadow so it stays legible over light or dark card art. */
+  /* Chevron nav buttons */
   :global(.row-viewport .queue-nav) {
     position: absolute;
     inset: 0;
     z-index: 4;
-    pointer-events: none; /* only the buttons take input */
+    pointer-events: none;
   }
   :global(.row-viewport .queue-nav__btn) {
     position: absolute;

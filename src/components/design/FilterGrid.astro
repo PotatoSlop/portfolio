@@ -1,10 +1,9 @@
 ---
+import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 
 // All work — the master grid: a bold navy block holding every design piece,
-// filtered by tag chips. This is the functional-access backstop; each zone's
-// "view all" scrolls here and applies its filter (wired later). Client-side
-// filtering by category + game-asset tag.
+// filtered by tag chips.
 interface Props {
   items: CollectionEntry<'design'>[];
 }
@@ -37,8 +36,18 @@ const tileTags = (e: CollectionEntry<'design'>) =>
   {
     items.map((it) => (
       <a class="g-tile" href={it.data.href ?? '#'} data-tags={tileTags(it)}>
-        <div class="g-media" />
-        {it.data.tags?.includes('game-asset') && <span class="g-tag">game-asset</span>}
+        <div class="g-media">
+          {it.data.sprite ? (
+            <img class="g-sprite" src={it.data.sprite} data-freeze={it.data.spriteStatic} alt="" />
+          ) : it.data.cover ? (
+            <Image src={it.data.cover} alt="" format="webp" widths={[280, 420]} sizes="(max-width: 900px) 45vw, 22vw" />
+          ) : null}
+        </div>
+        {it.data.tags?.includes('stub') ? (
+          <span class="g-tag" data-stub>stub</span>
+        ) : (
+          it.data.tags?.includes('game-asset') && <span class="g-tag">game-asset</span>
+        )}
         <span class="g-label">{it.data.title}</span>
       </a>
     ))
@@ -115,8 +124,30 @@ const tileTags = (e: CollectionEntry<'design'>) =>
     background: linear-gradient(150deg, #1b2c4c, #122038);
     transition: transform 0.6s var(--dp-ease);
   }
+  .g-media :global(img) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  /* Pixel-art sprite — contained (never cropped) + crisp scaling in the square tile. */
+  .g-media :global(.g-sprite) {
+    object-fit: contain;
+    image-rendering: pixelated;
+    padding: 0;
+  }
   .g-tile:hover .g-media {
     transform: scale(1.06);
+  }
+  /* Bottom scrim so the cream label stays legible over bright covers. */
+  .g-tile::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(0deg, rgba(8, 14, 26, 0.78) 0%, rgba(8, 14, 26, 0) 46%);
   }
   .g-label {
     position: absolute;

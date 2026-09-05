@@ -1,4 +1,5 @@
 ---
+import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 
 interface Props {
@@ -17,7 +18,13 @@ items.forEach((it, i) => columns[i % COLS].push(it));
       <div class="m-col" data-drift="y" data-dir={i % 2 === 0 ? -1 : 1}>
         {col.map((it) => (
           <a class="m-card" href={it.data.href ?? '#'} draggable={false}>
-            <div class="m-media" />
+            <div class="m-media">
+              {it.data.sprite ? (
+                <img class="m-sprite" src={it.data.sprite} data-freeze={it.data.spriteStatic} alt="" draggable={false} />
+              ) : it.data.cover ? (
+                <Image src={it.data.cover} alt="" format="webp" widths={[320, 480]} sizes="(max-width: 900px) 45vw, 22vw" />
+              ) : null}
+            </div>
             <div class="m-label">
               <b>{it.data.title}</b>
               <span>{it.data.tools?.[0] ?? it.data.category}</span>
@@ -68,6 +75,32 @@ items.forEach((it, i) => columns[i % COLS].push(it));
   }
   .m-card:hover .m-media {
     transform: scale(1.06);
+  }
+  /* A real cover drives the tile's height from the artwork's own aspect ratio,
+     giving a true ragged masonry. The nth-child ratios below are the fallback
+     for coverless stubs only. */
+  .m-media :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .m-media:has(:global(img)) {
+    aspect-ratio: auto;
+  }
+  /* Pixel-art sprite (raw public asset) — crisp nearest-neighbour scaling on a
+     flat tint so the small source can upscale to the card without blurring. */
+  /* Pixel sprites sit in a fixed SQUARE frame, contained + crisp. A square source
+     (the sandwich logo) fills it edge-to-edge; a portrait source (Guy) fits by
+     height and is letterboxed on the dark tint rather than blown up to full width. */
+  .m-media :global(.m-sprite) {
+    box-sizing: border-box;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    height: auto;
+    object-fit: contain;
+    image-rendering: pixelated;
+    background: #1b1b20;
+    padding: 0;
   }
 
   .m-card:nth-child(3n) .m-media {

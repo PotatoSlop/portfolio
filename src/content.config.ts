@@ -94,6 +94,13 @@ const design = defineCollection({
       // Resting still (same astro:assets pipeline / video-poster pattern as projects).
       cover: image().optional(),
       posterVideo: z.string().optional(),
+      // Pixel-art / animated-GIF pieces bypass the image pipeline (which resizes
+      // and de-animates them, blurring the pixels). `sprite` is a raw PUBLIC path
+      // served verbatim with nearest-neighbour scaling; `spriteStatic` is the
+      // freeze-frame still shown under reduced motion when `sprite` is a GIF
+      // (see src/lib/motion/freeze-gifs.ts, data-freeze).
+      sprite: z.string().optional(),
+      spriteStatic: z.string().optional(),
       // Where the card's click goes — model viewer, case study, or zoom.
       href: z.string().optional(),
       order: z.number().default(0),

@@ -66,7 +66,7 @@ const recent = all.find((d) => d.data.recent) ?? featured;
   <PullTabs discipline="design" />
 
   <style>
-    /* Design-page tokens (scaffold; reconciled into styles/themes/design.css later).
+    /* Design-page tokens.
        Custom properties inherit into the child components (HeroProject, MarqueeRow). */
     .design-page {
       --dp-paper: #f3efe6;
@@ -99,7 +99,7 @@ const recent = all.find((d) => d.data.recent) ?? featured;
        the paper/card surfaces, the cream becomes the ink, amber pops on navy so
        it brightens. Mirrors the [data-theme='design'][data-scheme='dark'] block
        in styles/themes/design.css; kept here because the page runs its own --dp-*
-       shadow-palette (a full migration onto the contract is a later pass). The
+       shadow-palette. The
        :global() wrap is required — the theme/scheme flags live on <html>, an
        ancestor outside this component's scoped selectors. */
     :global([data-scheme='dark']) .design-page {
@@ -186,7 +186,7 @@ const recent = all.find((d) => d.data.recent) ?? featured;
       align-items: baseline;
       gap: 16px;
       /* Fixed (not vh) so the gap below every section title reads the same
-         regardless of viewport height, and tighter than the old 2.4vh. */
+         regardless of viewport height. */
       margin-bottom: 16px;
     }
     .dp-idx {

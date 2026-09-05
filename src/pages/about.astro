@@ -171,7 +171,7 @@ import headshot from '../assets/irlHeadshot.jpg';
     import { mountAboutReveal } from '../lib/motion/about-reveal';
     import { onPageReady } from '../lib/motion/lifecycle';
 
-    // ---- Experience timeline (scroll-linked hand-drawn path) ----
+    //  Experience timeline
     function mountTimeline(): () => void {
       const timelineEl = document.getElementById('js-timeline');
       const svgEl = document.getElementById('js-timeline-svg') as unknown as SVGSVGElement | null;
@@ -304,8 +304,6 @@ import headshot from '../assets/irlHeadshot.jpg';
       };
     }
 
-    // ---- Idempotent mount/teardown via the shared lifecycle primitive
-    //      (routing-and-lifecycle contract §3.1) ----
     onPageReady('.about-stage', () => {
       const destroyReveal = mountAboutReveal();
       const destroyTimeline = mountTimeline();

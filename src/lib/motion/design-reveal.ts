@@ -1,23 +1,7 @@
 import { prefersReducedMotion } from './reduced-motion';
 
-/* Design-page load / reveal choreography (ported from the prototype).
-   - Hero title + section titles: colour-block reveal (block crops in from the
-     bottom, holds, exits the top revealing each glyph; L→R stagger).
-   - Feature card: box reveal (vertical strips doing the same block motion).
-   - Breadcrumb / caption / toggle: crop-lr wipe.
-   - Grid containers (.crop-tb): crop-tb wipe on scroll-into-view.
-
-   GOTCHA: a clip-path'd element reports 0 intersection to IntersectionObserver,
-   so the .crop-tb reveal observes the element's UNCLIPPED parent, not itself.
-
-   Mount on astro:page-load, call the returned destroy() on astro:before-swap. */
-
-// The colour-block reveal sweeps in amber across the board: navy blocks vanished
-// against the dark navy page in dark mode (and amber reads better on cream too).
 const AMBER = '#F5A045';
 
-// Wrap each character in an overflow-hidden cell holding a colour-block cover
-// and an opacity-gated glyph, so the block can crop over then off a blank glyph.
 function wrapCharsReveal(el: HTMLElement, color: string): void {
   el.style.setProperty('--br-color', color);
   const txt = el.textContent ?? '';
@@ -39,7 +23,6 @@ function wrapCharsReveal(el: HTMLElement, color: string): void {
   }
 }
 
-// Overlay a non-text element with N vertical strips that block-reveal L→R.
 function boxReveal(el: HTMLElement, color: string, n: number): void {
   el.style.setProperty('--br-color', color);
   const ov = document.createElement('div');
@@ -74,14 +57,13 @@ export function mountDesignReveal(root: ParentNode = document): () => void {
     ['#s-grid .dp-head h2', AMBER],
   ];
 
-  // Reduced motion (OS pref OR the corner toggle): reveal everything at once.
+  // Reduced motion
   if (prefersReducedMotion()) {
     [crumb, sub, toggle, ...cropTbEls].forEach((e) => e?.classList.add('in'));
     [heroTitle, feature].forEach((e) => e?.classList.remove('pre-anim'));
     return () => {};
   }
 
-  // Hero + section titles → block reveal (glyphs start blank).
   if (heroTitle) {
     wrapCharsReveal(heroTitle, AMBER);
     heroTitle.classList.remove('pre-anim'); // now hidden by the blank glyphs
@@ -100,7 +82,7 @@ export function mountDesignReveal(root: ParentNode = document): () => void {
   const observers: IntersectionObserver[] = [];
   const timers: number[] = [];
 
-  // Section titles ripple when scrolled into view.
+  // Section titles ripple
   const ioTitle = new IntersectionObserver(
     (entries, o) =>
       entries.forEach((e) => {
@@ -117,7 +99,6 @@ export function mountDesignReveal(root: ParentNode = document): () => void {
   });
   observers.push(ioTitle);
 
-  // Grid containers crop-in top→bottom — observe the UNCLIPPED parent (see gotcha).
   cropTbEls.forEach((el) => {
     const host = el.parentElement;
     if (!host) return;
@@ -135,14 +116,6 @@ export function mountDesignReveal(root: ParentNode = document): () => void {
     observers.push(o);
   });
 
-  // Hero timeline: caption group + feature come in first (~150ms), then the
-  // DESIGN colour block fills (~700ms); clean up the feature strips after. The
-  // ~150ms lead gives the initial (clipped/covered) state time to paint, so we
-  // don't need an rAF gate — which also keeps the reveal from stalling if the
-  // page first loads in a backgrounded tab (rAF throttled, setTimeout not).
-  // Caption group wipes in top→bottom (breadcrumb → subtitle → toggle) so the
-  // three crop-lr lines cascade rather than snap in together. The feature card's
-  // box reveal rides in with the breadcrumb.
   timers.push(
     window.setTimeout(() => {
       crumb?.classList.add('in');

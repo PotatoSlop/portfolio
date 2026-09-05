@@ -20,9 +20,10 @@ const { theme = 'sketchbook' } = Astro.props;
 // pages keep the Projects ▾ dropdown.
 const isDiscipline = theme === 'engineering' || theme === 'design' || theme === 'software';
 
-// Engineering and Design both use the wordmark logo (amber tick + "DYLAN CHEN"),
-// skinned per-theme in nav.css. Other themes keep the boiling-name gif.
-const useWordmark = theme === 'engineering' || theme === 'design';
+// Engineering, Design, and Software use the wordmark logo (amber tick + "DYLAN
+// CHEN"), skinned per-theme in nav.css (Software swaps in its mono display font).
+// Other themes keep the boiling-name gif.
+const useWordmark = theme === 'engineering' || theme === 'design' || theme === 'software';
 ---
 
 <nav>
@@ -171,8 +172,7 @@ const useWordmark = theme === 'engineering' || theme === 'design';
   // One progress value (0→1) drives BOTH the chain-rail clip-path AND, from the
   // options' real layout positions, the moment each is revealed — so the wire
   // front reaches every row exactly as it un-hides, guaranteed in sync however
-  // many options there are. Ported from the about-page timeline's drawn-fraction
-  // reveal, replacing the CSS's old hardcoded animation-delays.
+  // many options there are.
   let railRaf = 0;
   const RAIL_DRAW_MS = 700;
   // Deliberately keys off the OS pref only (not html[data-sim-reduced], which is

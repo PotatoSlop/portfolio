@@ -719,7 +719,7 @@ function mountFullPath(stage: HTMLElement): () => void {
 
       // Contrast-forward rig ON TOP of a (deliberately low) env-map fill. Low ambient
       // + hemisphere + env keep the SHADOW side dark so the light/shadow terminator
-      // reads as a defined edge; a single dominant KEY (angle kept from before) does
+      // reads as a defined edge; a single dominant KEY does
       // the shaping, a gentle FRONT fill just keeps the near faces from crushing to
       // black, and a soft RIM catches the far edges. Screen+depth space. To trade
       // contrast ↔ flatness: raise/lower ambient+front (fill) against key (shape).
@@ -1020,8 +1020,7 @@ function mountFullPath(stage: HTMLElement): () => void {
 
         const name = mat.name || '';
         // The pencil's own eraser nub (shared 'eraser'/'rubber' material) — matte
-        // rubber. (Previously fixed by a second pass over the standalone block; now
-        // that the block is gone, catch it by name here.)
+        // rubber.
         if (/eraser|rubber/i.test(name)) {
           if (typeof mat.metalness === 'number') mat.metalness = 0;
           if (typeof mat.roughness === 'number') mat.roughness = 0.95;

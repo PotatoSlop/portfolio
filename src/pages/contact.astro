@@ -125,7 +125,7 @@ import Base from '../layouts/Base.astro';
       return emailjsReady;
     }
 
-    // ---- Validation + UI helpers (ported from contact.js) ----
+    // ---- Validation + UI helpers ----
     const val = (id: string) =>
       (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | null)?.value ?? '';
 

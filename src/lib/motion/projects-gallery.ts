@@ -2,8 +2,7 @@
   projects-gallery.ts — the shared lifecycle for a discipline "projects" section
   built from the components/projects/ kit: a feature ProjectCard inside a
   `.feature-crop`, a ProjectAccordion of the rest, and the one shared CaseOverlay.
-  One mount() wires every behaviour and returns a single teardown, so each page's
-  <script> is three lines instead of the ~100 this used to be inline.
+  One mount() wires every behaviour and returns a single teardown.
 
   Behaviours (each guards on its own elements, so a page missing a piece is fine):
     1. Feature card rides up from its crop on scroll-in; its shadow settles after.
@@ -19,7 +18,7 @@ import { reveal } from './reveal';
 import { eases } from './tokens';
 import { mountVideoScrub, type VideoScrubHandle } from './video-scrub';
 import { mountChipTrail } from './cursor-chip';
-import { mountCaseOverlay } from './case-overlay';
+import { mountCardLinks } from './card-links';
 
 export function mountProjectsGallery(root: ParentNode = document): () => void {
   const disposers: Array<() => void> = [];
@@ -120,9 +119,11 @@ export function mountProjectsGallery(root: ParentNode = document): () => void {
     videoScrub = mountVideoScrub(feature, video);
   }
 
-  // Trailing "View Project" chip + SPA case-study overlay (both query the page).
+  // Trailing "View Project" chip + card-body link stub (both query the page).
+  // The FLIP case-study overlay (mountCaseOverlay) is disabled for the MVP;
+  // cards open the project repo / GitHub profile instead.
   const destroyChip = mountChipTrail();
-  const destroyOverlay = mountCaseOverlay();
+  const destroyLinks = mountCardLinks();
 
   return () => {
     for (const d of disposers) d();
@@ -130,6 +131,6 @@ export function mountProjectsGallery(root: ParentNode = document): () => void {
     videoScrub?.destroy();
     videoScrub = null;
     destroyChip?.();
-    destroyOverlay?.();
+    destroyLinks?.();
   };
 }

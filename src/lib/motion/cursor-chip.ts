@@ -1,5 +1,5 @@
 /* ===== Pointer follow =====
-   Motion Phase 4 (gesture/pointer) toolkit. Runs on Motion's shared frame loop
+   Runs on Motion's shared frame loop
    (`frame.update` / `cancelFrame`) instead of a hand-managed requestAnimationFrame.
 
    The chip trails the pointer with DISTANCE-PROPORTIONAL velocity (exponential
