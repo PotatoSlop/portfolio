@@ -1,0 +1,281 @@
+---
+/*
+  UI/UX case-study template — /design/<id>.
+
+  SCAFFOLD: a project "graduates" onto this route the moment its design entry sets
+  `caseStudy: true` (see src/content.config.ts + src/lib/design-links.ts). Until
+  then getStaticPaths yields nothing and no page is built — the card stays gated on
+  /design. To publish a study: flip `caseStudy: true`, fill the hero fields
+  (role / timeline / summary), write the writeup in the .md body, and optionally
+  list `gallery` image paths for the process shots.
+
+  The layout is intentionally simple + section-based so it reads as a real study;
+  every content block degrades gracefully when its field is empty.
+*/
+import { getCollection, render } from 'astro:content';
+import { Icon } from 'astro-icon/components';
+import Base from '../../layouts/Base.astro';
+import type { GetStaticPaths } from 'astro';
+
+export const getStaticPaths = (async () => {
+  const studies = (await getCollection('design'))
+    .filter((d) => d.data.caseStudy)
+    .sort((a, b) => a.data.order - b.data.order);
+
+  return studies.map((entry, i) => ({
+    params: { slug: entry.id },
+    props: {
+      entry,
+      prev: studies[(i - 1 + studies.length) % studies.length],
+      next: studies[(i + 1) % studies.length],
+    },
+  }));
+}) satisfies GetStaticPaths;
+
+const { entry, prev, next } = Astro.props;
+const { title, role, timeline, summary, tools, gallery, cover } = entry.data;
+const { Content } = await render(entry);
+// prev/next only make sense with ≥2 studies; hide the pager for a lone study.
+const hasSiblings = prev && prev.id !== entry.id;
+---
+
+<Base title={`${title} — Case study — Dylan Chen`} theme="design">
+  <main class="casestudy">
+    <a class="cs-back" href="/design"><Icon name="mdi:arrow-left" /> Design</a>
+
+    <header class="cs-hero">
+      <p class="cs-eyebrow">UI / UX case study</p>
+      <h1 class="cs-title">{title}</h1>
+      {summary && <p class="cs-summary">{summary}</p>}
+
+      <dl class="cs-meta">
+        {role && (
+          <div>
+            <dt>Role</dt>
+            <dd>{role}</dd>
+          </div>
+        )}
+        {timeline && (
+          <div>
+            <dt>Timeline</dt>
+            <dd>{timeline}</dd>
+          </div>
+        )}
+        {tools.length > 0 && (
+          <div>
+            <dt>Tools</dt>
+            <dd>{tools.join(', ')}</dd>
+          </div>
+        )}
+      </dl>
+    </header>
+
+    {cover && (
+      <figure class="cs-cover">
+        <img src={cover} alt={`${title} — cover`} loading="lazy" decoding="async" />
+      </figure>
+    )}
+
+    <article class="cs-body">
+      <Content />
+    </article>
+
+    {gallery.length > 0 && (
+      <section class="cs-gallery" aria-label="Process">
+        {gallery.map((src) => (
+          <figure>
+            <img src={src} alt="" loading="lazy" />
+          </figure>
+        ))}
+      </section>
+    )}
+
+    {hasSiblings && (
+      <nav class="cs-pager" aria-label="More case studies">
+        <a href={`/design/${prev.id}`}>
+          <Icon name="mdi:arrow-left" />
+          <span>{prev.data.title}</span>
+        </a>
+        <a href={`/design/${next.id}`} class="cs-pager__next">
+          <span>{next.data.title}</span>
+          <Icon name="mdi:arrow-right" />
+        </a>
+      </nav>
+    )}
+  </main>
+
+  <style>
+    /* Self-contained editorial palette (mirrors the /design page tokens so a study
+       reads as part of the same discipline without importing that page's scope). */
+    .casestudy {
+      --dp-paper: #f3efe6;
+      --dp-ink: #16233a;
+      --dp-muted: #6c7183;
+      --dp-line: rgba(20, 18, 12, 0.12);
+      --dp-accent: #f5a045;
+      --dp-accent-deep: #b5611b;
+      --dp-font-title: 'Dela Gothic One', 'Chinese Rocks', sans-serif;
+      --dp-font-body: 'Archivo', system-ui, sans-serif;
+      --dp-ease: cubic-bezier(0.075, 0.82, 0.165, 1);
+
+      background: var(--dp-paper);
+      color: var(--dp-ink);
+      font-family: var(--dp-font-body);
+      min-height: 100vh;
+      padding: 6vh clamp(20px, 6vw, 96px) 12vh;
+      max-width: 1180px;
+      margin-inline: auto;
+    }
+    :global([data-scheme='dark']) .casestudy {
+      --dp-paper: #0f1826;
+      --dp-ink: #e9e2d2;
+      --dp-muted: #9aa0ad;
+      --dp-line: rgba(233, 226, 210, 0.16);
+      --dp-accent-deep: #f0a24e;
+    }
+
+    .cs-back,
+    .cs-pager a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--dp-accent-deep);
+      text-decoration: none;
+    }
+    .cs-back:hover {
+      text-decoration: underline;
+    }
+
+    .cs-hero {
+      margin-top: 5vh;
+      max-width: 760px;
+    }
+    .cs-eyebrow {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--dp-accent-deep);
+    }
+    .cs-title {
+      margin: 0;
+      font-family: var(--dp-font-title);
+      font-weight: 400;
+      text-transform: uppercase;
+      line-height: 1.02;
+      font-size: clamp(34px, 6vw, 72px);
+    }
+    .cs-summary {
+      margin: 20px 0 0;
+      font-size: clamp(16px, 1.6vw, 20px);
+      line-height: 1.5;
+      color: var(--dp-muted);
+    }
+    .cs-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+      margin: 34px 0 0;
+      padding-top: 24px;
+      border-top: 1px solid var(--dp-line);
+    }
+    .cs-meta dt {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--dp-muted);
+    }
+    .cs-meta dd {
+      margin: 6px 0 0;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .cs-cover {
+      margin: 6vh 0 0;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--dp-line);
+    }
+    .cs-cover :global(img) {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .cs-body {
+      margin: 6vh auto 0;
+      max-width: 720px;
+      font-size: 17px;
+      line-height: 1.7;
+    }
+    .cs-body :global(h2) {
+      font-family: var(--dp-font-title);
+      font-weight: 400;
+      text-transform: uppercase;
+      font-size: clamp(22px, 3vw, 30px);
+      margin: 2.4em 0 0.6em;
+    }
+    .cs-body :global(h3) {
+      font-size: 20px;
+      margin: 1.8em 0 0.5em;
+    }
+    .cs-body :global(p) {
+      margin: 0 0 1.1em;
+    }
+    .cs-body :global(a) {
+      color: var(--dp-accent-deep);
+    }
+    .cs-body :global(img) {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    .cs-gallery {
+      margin: 6vh 0 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .cs-gallery figure {
+      margin: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--dp-line);
+    }
+    .cs-gallery img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .cs-pager {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 10vh 0 0;
+      padding-top: 28px;
+      border-top: 1px solid var(--dp-line);
+    }
+    .cs-pager__next {
+      text-align: right;
+      margin-left: auto;
+    }
+    .cs-pager a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 640px) {
+      .cs-meta {
+        gap: 20px;
+      }
+    }
+  </style>
+</Base>

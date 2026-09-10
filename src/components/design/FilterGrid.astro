@@ -1,6 +1,7 @@
 ---
-import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
+import { resolveCardAction, cardNavigates, coverStyle, primaryTagLabel } from '../../lib/design-links';
+import { DESIGN_WIP, STUB_COUNTS, STUB_TAGS, stubList } from '../../lib/design-stub';
 
 // All work — the master grid: a bold navy block holding every design piece,
 // filtered by tag chips.
@@ -13,8 +14,9 @@ const FILTERS = [
   { key: 'all', label: 'All' },
   { key: '3d', label: '3D' },
   { key: 'uiux', label: 'UI/UX' },
-  { key: '2d', label: '2D' },
-  { key: 'game-asset', label: 'Game assets' },
+  { key: 'illustration', label: 'Illustrations' },
+  { key: 'design', label: 'Design / Branding' },
+  { key: 'game-asset', label: 'Game Assets' },
 ] as const;
 
 // Each tile carries its category + tags so the chips can filter without a fetch.
@@ -34,23 +36,44 @@ const tileTags = (e: CollectionEntry<'design'>) =>
 
 <div class="grid crop-tb">
   {
-    items.map((it) => (
-      <a class="g-tile" href={it.data.href ?? '#'} data-tags={tileTags(it)}>
-        <div class="g-media">
-          {it.data.sprite ? (
-            <img class="g-sprite" src={it.data.sprite} data-freeze={it.data.spriteStatic} alt="" />
-          ) : it.data.cover ? (
-            <Image src={it.data.cover} alt="" format="webp" widths={[280, 420]} sizes="(max-width: 900px) 45vw, 22vw" />
-          ) : null}
-        </div>
-        {it.data.tags?.includes('stub') ? (
-          <span class="g-tag" data-stub>stub</span>
-        ) : (
-          it.data.tags?.includes('game-asset') && <span class="g-tag">game-asset</span>
-        )}
-        <span class="g-label">{it.data.title}</span>
-      </a>
-    ))
+    DESIGN_WIP
+      ? stubList(STUB_COUNTS.grid).map(() => (
+          <div class="g-tile is-stub" data-tags={STUB_TAGS} aria-hidden="true">
+            <div class="g-media" />
+            <span class="g-label">
+              <span class="stub-cap">Work in Progress</span>
+            </span>
+          </div>
+        ))
+      : items.map((it) => {
+      const action = resolveCardAction(it);
+      const nav = cardNavigates(action);
+      const inert = action.kind === 'gated' || action.kind === 'dead';
+      return (
+        <a
+          class:list={['g-tile', { 'is-gated': action.kind === 'gated', 'is-inert': inert }]}
+          href={nav ? action.href : undefined}
+          data-tags={tileTags(it)}
+          data-card-action={action.kind}
+          data-glb={action.kind === 'model' ? action.glb : undefined}
+          role={action.kind === 'model' ? 'button' : undefined}
+          tabindex={action.kind === 'model' ? 0 : undefined}
+          aria-haspopup={action.kind === 'model' ? 'dialog' : undefined}
+          aria-disabled={inert ? 'true' : undefined}
+        >
+          <div class="g-media">
+            {it.data.sprite ? (
+              <img class="g-sprite" src={it.data.sprite} data-freeze={it.data.spriteStatic} alt="" style={coverStyle(it.data)} />
+            ) : it.data.cover ? (
+              <img src={it.data.cover} alt="" loading="lazy" decoding="async" style={coverStyle(it.data)} />
+            ) : null}
+          </div>
+          {/* One category chip per tile, mirroring the filter chips. */}
+          <span class="g-tag">{primaryTagLabel(it)}</span>
+          <span class="g-label">{it.data.title}</span>
+        </a>
+      );
+    })
   }
 </div>
 
@@ -87,10 +110,12 @@ const tileTags = (e: CollectionEntry<'design'>) =>
     color: var(--dp-ink);
     border-color: var(--dp-accent);
   }
+  /* Masonry via CSS multicolumn — tiles keep their own aspect (snapped to one of
+     three standards by classifyAspects() in the script), so covers are no longer
+     force-cropped to squares. Columns pack the varied heights into a tidy grid. */
   .grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 18px;
+    columns: 4;
+    column-gap: 18px;
     /* The crop-tb reveal leaves a clip-path: inset(0) on this grid, which clips
        at the border box and would crop hover-scaled tiles at the outer rows /
        columns. Pad the box and pull it back out so the clip region gains room
@@ -102,6 +127,12 @@ const tileTags = (e: CollectionEntry<'design'>) =>
   }
   .g-tile {
     position: relative;
+    display: block;
+    width: 100%;
+    /* Row rhythm inside the columns (multicolumn has no row-gap). */
+    margin-bottom: 18px;
+    break-inside: avoid;
+    /* Default until classified; overridden by the aspect classes below. */
     aspect-ratio: 1;
     border-radius: 5px;
     overflow: hidden;
@@ -109,6 +140,17 @@ const tileTags = (e: CollectionEntry<'design'>) =>
     background: #152541;
     text-decoration: none;
     transition: box-shadow 0.5s var(--dp-ease), transform 0.4s var(--dp-ease);
+  }
+  /* Three aspect standards — every cover is snapped to the nearest of these so the
+     set stays visually coherent while respecting landscape/square/portrait shape. */
+  .g-tile.is-landscape {
+    aspect-ratio: 3 / 2;
+  }
+  .g-tile.is-square {
+    aspect-ratio: 1;
+  }
+  .g-tile.is-portrait {
+    aspect-ratio: 3 / 4;
   }
   .g-tile[hidden] {
     display: none;
@@ -159,20 +201,72 @@ const tileTags = (e: CollectionEntry<'design'>) =>
     font-size: 14px;
     color: #e9e2d2;
   }
+  /* Readable over any cover — a dark pill chip behind the label instead of bare
+     text (which vanished on light / busy images). */
   .g-tag {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 8px;
+    right: 8px;
     z-index: 2;
     font-size: 10px;
+    font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--dp-accent);
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(8, 14, 26, 0.72);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(233, 226, 210, 0.14);
+  }
+
+  /* Gated UI/UX tile (no case study yet): dim it and neutralise hover so it reads
+     as not-yet-ready without dead-ending. `is-inert` just resets the cursor. */
+  .g-tile.is-gated {
+    cursor: not-allowed;
+  }
+  .g-tile.is-inert:not(.is-gated) {
+    cursor: default;
+  }
+  /* Whole-page WIP stub: blank placeholder tile (see src/lib/design-stub.ts). */
+  .g-tile.is-stub {
+    cursor: default;
+  }
+  .g-tile.is-stub:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .g-tile.is-stub:hover .g-media {
+    transform: none;
+  }
+  .g-tile.is-stub .g-label {
+    font-family: var(--dp-font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(233, 226, 210, 0.62);
+  }
+  .g-tile.is-gated .g-media {
+    filter: saturate(0.72) brightness(0.8);
+  }
+  .g-tile.is-gated:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .g-tile.is-gated:hover .g-media {
+    transform: none;
   }
 
   @media (max-width: 900px) {
     .grid {
-      grid-template-columns: repeat(2, 1fr);
+      columns: 2;
+    }
+  }
+  @media (max-width: 520px) {
+    .grid {
+      columns: 1;
     }
   }
 </style>
@@ -180,10 +274,46 @@ const tileTags = (e: CollectionEntry<'design'>) =>
 <script>
   // Chip filtering — toggles tile visibility by category / tag. Idempotent and
   // re-bound per navigation (ClientRouter re-renders the section).
+  // Snap each tile to the nearest of three aspect standards (landscape / square /
+  // portrait) from its image's natural dimensions, so the masonry columns hold a
+  // coherent set of shapes instead of force-cropping everything to squares.
+  function classifyAspects() {
+    document.querySelectorAll<HTMLElement>('.g-tile').forEach((tile) => {
+      const img = tile.querySelector('img');
+      const set = (cls: string) => {
+        tile.classList.remove('is-landscape', 'is-square', 'is-portrait');
+        tile.classList.add(cls);
+      };
+      const decide = (w: number, h: number) => {
+        if (!w || !h) return;
+        const r = w / h;
+        set(r >= 1.2 ? 'is-landscape' : r <= 0.83 ? 'is-portrait' : 'is-square');
+      };
+      const src = img?.getAttribute('src');
+      if (!src) {
+        set('is-square');
+        return;
+      }
+      // Already decoded (cached / above the fold) — classify now.
+      if (img!.complete && img!.naturalWidth) {
+        decide(img!.naturalWidth, img!.naturalHeight);
+        return;
+      }
+      // Off-screen lazy tiles: probe dimensions with a detached image so every
+      // tile gets its final shape on mount, instead of defaulting to square and
+      // reflowing as the visible <img> lazy-loads on scroll.
+      const probe = new Image();
+      probe.onload = () => decide(probe.naturalWidth, probe.naturalHeight);
+      probe.src = src;
+    });
+  }
+
   function initFilterGrid() {
     const chips = document.querySelectorAll<HTMLButtonElement>('.chip[data-filter]');
     const tiles = document.querySelectorAll<HTMLElement>('.g-tile[data-tags]');
     if (chips.length === 0) return;
+
+    classifyAspects();
 
     const applyFilter = (key: string) => {
       chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.filter === key)));

@@ -1,10 +1,10 @@
 ---
 title: Red Cross Meeting
 category: '2d'
-tags: [poster, illustration]
+tags: [illustration]
 year: 2022
 tools: [Procreate]
-cover: ../../assets/design/2d/red-cross-poster.jpg
+cover: /Assets/design/2d/red-cross-poster.jpg
 order: 1
 href: '#'
 ---

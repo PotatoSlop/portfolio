@@ -4,7 +4,7 @@ category: '2d'
 tags: [illustration]
 year: 2023
 tools: [Procreate]
-cover: ../../assets/design/2d/food-run.jpg
+cover: /Assets/design/2d/turkey-drive.jpg
 order: 2
 href: '#'
 ---

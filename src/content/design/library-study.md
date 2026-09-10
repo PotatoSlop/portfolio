@@ -1,10 +1,10 @@
 ---
 title: Northeastern Library Site
 category: 'uiux'
-tags: [stub, case-study]
+tags: []
 year: 2026
 tools: [Figma]
-cover: ../../assets/design/uiux/northeastern-library.png
+cover: /Assets/design/uiux/northeastern-library.png
 order: 4
 href: 'https://www.figma.com/design/fLPkT2mEmxx8lfa2TRrmhR/F-26-Sandbox-Tadpole-Design-Challenge-Template--Copy---Copy-?node-id=0-1'
 ---

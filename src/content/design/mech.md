@@ -1,12 +1,12 @@
 ---
 title: Peacemaker
 category: '3d'
-tags: [stub, game-asset, hardsurface]
+tags: []
 year: 2025
 tools: [Blender]
-cover: ../../assets/design/3d/mech.jpg
+cover: /Assets/design/3d/peacemaker.jpg
+glb: /Assets/models/WIPMecha.glb
 order: 1
-href: '#'
 ---
 
-Hard-surface mech turret — work-in-progress game asset. Interactive model viewer not wired up yet.
+Hard-surface mech turret game asset. Click to orbit the model.

@@ -1,10 +1,10 @@
 ---
 title: Duudle
 category: 'uiux'
-tags: [product]
+tags: []
 year: 2024
 tools: [Figma]
-cover: ../../assets/software/duudle.png
+cover: /Assets/software/duudle.png
 order: 2
 href: '#'
 ---

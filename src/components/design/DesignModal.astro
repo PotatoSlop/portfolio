@@ -1,0 +1,158 @@
+---
+/*
+  DesignModal — one per /design page. The interactive 3D model viewer that a
+  `category: '3d'` card (with a wired `.glb`) opens on click. Markup only; all
+  behaviour — open/close, lazy three.js load, GLB render, orbit, teardown — lives
+  in src/lib/motion/design-model-viewer.ts (mounted from design.astro).
+
+  Reintroduces the model-viewer modal from the previous deployed site. Kept as a
+  plain fixed overlay (not an Astro route) so it works identically on a direct
+  load and after a ClientRouter hop.
+*/
+import { Icon } from 'astro-icon/components';
+---
+
+<div class="dmodal" id="design-modal" aria-hidden="true" hidden>
+  <div class="dmodal__backdrop" data-dmodal-close></div>
+  <div class="dmodal__dialog" role="dialog" aria-modal="true" aria-labelledby="dmodal-title">
+    <header class="dmodal__bar">
+      <h2 class="dmodal__title" id="dmodal-title">3D model</h2>
+      <button class="dmodal__close" type="button" data-dmodal-close aria-label="Close model viewer">
+        <Icon name="mdi:close" width="22" height="22" />
+      </button>
+    </header>
+    <div class="dmodal__stage" data-dmodal-stage>
+      <p class="dmodal__status" data-dmodal-status role="status">Loading model…</p>
+      {/* three.js canvas is appended here at runtime */}
+    </div>
+    <p class="dmodal__hint" aria-hidden="true">Drag to orbit · scroll to zoom</p>
+  </div>
+</div>
+
+<style>
+  .dmodal {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    place-items: center;
+    padding: clamp(16px, 4vw, 48px);
+  }
+  .dmodal[hidden] {
+    display: none;
+  }
+  .dmodal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 12, 20, 0.68);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    transition: opacity 0.32s var(--dp-ease, ease);
+  }
+  .dmodal__dialog {
+    position: relative;
+    width: min(1000px, 100%);
+    height: min(76vh, 760px);
+    display: flex;
+    flex-direction: column;
+    background: var(--dp-card, #fff);
+    color: var(--dp-ink, #16233a);
+    border: 1px solid var(--dp-line, rgba(20, 18, 12, 0.12));
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 40px 90px -40px rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+    transition:
+      opacity 0.32s var(--dp-ease, ease),
+      transform 0.32s var(--dp-ease, ease);
+  }
+  /* Open state — set by the JS controller once the modal is un-hidden. */
+  .dmodal.is-open .dmodal__backdrop {
+    opacity: 1;
+  }
+  .dmodal.is-open .dmodal__dialog {
+    opacity: 1;
+    transform: none;
+  }
+  .dmodal__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px 12px 18px;
+    border-bottom: 1px solid var(--dp-line, rgba(20, 18, 12, 0.12));
+  }
+  .dmodal__title {
+    margin: 0;
+    font-family: var(--dp-font-title, sans-serif);
+    font-weight: 400;
+    font-size: clamp(16px, 2.2vw, 22px);
+    text-transform: uppercase;
+    letter-spacing: 0;
+  }
+  .dmodal__close {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border: 1px solid var(--dp-line, rgba(20, 18, 12, 0.12));
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: border-color 0.25s ease, background 0.25s ease;
+  }
+  .dmodal__close:hover {
+    border-color: var(--dp-accent, #f5a045);
+    background: color-mix(in srgb, var(--dp-accent, #f5a045) 12%, transparent);
+  }
+  .dmodal__stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    /* Soft studio gradient behind the model. */
+    background: radial-gradient(120% 120% at 50% 20%, #26303f 0%, #141a24 70%);
+    touch-action: none;
+  }
+  .dmodal__stage :global(canvas) {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .dmodal__status {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    font-family: var(--dp-font-body, system-ui);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(233, 226, 210, 0.7);
+    pointer-events: none;
+  }
+  .dmodal__status[data-hidden] {
+    display: none;
+  }
+  .dmodal__hint {
+    margin: 0;
+    padding: 9px 18px;
+    font-family: var(--dp-font-body, system-ui);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--dp-muted, #6c7183);
+    border-top: 1px solid var(--dp-line, rgba(20, 18, 12, 0.12));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dmodal__backdrop,
+    .dmodal__dialog {
+      transition: none;
+    }
+  }
+</style>

@@ -105,12 +105,18 @@
 .about-text-stack {
   position: relative;
   min-height: 300px;
+  /* The two captions cross-fade, so they must OVERLAP — but the stack still
+     needs to reserve their height so the persistent résumé menu can flow below
+     without colliding. Grid gives us both: both captions share cell 1/1 (row
+     height = the taller caption), and the menu auto-places into row 2. */
+  display: grid;
+  grid-template-columns: minmax(0, 600px);
+  justify-items: start;
 }
 
 .text-block {
-  position: absolute;
-  top: 0;
-  left: 0;
+  /* All captions occupy the same grid cell → overlaid for the cross-fade. */
+  grid-area: 1 / 1;
   width: 100%;
   max-width: 600px;
   padding-right: 2rem;
@@ -142,9 +148,13 @@
 }
 
 .resume-btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
   font-weight: 600;
   font-family: var(--font-primary);
+  font-size: inherit;
+  line-height: 1.1;
   text-align: center;
   color: var(--theme-ink, var(--color-black));
   background-color: transparent;
@@ -153,13 +163,144 @@
   border-radius: var(--radius-pill);
   transition: transform var(--duration-medium) var(--ease-aggressive),
     background-color var(--duration-medium) var(--ease-default);
-  margin-top: var(--gap-large);
   cursor: pointer; /* pencil is hidden here (see onMove) — hand back a real cursor */
 }
-.resume-btn:hover {
+.resume-btn:hover,
+.resume-menu.is-open .resume-btn {
   background-color: var(--color-primary);
   color: var(--color-black);
   transform: scale(1.05);
+}
+
+/* ---- Download-résumé dropdown ----
+   The trigger is a .resume-btn; the list of discovered variants (see
+   src/lib/resumes.ts) drops below it. Opens on hover OR click/keyboard via
+   src/lib/motion/resume-menu.ts (toggles .is-open). */
+.resume-menu {
+  position: relative;
+  display: inline-block;
+  margin-top: var(--gap-large);
+  flex: 0 0 auto; /* don't stretch as the lone in-flow child of the flex stack */
+}
+.resume-menu__chevron {
+  transition: transform var(--duration-medium) var(--ease-default);
+}
+.resume-menu.is-open .resume-menu__chevron {
+  transform: rotate(180deg);
+}
+
+/* Menu adopts the navbar Projects-dropdown language (see styles/components/nav.css):
+   a column of full-width pills descending from the trigger — border + surface +
+   left→right accent wipe on hover, one soft drop-shadow over the whole cluster,
+   staggered drop-in on open. */
+.resume-menu__list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%; /* each pill matches the trigger pill's width exactly */
+  margin: 0;
+  padding: 0.5rem 0 0; /* seam under the trigger; also bridges the hover gap */
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.18));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--duration-medium) var(--ease-smooth),
+    visibility var(--duration-medium) var(--ease-smooth);
+  z-index: 7;
+}
+.resume-menu.is-open .resume-menu__list {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Each variant is a full-width pill mirroring .nav-link / .nav-dropdown-menu li:
+   border + surface, accent wiping in from the left on hover/focus. */
+.resume-menu__list li {
+  position: relative;
+  overflow: hidden;
+  border: var(--border-width-medium) solid var(--theme-border, var(--color-black));
+  background-color: var(--theme-surface, var(--color-white));
+  border-radius: var(--radius-pill);
+  transition: border-color var(--duration-medium);
+  opacity: 0; /* armed hidden; drops in via the stagger below */
+}
+.resume-menu.is-open .resume-menu__list li {
+  animation: navPillDrop var(--duration-medium) var(--ease-smooth) both;
+}
+.resume-menu.is-open .resume-menu__list li:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.resume-menu.is-open .resume-menu__list li:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.resume-menu.is-open .resume-menu__list li:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.resume-menu__list li::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--theme-accent);
+  border-radius: var(--radius-pill);
+  z-index: var(--z-base);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-smooth) var(--ease-smooth);
+}
+.resume-menu__list li:hover::before,
+.resume-menu__list li:has(a:focus-visible)::before {
+  transform: scaleX(1);
+}
+
+.resume-menu__item {
+  position: relative; /* above the accent wipe */
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.6em;
+  padding: 0.3em 0.9em; /* match the trigger pill */
+  border-radius: var(--radius-pill);
+  font-family: var(--font-secondary);
+  font-weight: 500;
+  color: var(--theme-ink, var(--color-black));
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--duration-medium);
+}
+.resume-menu__list li:hover .resume-menu__item,
+.resume-menu__item:focus-visible {
+  color: var(--theme-accent-contrast, var(--color-black));
+  outline: none;
+}
+.resume-menu__meta {
+  font-weight: 400;
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resume-menu__list li {
+    opacity: 1;
+  }
+  .resume-menu.is-open .resume-menu__list li {
+    animation: none;
+  }
+  .resume-menu__chevron,
+  .resume-menu__list {
+    transition: opacity var(--duration-medium) var(--ease-default);
+  }
+}
+[data-sim-reduced] .resume-menu__list li {
+  opacity: 1;
+}
+[data-sim-reduced] .resume-menu.is-open .resume-menu__list li {
+  animation: none;
 }
 
 /* ---- controls tooltip (LMB draw/erase / RMB drop) ----
@@ -206,7 +347,7 @@
   align-items: center;
   gap: 0.5rem;
 }
-/* Input glyphs ([LMB]/[RMB]/[D]/[E]) in the hint rows — amber accent. */
+/* Input glyphs ([LMB]/[RMB]) in the hint rows — amber accent. */
 .about-hint__key {
   flex-shrink: 0;
   font-weight: 600;
@@ -525,6 +666,10 @@ html[data-sim-reduced='1'] .about-stage {
     margin: 0 auto;
     min-height: 0;
     text-align: center;
+    /* Single visible caption (sketch hidden) in row 1, résumé menu centred
+       below it. */
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
   }
   .text-block {
     position: static;

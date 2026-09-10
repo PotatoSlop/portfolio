@@ -6,7 +6,6 @@
 */
 import Base from '../layouts/Base.astro';
 import PullTabs from '../components/PullTabs.astro';
-import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import { Icon } from 'astro-icon/components';
 
@@ -62,7 +61,7 @@ const timelineOf = (d: { started: string; ended?: string }) => `${d.started} –
                 >
                   <div class="swcard__media">
                     {p.data.cover ? (
-                      <Image src={p.data.cover} alt="" format="webp" loading="lazy" />
+                      <img src={p.data.cover} alt="" loading="lazy" decoding="async" />
                     ) : (
                       <span class="swcard__ph" aria-hidden="true">
                         {p.data.title.charAt(0)}

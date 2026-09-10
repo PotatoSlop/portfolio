@@ -1,6 +1,7 @@
 ---
-import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
+import { resolveCardAction, cardNavigates, coverStyle } from '../../lib/design-links';
+import { DESIGN_WIP, STUB_COUNTS, stubList } from '../../lib/design-stub';
 
 interface Props {
   items: CollectionEntry<'design'>[];
@@ -14,15 +15,37 @@ items.forEach((it, i) => columns[i % COLS].push(it));
 
 <div class="masonry crop-tb">
   {
-    columns.map((col, i) => (
+    DESIGN_WIP
+      ? Array.from({ length: COLS }, (_, i) => (
+          <div class="m-col" data-drift="y" data-dir={i % 2 === 0 ? -1 : 1}>
+            {stubList(Math.ceil(STUB_COUNTS.masonry / COLS)).map(() => (
+              <div class="m-card is-stub" aria-hidden="true">
+                <div class="m-media" />
+                <div class="m-label">
+                  <span class="stub-cap">Work in Progress</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ))
+      : columns.map((col, i) => (
       <div class="m-col" data-drift="y" data-dir={i % 2 === 0 ? -1 : 1}>
-        {col.map((it) => (
-          <a class="m-card" href={it.data.href ?? '#'} draggable={false}>
+        {col.map((it) => {
+          const action = resolveCardAction(it);
+          const nav = cardNavigates(action);
+          return (
+          <a
+            class:list={['m-card', { 'is-inert': !nav }]}
+            href={nav ? action.href : undefined}
+            data-card-action={action.kind}
+            aria-disabled={!nav ? 'true' : undefined}
+            draggable={false}
+          >
             <div class="m-media">
               {it.data.sprite ? (
-                <img class="m-sprite" src={it.data.sprite} data-freeze={it.data.spriteStatic} alt="" draggable={false} />
+                <img class="m-sprite" src={it.data.sprite} data-freeze={it.data.spriteStatic} alt="" draggable={false} style={coverStyle(it.data)} />
               ) : it.data.cover ? (
-                <Image src={it.data.cover} alt="" format="webp" widths={[320, 480]} sizes="(max-width: 900px) 45vw, 22vw" />
+                <img src={it.data.cover} alt="" loading="lazy" decoding="async" style={coverStyle(it.data)} />
               ) : null}
             </div>
             <div class="m-label">
@@ -30,7 +53,8 @@ items.forEach((it, i) => columns[i % COLS].push(it));
               <span>{it.data.tools?.[0] ?? it.data.category}</span>
             </div>
           </a>
-        ))}
+          );
+        })}
       </div>
     ))
   }
@@ -41,7 +65,8 @@ items.forEach((it, i) => columns[i % COLS].push(it));
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 20px;
-    height: 78vh;
+    /* Taller viewport so more of the cycling gallery is visible at once. */
+    height: 124vh;
     overflow: hidden;
     padding-inline: var(--dp-bleed);
     margin-inline: calc(-1 * var(--dp-bleed));
@@ -69,48 +94,70 @@ items.forEach((it, i) => columns[i % COLS].push(it));
     transform: scale(1.05);
     z-index: 2;
   }
+  /* Inert placeholder (href '#' → no destination yet): keep the hover lift so the
+     gallery still feels alive, but reset the cursor so it doesn't promise a click
+     target that isn't there. */
+  .m-card.is-inert {
+    cursor: default;
+  }
+  /* Whole-page WIP stub: blank placeholder tile (see src/lib/design-stub.ts).
+     Coverless tiles already take their height from the nth-child media ratios
+     above, giving a naturally ragged skeleton. */
+  .m-card.is-stub {
+    cursor: default;
+  }
+  .m-card.is-stub:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .m-card.is-stub:hover .m-media {
+    transform: none;
+  }
+  .stub-cap {
+    font-family: var(--dp-font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--dp-muted);
+  }
   .m-media {
+    overflow: hidden;
+    /* A STABLE default aspect so the vertical drift measures a correct loop period
+       before lazy covers load; classifyMasonry() (design.astro) then sets the real
+       per-image aspect and the drift re-measures. Fixed heights (not height:auto)
+       are what keep the infinite cycling smooth instead of jumping as covers load. */
+    aspect-ratio: 3 / 4;
     background: linear-gradient(150deg, #e9e3d6, #d5ccb9);
     transition: transform 0.6s var(--dp-ease);
   }
   .m-card:hover .m-media {
     transform: scale(1.06);
   }
-  /* A real cover drives the tile's height from the artwork's own aspect ratio,
-     giving a true ragged masonry. The nth-child ratios below are the fallback
-     for coverless stubs only. */
+  /* Covers FILL the box (object-fit: cover → no letterbox bars); the box's shape
+     is chosen per-image by classifyMasonry so the crop is minimal. */
   .m-media :global(img) {
     display: block;
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: cover;
   }
-  .m-media:has(:global(img)) {
-    aspect-ratio: auto;
+  .m-media.is-landscape {
+    aspect-ratio: 3 / 2;
   }
-  /* Pixel-art sprite (raw public asset) — crisp nearest-neighbour scaling on a
-     flat tint so the small source can upscale to the card without blurring. */
-  /* Pixel sprites sit in a fixed SQUARE frame, contained + crisp. A square source
-     (the sandwich logo) fills it edge-to-edge; a portrait source (Guy) fits by
-     height and is letterboxed on the dark tint rather than blown up to full width. */
-  .m-media :global(.m-sprite) {
-    box-sizing: border-box;
-    width: 100%;
+  .m-media.is-square {
     aspect-ratio: 1 / 1;
-    height: auto;
+  }
+  .m-media.is-portrait {
+    aspect-ratio: 3 / 4;
+  }
+  /* Pixel-art sprite — crisp nearest-neighbour on a flat tint; contained by default
+     (a logo fits whole), while a piece flagged coverFit:'cover' (Guy) fills the
+     frame via its inline object-fit override. */
+  .m-media :global(.m-sprite) {
     object-fit: contain;
     image-rendering: pixelated;
     background: #1b1b20;
-    padding: 0;
-  }
-
-  .m-card:nth-child(3n) .m-media {
-    aspect-ratio: 4 / 5;
-  }
-  .m-card:nth-child(3n + 1) .m-media {
-    aspect-ratio: 3 / 4;
-  }
-  .m-card:nth-child(3n + 2) .m-media {
-    aspect-ratio: 1 / 1;
   }
   
 

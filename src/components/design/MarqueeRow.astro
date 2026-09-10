@@ -1,6 +1,7 @@
 ---
-import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
+import { resolveCardAction, cardNavigates, coverStyle } from '../../lib/design-links';
+import { DESIGN_WIP, STUB_COUNTS, stubList } from '../../lib/design-stub';
 
 interface Props {
   items: CollectionEntry<'design'>[];
@@ -8,30 +9,65 @@ interface Props {
 }
 const { items, dir = -1 } = Astro.props;
 
-// One corner badge per card. A 'stub' marker (placeholder entry — e.g. a 3D
-// model with no viewer wired up yet) takes precedence over 'game-asset', since
-// flagging the unfinished state is the point of showing it at all.
-const badgeFor = (it: CollectionEntry<'design'>) =>
-  it.data.tags?.includes('stub') ? 'stub' : it.data.tags?.includes('game-asset') ? 'game-asset' : null;
+// One corner badge per card. A gated UI/UX card (no case study yet) reads as
+// 'soon'; that takes precedence, then the 'stub' placeholder marker, then
+// 'game-asset' — flagging the unfinished/gated state is the point of the badge.
+const badgeFor = (it: CollectionEntry<'design'>, gated: boolean) =>
+  gated
+    ? 'soon'
+    : it.data.tags?.includes('stub')
+      ? 'stub'
+      : it.data.tags?.includes('game-asset')
+        ? 'game-asset'
+        : null;
 ---
 
 <div class="row-viewport crop-tb">
   <div class="row-track" data-drift="x" data-dir={dir}>
     {
-      items.map((it) => (
-        <a class="d-card" href={it.data.href ?? '#'} draggable={false}>
-          <div class="d-media">
-            {it.data.cover && (
-              <Image src={it.data.cover} alt="" format="webp" widths={[420, 640]} sizes="(max-width: 768px) 90vw, 34vw" />
+      DESIGN_WIP
+        ? stubList(STUB_COUNTS.row).map(() => (
+            <div class="d-card is-stub" aria-hidden="true">
+              <div class="d-media" />
+              <div class="d-label">
+                <span class="stub-cap">Work in Progress</span>
+              </div>
+            </div>
+          ))
+        : items.map((it) => {
+        const action = resolveCardAction(it);
+        const nav = cardNavigates(action);
+        const inert = action.kind === 'gated' || action.kind === 'dead';
+        const badge = badgeFor(it, action.kind === 'gated');
+        return (
+          <a
+            class:list={['d-card', { 'is-gated': action.kind === 'gated', 'is-inert': inert }]}
+            href={nav ? action.href : undefined}
+            data-card-action={action.kind}
+            data-glb={action.kind === 'model' ? action.glb : undefined}
+            role={action.kind === 'model' ? 'button' : undefined}
+            tabindex={action.kind === 'model' ? 0 : undefined}
+            aria-haspopup={action.kind === 'model' ? 'dialog' : undefined}
+            aria-disabled={inert ? 'true' : undefined}
+            draggable={false}
+          >
+            <div class="d-media">
+              {it.data.cover && (
+                <img src={it.data.cover} alt="" loading="lazy" decoding="async" style={coverStyle(it.data)} />
+              )}
+            </div>
+            {badge && (
+              <span class="d-tag" data-stub={badge === 'stub' ? 'true' : 'false'} data-soon={badge === 'soon' ? 'true' : 'false'}>
+                {badge === 'soon' ? 'case study soon' : badge}
+              </span>
             )}
-          </div>
-          {badgeFor(it) && <span class="d-tag" data-stub={badgeFor(it) === 'stub' ? 'true' : 'false'}>{badgeFor(it)}</span>}
-          <div class="d-label">
-            <b>{it.data.title}</b>
-            <span>{it.data.category}</span>
-          </div>
-        </a>
-      ))
+            <div class="d-label">
+              <b>{it.data.title}</b>
+              <span>{it.data.category}</span>
+            </div>
+          </a>
+        );
+      })
     }
   </div>
 </div>
@@ -130,6 +166,55 @@ const badgeFor = (it: CollectionEntry<'design'>) =>
   .d-tag[data-stub='true'] {
     background: var(--dp-accent);
     color: var(--dp-ink);
+  }
+  /* "case study soon" — keeps the neutral ink pill (distinct from the amber stub),
+     but wider text, so let it size to content. */
+  .d-tag[data-soon='true'] {
+    text-transform: none;
+    letter-spacing: 0.02em;
+  }
+
+  /* Whole-page WIP stub: blank placeholder card. Just the framed gradient media +
+     a muted skeleton bar where the label would sit. No hover lift (nothing to
+     invite), default cursor. Reversible via DESIGN_WIP (src/lib/design-stub.ts). */
+  .d-card.is-stub {
+    cursor: default;
+  }
+  .d-card.is-stub:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .d-card.is-stub:hover .d-media {
+    transform: none;
+  }
+  .stub-cap {
+    font-family: var(--dp-font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--dp-muted);
+  }
+
+  /* Gated UI/UX (no case study written yet): still show the thumbnail so the work
+     reads, but dim it and drop the hover lift so the card doesn't invite a click
+     into an empty destination — the "case study soon" badge carries the message.
+     `is-inert` (dead placeholder links) just neutralises the cursor. */
+  .d-card.is-gated {
+    cursor: not-allowed;
+  }
+  .d-card.is-inert:not(.is-gated) {
+    cursor: default;
+  }
+  .d-card.is-gated .d-media {
+    filter: saturate(0.72) brightness(0.82);
+  }
+  .d-card.is-gated:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .d-card.is-gated:hover .d-media {
+    transform: none;
   }
 
   @media (prefers-reduced-motion: reduce) {

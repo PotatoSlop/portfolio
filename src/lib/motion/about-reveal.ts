@@ -141,9 +141,6 @@ function mountFullPath(stage: HTMLElement): () => void {
   let drawing = false;
   let didPaint = false;
   let last: [number, number] | null = null;
-  // Last seen cursor position in client coords. Tracked on every pointermove so a
-  // hotkey (D/E) can spawn the pencil at the cursor WITHOUT waiting for a move.
-  let lastClient: [number, number] | null = null;
   let dpr = Math.min(window.devicePixelRatio || 1, 2);
   let imgRegion = { ox: 0, oy: 0, w: 0, h: 0 };
   let maskDirty = true;
@@ -290,7 +287,7 @@ function mountFullPath(stage: HTMLElement): () => void {
 
   // A tool that can't do anything at a terminal is DISABLED — both visually (the
   // `disabled` attribute → the :disabled styling in about.css) and programmatically
-  // (native `disabled` blocks clicks; selectTool re-checks it for the hotkey path).
+  // (native `disabled` blocks clicks; selectTool re-checks it defensively).
   // Fully revealed (mask filled) → drawing paints nothing, so the pen is disabled;
   // fully sketch (mask empty) → there's nothing to rub back, so the eraser is.
   function updateToolAvailability(frac = computeCoverage()) {
@@ -408,7 +405,6 @@ function mountFullPath(stage: HTMLElement): () => void {
     return { showTool, showRing: overBrush || showTool };
   }
   function onMove(e: PointerEvent) {
-    lastClient = [e.clientX, e.clientY];
     const { showTool, showRing } = resolveChrome(e.clientX, e.clientY, e.target as HTMLElement);
     pickupTarget = showTool ? 1 : 0;
     setPickupTarget(pickupTarget);
@@ -426,20 +422,6 @@ function mountFullPath(stage: HTMLElement): () => void {
     if (!drawing) return;
     paintAt(e);
   }
-  // Spawn the picked-up pencil at a client point WITHOUT a pointer move, so a hotkey
-  // (D/E) makes it appear immediately even while the cursor is still. Uses the same
-  // show-decision as onMove, so pressing the hotkey over the toolbar keeps it hidden
-  // (you then get it when you move onto the stage, via onMove as usual).
-  function spawnToolAt(clientX: number, clientY: number) {
-    const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
-    const { showTool, showRing } = resolveChrome(clientX, clientY, el);
-    if (!showTool) return;
-    pickupTarget = 1;
-    setPickupTarget(1);
-    stage.classList.add('tool-shown');
-    moveTool(clientX, clientY, false);
-    moveRing(clientX, clientY, showRing);
-  }
   function onUp() {
     if (drawing && didPaint) maybeAutoComplete();
     drawing = false;
@@ -454,19 +436,9 @@ function mountFullPath(stage: HTMLElement): () => void {
     e.preventDefault();
     dropTool();
   }
+  // Esc drops the held tool (tools are picked up from the toolbar only).
   function onKey(e: KeyboardEvent) {
     if (e.key === 'Escape' && armed) dropTool();
-    // Bare D / E pick up the pencil / eraser (ignore while typing / with modifiers).
-    if (e.altKey || e.ctrlKey || e.metaKey) return;
-    const t = e.target as HTMLElement | null;
-    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-    const k = e.key.toLowerCase();
-    if (k !== 'd' && k !== 'e') return;
-    selectTool(k === 'd' ? 'reveal' : 'hide');
-    // Picking a tool up by hotkey should spawn the pencil right away, without a
-    // mouse move first — but only if the pick-up actually took (not a disabled
-    // tool) and we know where the cursor is.
-    if (armed && lastClient) spawnToolAt(lastClient[0], lastClient[1]);
   }
 
   /* ---- toolbar / tool selection ---- */
@@ -491,7 +463,7 @@ function mountFullPath(stage: HTMLElement): () => void {
   }
   // Pick a tool up from the toolbar. Arms the interaction and points the pencil.
   // A disabled tool (the mask is fully set the way that tool would push it) can't
-  // be picked up — the native `disabled` blocks clicks, and this guards the hotkey.
+  // be picked up — the native `disabled` blocks clicks; this re-checks defensively.
   function selectTool(next: 'reveal' | 'hide') {
     if ((next === 'reveal' ? btnPen : btnEraser).disabled) return;
     armed = true;
@@ -516,8 +488,6 @@ function mountFullPath(stage: HTMLElement): () => void {
   // The controls tooltip tracks the current mode (Draw/Erase) and re-punches
   // (restarts its CSS entrance animation) whenever the mode flips.
   const hintAction = stage.querySelector<HTMLElement>('#about-hint-action');
-  const hintSwapKey = stage.querySelector<HTMLElement>('#about-hint-swap-key');
-  const hintSwapAction = stage.querySelector<HTMLElement>('#about-hint-swap-action');
   function updateHint(punch = false) {
     if (!hint) return;
     // The LMB/RMB hints describe what a held tool does; with no tool in hand they
@@ -528,10 +498,6 @@ function mountFullPath(stage: HTMLElement): () => void {
       return;
     }
     if (hintAction) hintAction.textContent = mode === 'hide' ? 'Erase' : 'Draw';
-    // Swap hint points at the OTHER tool: while drawing it offers Erase ([E]),
-    // while erasing it offers Draw ([D]).
-    if (hintSwapKey) hintSwapKey.textContent = mode === 'hide' ? '[D]' : '[E]';
-    if (hintSwapAction) hintSwapAction.textContent = mode === 'hide' ? 'Draw' : 'Erase';
     if (punch) {
       hint.classList.remove('show');
       void hint.offsetWidth; // reflow → replay the punch entrance

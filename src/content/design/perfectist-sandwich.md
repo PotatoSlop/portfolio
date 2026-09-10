@@ -1,7 +1,7 @@
 ---
 title: Perfectist Sandwich
 category: '2d'
-tags: [pixel, game-asset, logo]
+tags: [design]
 year: 2025
 tools: [Aseprite]
 sprite: /Assets/design/2d/perfectist-sandwich.png

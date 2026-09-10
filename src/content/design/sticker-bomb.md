@@ -1,10 +1,10 @@
 ---
 title: Sticker Bomb
 category: '2d'
-tags: [illustration]
+tags: [design]
 year: 2025
 tools: [Procreate]
-cover: ../../assets/design/2d/sticker-bomb.jpg
+cover: /Assets/design/2d/sticker-bomb.jpg
 order: 3
 href: '#'
 ---

@@ -10,13 +10,12 @@
   NOT rendered here — it rides on `data-tech` to the overlay's "Built with" list.
 
   Media is DATA-DRIVEN from the project's frontmatter and resolves by priority:
-  a hover-scrubbed <video> (when `posterVideo` is set) → an <Image> `cover` → a
+  a hover-scrubbed <video> (when `posterVideo` is set) → an <img> `cover` → a
   neutral glyph placeholder. A video card always renders `cover` as its <video
   poster>, so the tile paints a real frame instantly on every navigation path
   (fresh load AND ClientRouter SPA hop) rather than sitting blank until decode.
   Styles live in styles/components/project-card.css.
 */
-import { Image, getImage } from 'astro:assets';
 import { Icon } from 'astro-icon/components';
 import type { CollectionEntry } from 'astro:content';
 
@@ -31,9 +30,9 @@ interface Props {
 const { project, current, variant = 'panel' } = Astro.props;
 const d = project.data;
 
-// A video card needs its poster still through the pipeline so we get an
-// optimized URL for the <video poster>. Only render as video when BOTH exist.
-const poster = d.posterVideo && d.cover ? await getImage({ src: d.cover, format: 'webp' }) : null;
+// A video card uses its cover still as the <video poster> (raw public path).
+// Only render as video when BOTH exist.
+const poster = d.posterVideo && d.cover ? d.cover : null;
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const timeline = `${d.started} – ${d.ended ?? 'Present'}`;
@@ -69,14 +68,14 @@ const phClass = isFeature ? 'ph' : 'ph ph--sm';
           class="feat__video"
           data-scrub-video
           src={d.posterVideo}
-          poster={poster.src}
+          poster={poster}
           muted
           playsinline
           preload="auto"
           aria-hidden="true"
         />
       ) : d.cover ? (
-        <Image src={d.cover} alt="" format="webp" loading={isFeature ? 'eager' : 'lazy'} />
+        <img src={d.cover} alt="" loading={isFeature ? 'eager' : 'lazy'} decoding="async" />
       ) : (
         <span class={phClass} aria-hidden="true">
           {d.title.charAt(0)}

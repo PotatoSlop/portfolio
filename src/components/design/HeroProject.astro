@@ -1,6 +1,7 @@
 ---
-import { getImage } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
+import { resolveCardAction, type CardAction } from '../../lib/design-links';
+import { DESIGN_WIP } from '../../lib/design-stub';
 
 interface Props {
   featured: CollectionEntry<'design'>;
@@ -11,34 +12,47 @@ const { featured, recent } = Astro.props;
 const meta = (e: CollectionEntry<'design'>) =>
   [e.data.category.toUpperCase(), e.data.tools?.[0], e.data.year].filter(Boolean).join(' · ');
 
-const ctaLabel = (e: CollectionEntry<'design'>) => {
-  switch (e.data.category) {
-    case '3d':
+// The hero CTA mirrors the card actions (src/lib/design-links.ts): a gated UI/UX
+// pick can't be read yet, so its CTA is inert; a wired 3D pick opens the viewer.
+const ctaLabel = (a: CardAction) => {
+  switch (a.kind) {
+    case 'model':
       return 'Open 3D viewer';
-    case 'uiux':
+    case 'case':
       return 'Read case study';
+    case 'gated':
+      return 'Case study in progress';
     default:
       return 'View project';
   }
 };
 
-// Resolve the cover through the image pipeline to a plain URL string — the hero
-// card interior is rebuilt in JS (the cross-fade cycler), so it can't hold an
-// <Image>; it takes the optimized URL and paints it as a background instead.
-const coverUrl = async (e: CollectionEntry<'design'>) =>
-  e.data.cover ? (await getImage({ src: e.data.cover, format: 'webp' })).src : '';
+// The hero card interior is rebuilt in JS (the cross-fade cycler), so it can't
+// hold an <img> — it takes the cover's raw public path and paints it as a
+// background instead.
+const coverUrl = (e: CollectionEntry<'design'>) => e.data.cover ?? '';
 
-const item = async (e: CollectionEntry<'design'>, tag: string) => ({
-  tag,
-  title: e.data.title,
-  meta: meta(e),
-  href: e.data.href ?? '#',
-  cta: ctaLabel(e),
-  cover: await coverUrl(e),
-});
+const item = async (e: CollectionEntry<'design'>, tag: string) => {
+  const action = resolveCardAction(e);
+  return {
+    tag,
+    title: e.data.title,
+    meta: meta(e),
+    // Only 'case'/'link' navigate; 'model' opens the viewer via data attrs; the
+    // rest are inert (no destination yet).
+    kind: action.kind,
+    href: action.kind === 'case' || action.kind === 'link' ? action.href : '',
+    glb: action.kind === 'model' ? action.glb : '',
+    cta: ctaLabel(action),
+    cover: coverUrl(e),
+  };
+};
 
-const modes =
-  featured.id === recent.id
+// Whole-page WIP stub: skip the real hero entirely (no image processing, no
+// cycler data) and render a blank placeholder frame — see src/lib/design-stub.ts.
+const modes = DESIGN_WIP
+  ? []
+  : featured.id === recent.id
     ? [await item(featured, 'Featured')]
     : [await item(featured, 'Featured'), await item(recent, 'Most recent')];
 const first = modes[0];
@@ -62,15 +76,36 @@ const multi = modes.length > 1;
     </span>
   </div>
 
-  <div class="hero-feature pre-anim" id="heroFeature" data-hero={JSON.stringify(modes)}>
+  <div
+    class:list={['hero-feature', 'pre-anim', { 'is-stub': DESIGN_WIP }]}
+    id="heroFeature"
+    data-hero={DESIGN_WIP ? undefined : JSON.stringify(modes)}
+  >
     <div class="hf-inner">
-      <div class="hf-media" style={first.cover ? `background-image:url('${first.cover}')` : undefined}></div>
-      <span class="hf-tag">{first.tag}</span>
-      <div class="hf-label">
-        <span class="hf-title">{first.title}</span>
-        <span class="hf-meta">{first.meta}</span>
-        <a class="hf-cta" href={first.href}>{first.cta}</a>
-      </div>
+      {DESIGN_WIP ? (
+        <>
+          <div class="hf-media"></div>
+          <div class="hf-label">
+            <span class="hf-stub-cap">Work in Progress</span>
+          </div>
+        </>
+      ) : (
+        <>
+          <div class="hf-media" style={first.cover ? `background-image:url('${first.cover}')` : undefined}></div>
+          <span class="hf-tag">{first.tag}</span>
+          <div class="hf-label">
+            <span class="hf-title">{first.title}</span>
+            <span class="hf-meta">{first.meta}</span>
+            {first.kind === 'gated' || first.kind === 'dead' ? (
+              <span class="hf-cta is-disabled" aria-disabled="true">{first.cta}</span>
+            ) : first.kind === 'model' ? (
+              <a class="hf-cta" href="#" data-card-action="model" data-glb={first.glb} role="button">{first.cta}</a>
+            ) : (
+              <a class="hf-cta" href={first.href}>{first.cta}</a>
+            )}
+          </div>
+        </>
+      )}
     </div>
   </div>
 </section>
@@ -324,6 +359,25 @@ const multi = modes.length > 1;
   :global(.hf-cta:hover)::before {
     transform: translateY(0);
   }
+  /* Inert CTA — a gated UI/UX hero (case study not written yet). Reads as a quiet
+     status pill, not a button: dimmed, no cursor promise, no hover fill. */
+  :global(.hf-cta.is-disabled) {
+    opacity: 0.6;
+    cursor: default;
+    pointer-events: none;
+  }
+  /* Whole-page WIP stub: blank hero frame — no cycler, no click (src/lib/design-stub.ts). */
+  .hero-feature.is-stub {
+    cursor: default;
+  }
+  :global(.hf-stub-cap) {
+    font-family: var(--dp-font-title);
+    font-weight: 400;
+    text-transform: uppercase;
+    font-size: clamp(20px, 2.4vw, 30px);
+    line-height: 1;
+    color: var(--dp-muted);
+  }
   @media (max-width: 520px) {
     :global(.hf-label) {
       left: 16px;
@@ -340,7 +394,9 @@ const multi = modes.length > 1;
     tag: string;
     title: string;
     meta: string;
+    kind: string;
     href: string;
+    glb: string;
     cta: string;
     cover?: string;
   }
@@ -350,11 +406,20 @@ const multi = modes.length > 1;
   const esc = (s: string) =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+  // CTA mirrors the SSR branch: inert for gated/dead, viewer-opener for model,
+  // plain link otherwise. Keeps the runtime-rebuilt card honest about dead ends.
+  const buildCta = (m: Mode) =>
+    m.kind === 'gated' || m.kind === 'dead'
+      ? `<span class="hf-cta is-disabled" aria-disabled="true">${esc(m.cta)}</span>`
+      : m.kind === 'model'
+        ? `<a class="hf-cta" href="#" data-card-action="model" data-glb="${esc(m.glb)}" role="button">${esc(m.cta)}</a>`
+        : `<a class="hf-cta" href="${esc(m.href)}">${esc(m.cta)}</a>`;
+
   const buildInner = (m: Mode) =>
     `<div class="hf-media"${m.cover ? ` style="background-image:url('${esc(m.cover)}')"` : ''}></div>` +
     `<span class="hf-tag">${esc(m.tag)}</span>` +
     `<div class="hf-label"><span class="hf-title">${esc(m.title)}</span><span class="hf-meta">${esc(m.meta)}</span>` +
-    `<a class="hf-cta" href="${esc(m.href)}">${esc(m.cta)}</a></div>`;
+    `${buildCta(m)}</div>`;
 
   function initHeroCycler(): (() => void) | null {
     const feature = document.getElementById('heroFeature');

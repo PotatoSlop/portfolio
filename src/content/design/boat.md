@@ -1,12 +1,12 @@
 ---
 title: Lowpoly Boat
 category: '3d'
-tags: [stub, lowpoly, render]
+tags: []
 year: 2024
 tools: [Blender]
-cover: ../../assets/design/3d/boat.png
+cover: /Assets/design/3d/boat.png
+glb: /Assets/models/boat.glb
 order: 2
-href: '#'
 ---
 
-Stylised low-poly tugboat diorama. Interactive model viewer not wired up yet.
+Stylised low-poly tugboat diorama. Click to orbit the model.

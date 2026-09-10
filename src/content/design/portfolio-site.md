@@ -1,10 +1,10 @@
 ---
 title: Portfolio Site
 category: 'uiux'
-tags: [case-study, webdev]
+tags: []
 year: 2025
 tools: [Astro]
-cover: ../../assets/software/portfolio-site.png
+cover: /Assets/software/landingPortfolio.png
 featured: true
 order: 0
 href: '#'

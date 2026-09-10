@@ -1,10 +1,10 @@
 ---
 title: m8s
 category: 'uiux'
-tags: [product, mobile]
+tags: []
 year: 2025
 tools: [Figma]
-cover: ../../assets/software/m8s.jpg
+cover: /Assets/software/landingM8S.png
 recent: true
 order: 1
 href: '#'

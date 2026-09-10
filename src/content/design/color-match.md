@@ -1,10 +1,10 @@
 ---
 title: Color Match
 category: 'uiux'
-tags: [product]
+tags: []
 year: 2024
 tools: [Figma]
-cover: ../../assets/software/color-match.png
+cover: /Assets/software/color-match.png
 order: 3
 href: '#'
 ---

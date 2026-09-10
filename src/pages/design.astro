@@ -5,7 +5,9 @@ import HeroProject from '../components/design/HeroProject.astro';
 import MarqueeRow from '../components/design/MarqueeRow.astro';
 import MasonryGrid from '../components/design/MasonryGrid.astro';
 import FilterGrid from '../components/design/FilterGrid.astro';
+import DesignModal from '../components/design/DesignModal.astro';
 import { getCollection } from 'astro:content';
+import { DESIGN_WIP } from '../lib/design-stub';
 import '../../styles/components/design-reveal.css';
 
 const all = await getCollection('design');
@@ -23,6 +25,15 @@ const recent = all.find((d) => d.data.recent) ?? featured;
   <main class="design-page">
     <HeroProject featured={featured} recent={recent} />
 
+    {
+      DESIGN_WIP && (
+        <p class="dp-wip-note" role="status">
+          <span class="dp-wip-dot" aria-hidden="true" />
+          Design portfolio in progress — the gallery and case studies are being rebuilt.
+        </p>
+      )
+    }
+
     <section id="s-3d" class="dp-section" data-rail aria-label="3D models">
       <div class="dp-head">
         <span class="dp-idx">01</span>
@@ -30,17 +41,17 @@ const recent = all.find((d) => d.data.recent) ?? featured;
         <span class="dp-note">— creative assets · products</span>
       </div>
       <MarqueeRow items={models} dir={-1} />
-      <a class="dp-viewall" data-goto="3d" href="#s-grid">view all</a>
+      {!DESIGN_WIP && <a class="dp-viewall" data-goto="3d" href="#s-grid">view all</a>}
     </section>
 
     <section id="s-uiux" class="dp-section" data-rail aria-label="UI / UX">
       <div class="dp-head">
         <span class="dp-idx">02</span>
         <h2>UI / UX</h2>
-        <span class="dp-note">— case studies · frontend</span>
+        <span class="dp-note">— case studies in progress</span>
       </div>
       <MarqueeRow items={uiux} dir={1} />
-      <a class="dp-viewall" data-goto="uiux" href="#s-grid">view all</a>
+      {!DESIGN_WIP && <a class="dp-viewall" data-goto="uiux" href="#s-grid">view all</a>}
     </section>
 
     <section id="s-2d" class="dp-section" data-rail aria-label="2D / posters">
@@ -50,7 +61,7 @@ const recent = all.find((d) => d.data.recent) ?? featured;
         <span class="dp-note">— game assets · posters · digital art</span>
       </div>
       <MasonryGrid items={posters} />
-      <a class="dp-viewall" data-goto="2d" href="#s-grid">view all</a>
+      {!DESIGN_WIP && <a class="dp-viewall" data-goto="2d" href="#s-grid">view all</a>}
     </section>
 
     <section id="s-grid" class="dp-section dp-section--grid" data-rail aria-label="All work">
@@ -62,6 +73,8 @@ const recent = all.find((d) => d.data.recent) ?? featured;
       <FilterGrid items={all} />
     </section>
   </main>
+
+  <DesignModal />
 
   <PullTabs discipline="design" />
 
@@ -120,6 +133,28 @@ const recent = all.find((d) => d.data.recent) ?? featured;
       .design-page {
         --dp-bleed: 16px;
       }
+    }
+
+    /* Whole-page WIP notice (src/lib/design-stub.ts) — a slim status line under the
+       hero explaining why the sections below are blank placeholders. */
+    .dp-wip-note {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      padding: 16px var(--dp-edge) 0;
+      font-family: var(--dp-font-body);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--dp-muted);
+    }
+    .dp-wip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--dp-accent);
+      flex-shrink: 0;
     }
 
     /* Uniform vertical padding (not min-height + centering) so the gap between
@@ -311,10 +346,51 @@ const recent = all.find((d) => d.data.recent) ?? featured;
   <script>
     import { mountCarousels } from '../lib/motion/carousel';
     import { mountDesignReveal } from '../lib/motion/design-reveal';
+    import { mountDesignModelViewer } from '../lib/motion/design-model-viewer';
     import { onPageReady } from '../lib/motion/lifecycle';
 
     let destroyDrift: (() => void) | null = null;
     let destroyReveal: (() => void) | null = null;
+    let destroyModel: (() => void) | null = null;
+
+    // The 2D masonry columns are VERTICAL infinite drifters. Their loop period is
+    // measured from card heights, so those heights must be stable + correct BEFORE
+    // (and not change during) the drift — otherwise lazy covers loading mid-cycle
+    // make it jump. Each .m-media starts at a stable default aspect (CSS), then this
+    // probes every cover and applies its real aspect class in ONE batch, then the
+    // caller re-measures the drift. Probing (not the visible lazy <img>) means we
+    // don't wait for on-screen entry.
+    function classifyMasonry(done: () => void) {
+      const medias = Array.from(
+        document.querySelectorAll<HTMLElement>('.masonry .m-media')
+      ).filter((m) => m.querySelector('img'));
+      if (!medias.length) return void done();
+      let pending = medias.length;
+      const pin: Array<[HTMLElement, string]> = [];
+      const finish = () => {
+        if (--pending > 0) return;
+        for (const [m, cls] of pin) {
+          m.classList.remove('is-landscape', 'is-square', 'is-portrait');
+          m.classList.add(cls);
+        }
+        done();
+      };
+      for (const m of medias) {
+        const img = m.querySelector('img')!;
+        const decide = (w: number, h: number) => {
+          const r = w && h ? w / h : 0.75;
+          pin.push([m, r >= 1.2 ? 'is-landscape' : r <= 0.83 ? 'is-portrait' : 'is-square']);
+          finish();
+        };
+        if (img.complete && img.naturalWidth) decide(img.naturalWidth, img.naturalHeight);
+        else {
+          const probe = new Image();
+          probe.onload = () => decide(probe.naturalWidth, probe.naturalHeight);
+          probe.onerror = () => decide(0, 0);
+          probe.src = img.currentSrc || img.getAttribute('src') || '';
+        }
+      }
+    }
 
     // onPageReady mounts on every page-load AND as a first-SPA-entry catch-up, so
     // the CSS-hidden hero (.pre-anim / .crop-*) is always revealed — never left
@@ -326,13 +402,41 @@ const recent = all.find((d) => d.data.recent) ?? featured;
       if (window.matchMedia('(max-width: 768px)').matches) {
         document.documentElement.dataset.simReduced = '1';
       }
-      destroyReveal = mountDesignReveal();
-      destroyDrift = mountCarousels();
+      // Isolate each mount so one throwing (a bad dep load, a DOM assumption)
+      // can't abort the rest. The 3D model viewer goes FIRST and on its own so the
+      // modal always wires up even if the drift/reveal fail on some environment —
+      // that was the "clicking a 3D card does nothing" class of bug.
+      const safe = <T,>(label: string, fn: () => T): T | null => {
+        try {
+          return fn();
+        } catch (err) {
+          console.error(`[design] ${label} mount failed`, err);
+          return null;
+        }
+      };
+      destroyModel = safe('model-viewer', mountDesignModelViewer);
+      destroyReveal = safe('reveal', mountDesignReveal);
+      destroyDrift = safe('carousels', mountCarousels);
+      // Set each masonry tile's real aspect, then re-measure the vertical drift so
+      // the infinite cycling stays seamless with the corrected heights.
+      safe('masonry-classify', () =>
+        classifyMasonry(() => {
+          if (!document.querySelector('.masonry')) return;
+          try {
+            destroyDrift?.();
+            destroyDrift = mountCarousels();
+          } catch (err) {
+            console.error('[design] drift re-measure failed', err);
+          }
+        })
+      );
       return () => {
         destroyDrift?.();
         destroyDrift = null;
         destroyReveal?.();
         destroyReveal = null;
+        destroyModel?.();
+        destroyModel = null;
       };
     });
 
