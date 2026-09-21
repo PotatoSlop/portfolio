@@ -389,6 +389,7 @@ const multi = modes.length > 1;
 <script>
   import { prefersReducedMotion } from '../../lib/motion/reduced-motion';
   import { onPageReady } from '../../lib/motion/lifecycle';
+  import { navigate } from 'astro:transitions/client';
 
   interface Mode {
     tag: string;
@@ -527,8 +528,11 @@ const multi = modes.length > 1;
     feature.addEventListener('click', (e) => {
       if ((e.target as Element).closest('.hf-cta')) return;
       if (!multi) {
+        // SPA-navigate (never location.assign) so opening the project runs the
+        // same ClientRouter lifecycle as every other link — a full reload here
+        // reintroduces the dual entry-path divergence (docs/routing-and-lifecycle.md §3.1).
         const href = modes[idx]?.href;
-        if (href && href !== '#') window.location.assign(href);
+        if (href && href !== '#') navigate(href);
         return;
       }
       go(1);

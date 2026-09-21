@@ -126,9 +126,11 @@ body > nav ul {
   gap: 0.45em;
   /* One shared width for the trigger and every option pill below it (they read
      off this via width:100%), sized to fit the longest label ("Engineering") so
-     nothing clips while they all stay identical in size. */
-  min-width: 8.25rem;
-  padding: 0.3em 0.9em;
+     nothing clips while they all stay identical in size. Trimmed in lockstep with
+     the horizontal padding below (both down 0.3em/side) so the cluster tightens
+     around its labels while keeping the same fit slack for "Engineering". */
+  min-width: 7.65rem;
+  padding: 0.3em 0.6em;
   border: var(--border-width-medium) solid var(--theme-border);
   background-color: var(--theme-surface);
   border-radius: var(--radius-pill);
@@ -263,7 +265,7 @@ body > nav ul {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.3em 0.9em; /* match the trigger pill */
+  padding: 0.3em 0.6em; /* match the trigger pill */
   border-radius: var(--radius-pill);
   font-family: var(--font-secondary);
   font-weight: 500;

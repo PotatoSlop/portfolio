@@ -400,7 +400,10 @@ function mountFullPath(stage: HTMLElement): () => void {
   // slider: hide the pencil but KEEP the ring so its radius previews the brush.
   function resolveChrome(clientX: number, clientY: number, el: HTMLElement | null) {
     const overBrush = !!el?.closest?.('.brush-size');
-    const overChrome = overBrush || !!el?.closest?.('.about-toolbar, .resume-btn, nav');
+    // `.resume-menu` (not just `.resume-btn`) so the OPEN dropdown's list + items
+    // count as chrome too — hovering a résumé option hides the pencil like the
+    // trigger does, instead of leaving the tool armed over the menu.
+    const overChrome = overBrush || !!el?.closest?.('.about-toolbar, .resume-menu, nav');
     const showTool = armed && overStage(clientX, clientY) && !overChrome;
     return { showTool, showRing: overBrush || showTool };
   }

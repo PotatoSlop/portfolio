@@ -18,7 +18,13 @@
   grid-template-columns: minmax(220px, 320px) 1fr;
   gap: clamp(1.5rem, 5vw, 4rem);
   align-items: center;
-  min-height: min(92vh, 800px);
+  /* Fit the hero (portrait + text + bottom-anchored toolbar) into one screen.
+     The nav is a sticky, in-flow row above the stage, so a bare 92vh here would
+     make `nav + stage` overshoot the viewport and push the bottom-pinned toolbar
+     below the fold on standard 16:9 displays. Subtract the nav's height (and a
+     small buffer) so the toolbar always lands comfortably above the fold; still
+     hard-capped so it never grows unbounded on very tall screens. */
+  min-height: min(calc(100dvh - clamp(60px, 10vh, 80px) - 1rem), 760px);
   padding: clamp(2rem, 6vh, 4rem) 0 9.5rem;
   /* Interactive drawing surface. The OS cursor is hidden ONLY while the tool
      (pencil/eraser) is actually standing in for it — see `.tool-shown`, toggled

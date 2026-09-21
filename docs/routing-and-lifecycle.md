@@ -279,6 +279,23 @@ Two deliberate exceptions, both already catch-up-safe by construction:
 catch-up) and `freeze-gifs.ts` (a bound-once global that `mountFreezeGifs()` invokes
 imperatively from Base and re-applies on `astro:page-load`).
 
+### Third pass — design hero card (full-reload escape)
+
+Once `DESIGN_WIP` was flipped to `false` and the real design hero went live, the
+single-slide hero card opened its project via `window.location.assign(href)`
+(`src/components/design/HeroProject.astro`). That is the §3.1 "do not full-reload"
+violation: every other link on the site is a ClientRouter SPA swap, so reaching a
+project **through the hero card** forced a full document load (no transition/curtain,
+a cold module re-parse) while reaching the same project **directly or via any other
+link** ran the SPA lifecycle — the classic "redirection differs from direct" divergence.
+
+Fixed by routing the card-body click through `navigate()` from
+`astro:transitions/client` instead of `location.assign`, so the hero card shares the
+one SPA routing model. (The multi-slide branch and the CTA `<a href>` were already
+correct.) Note the ESLint `no-restricted-syntax` rule guards hand-rolled lifecycle
+listeners but does **not** catch a full-reload navigation — grep `location.assign` /
+`location.href =` when auditing a new interactive surface.
+
 ### Deliberately NOT changed (verified safe)
 
 - Char-wrap / accordion / feature-card classes that mount mutates but teardown
