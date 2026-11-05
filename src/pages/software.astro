@@ -14,9 +14,13 @@ const CURRENT = 'software' as const;
 const tagged = await getCollection('projects', ({ data }) => data.disciplines.includes(CURRENT));
 const projects = tagged.sort((a, b) => a.data.order - b.data.order);
 
-// Traditional grid: pad the real roster out to a 2×2 grid with coming-soon slots.
+// Traditional grid: pad the real roster out to a 2×2 grid with coming-soon slots,
+// and past that round up to a full row so an odd count never leaves one card
+// stranded on the last row.
 const MIN = 4;
-const slots = Array.from({ length: Math.max(MIN, projects.length) }, (_, i) => projects[i] ?? null);
+const COLS = 2;
+const total = Math.max(MIN, Math.ceil(projects.length / COLS) * COLS);
+const slots = Array.from({ length: total }, (_, i) => projects[i] ?? null);
 
 const GITHUB_PROFILE = 'https://github.com/PotatoSlop';
 const timelineOf = (d: { started: string; ended?: string }) => `${d.started} – ${d.ended ?? 'Present'}`;
@@ -58,8 +62,9 @@ const timelineOf = (d: { started: string; ended?: string }) => `${d.started} –
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={p.data.links?.repo ? `Open ${p.data.title} repository` : `View projects on GitHub`}
+                  data-hover-gif={p.data.cover ? p.data.hoverGif : undefined}
                 >
-                  <div class="swcard__media">
+                  <div class="swcard__media" data-hover-gif-host>
                     {p.data.cover ? (
                       <img src={p.data.cover} alt="" loading="lazy" decoding="async" />
                     ) : (
@@ -101,6 +106,16 @@ const timelineOf = (d: { started: string; ended?: string }) => `${d.started} –
   </main>
 
   <PullTabs discipline="software" />
+
+  <script>
+    import { onPageReady } from '../lib/motion/lifecycle';
+    import { mountHoverGifs } from '../lib/motion/hover-gif';
+
+    onPageReady('.swgrid', () => {
+      const grid = document.querySelector<HTMLElement>('.swgrid');
+      return grid ? mountHoverGifs(grid) : undefined;
+    });
+  </script>
 
   <style>
     .sw {
@@ -298,6 +313,34 @@ const timelineOf = (d: { started: string; ended?: string }) => `${d.started} –
     a.swcard:hover .swcard__media img,
     a.swcard:focus-visible .swcard__media img {
       transform: scale(1.06);
+    }
+    /* Hover-to-play GIF layer (src/lib/motion/hover-gif.ts). Injected at runtime,
+       so it carries no scope attribute — hence :global. It sits exactly over the
+       cover in the same 16:9 box and fades in only once its first frame has
+       decoded; the cover beneath is never hidden. It deliberately does NOT take
+       the 1.06 hover zoom: gameplay captures pin HUD to the frame edges (HP,
+       order ticket, fight counter), which that ~3%-per-side crop would slice.
+       The clip itself is the hover motion, so it shows the full frame. */
+    .swcard__media :global(img.hover-gif) {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--duration-fast) var(--theme-motion-ease);
+    }
+    .swcard__media :global(img.hover-gif.is-playing) {
+      opacity: 1;
+    }
+    /* A hover-GIF card's cover is the clip's first frame, so it must hold still
+       too: zooming it under the unzoomed GIF would ghost the same picture at two
+       scales during the fade. Held at 1, the still hands off to the clip with no
+       visible seam. The card's lift + accent border still mark the hover. */
+    a.swcard[data-hover-gif]:hover .swcard__media img,
+    a.swcard[data-hover-gif]:focus-visible .swcard__media img {
+      transform: none;
     }
     .swcard__ph {
       display: grid;

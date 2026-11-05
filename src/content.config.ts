@@ -44,6 +44,12 @@ const projects = defineCollection({
       // verbatim. When set, the card upgrades from a static image to the
       // hover-scrubbed <video>, using `cover` as its poster still.
       posterVideo: z.string().optional(),
+      // Optional hover-to-play animated GIF (a short looping gameplay/demo clip).
+      // ABSOLUTE PUBLIC PATH (e.g. /Assets/software/foo-hover.gif). The card keeps
+      // `cover` as its resting still; on hover/focus the GIF fades in over it from
+      // frame 0 and fades out on leave (src/lib/motion/hover-gif.ts). Requires
+      // `cover`; never plays under reduced motion. Encode it at the tile's 16:9.
+      hoverGif: z.string().optional(),
       // Per-project framing inside the tile mask. The tile is a fixed frame
       // (overflow clipped); the cover is laid at the tile's top-left at full
       // tile width, then moved by EXACT PIXELS and zoomed from that corner:

@@ -40,8 +40,33 @@ public/Assets/
 | `cover`         | public path       | `/Assets/design/3d/boat.png`           |
 | `sprite`        | public path       | `/Assets/design/2d/guy.png`            |
 | `posterVideo`   | public path       | `/Assets/engineering/foo.mp4`          |
+| `hoverGif`      | public path       | `/Assets/software/foo-hover.gif`       |
 | `glb`           | public path       | `/Assets/models/knight.glb`            |
 | `gallery[]`     | public paths      | `/Assets/software/shot-1.png`          |
 
 Adding work = drop the file under the right `public/Assets/` subfolder and point
 the frontmatter field at its `/Assets/…` path. No import, no pipeline step.
+
+## Hover GIFs (`hoverGif`)
+
+A short looping clip that fades in over the card's `cover` still on hover
+(`src/lib/motion/hover-gif.ts`). It's only fetched once a pointer enters the grid,
+so it doesn't cost anything at page load, but keep it small: aim for ~5–8 s and
+under ~3 MB.
+
+- **Frame:** the software card media is a fixed **16:9** cover-fit box. Encode at
+  16:9 and the whole frame shows: the GIF layer skips the cover's 1.06× hover
+  zoom, so HUD at the frame edges stays intact. If the source isn't 16:9, crop it
+  to 16:9 yourself around the action rather than letting `object-fit` decide.
+- **Cover:** make the project's `cover` the GIF's **first frame** (exported from
+  the source video at the same `-ss`, full resolution, as `.webp`). Hover then
+  hands off from the still to the clip without a visible seam, which is why
+  hover-GIF covers skip the 1.06× zoom as well.
+- **Size:** 960 px wide covers a ~600 CSS-px tile on 2× displays.
+- **Recipe:** 15 fps, one global palette, **no dithering**. Flat game UI
+  compresses far better without dithering and looks the same. `tpad` holds the
+  last frame for a beat so the loop doesn't snap straight back to the start:
+
+```bash
+ffmpeg -ss <start> -t <duration> -i in.mp4 -an -vf "fps=15,scale=960:-2:flags=lanczos,tpad=stop_mode=clone:stop_duration=0.5,split[a][b];[a]palettegen=max_colors=256:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" foo-hover.gif
+```
