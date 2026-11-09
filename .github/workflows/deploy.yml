@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [astro-rename]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
