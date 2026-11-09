@@ -1,0 +1,22 @@
+---
+/*
+  The body of a WIP-locked case study (frontmatter `wip: true`). The route
+  renders this in place of the study's .mdx, so nothing unfinished is exposed:
+  the hero (title, summary, meta) stays, everything below is this notice.
+*/
+interface Props {
+  title: string;
+  all: { href: string; label: string };
+}
+const { title, all } = Astro.props;
+---
+
+<section class="cs-stub" aria-labelledby="cs-stub-h">
+  <span class="cs-k">Case study in progress</span>
+  <h2 id="cs-stub-h" class="cs-stub__h">This write-up isn't ready yet.</h2>
+  <p>
+    {title} is still in active development, so its case study is being held back until there is finished work to show. In the
+    meantime, the completed studies are open below.
+  </p>
+  <a class="cs-btn" href={all.href}>{all.label}</a>
+</section>

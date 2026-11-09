@@ -1,27 +1,42 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { Icon } from 'astro-icon/components';
+import type { Photo } from '../../lib/photos';
 import { resolveCardAction, cardNavigates, coverStyle, primaryTagLabel } from '../../lib/design-links';
 import { DESIGN_WIP, STUB_COUNTS, STUB_TAGS, stubList } from '../../lib/design-stub';
+import '../../../styles/components/photo-caption.css';
 
-// All work — the master grid: a bold navy block holding every design piece,
-// filtered by tag chips.
+// All work — the master grid: a bold navy block holding every design piece plus
+// every photograph, filtered by chips. (2D work is off the site; see isOnSite.)
 interface Props {
   items: CollectionEntry<'design'>[];
+  photos?: Photo[];
 }
-const { items } = Astro.props;
+const { items, photos = [] } = Astro.props;
 
 const FILTERS = [
   { key: 'all', label: 'All' },
   { key: '3d', label: '3D' },
   { key: 'uiux', label: 'UI/UX' },
-  { key: 'illustration', label: 'Illustrations' },
-  { key: 'design', label: 'Design / Branding' },
-  { key: 'game-asset', label: 'Game Assets' },
+  { key: 'photo', label: 'Photography' },
 ] as const;
 
-// Each tile carries its category + tags so the chips can filter without a fetch.
-const tileTags = (e: CollectionEntry<'design'>) =>
-  [e.data.category, ...(e.data.tags ?? [])].join(' ');
+type Tile = { kind: 'work'; entry: CollectionEntry<'design'> } | { kind: 'photo'; photo: Photo; index: number };
+
+// Spread the design pieces evenly through the photos so "All" reads as a mix
+// rather than a block of work followed by a block of photos. `index` is the
+// photo's position in the shared array — it's what PhotoLightbox opens.
+const work: Tile[] = items.map((entry) => ({ kind: 'work', entry }));
+const shots: Tile[] = photos.map((photo, index) => ({ kind: 'photo', photo, index }));
+const [few, many] = work.length <= shots.length ? [work, shots] : [shots, work];
+const tiles: Tile[] = [];
+const every = few.length ? (few.length + many.length) / few.length : Infinity;
+for (let i = 0, f = 0, m = 0, next = every / 2; i < few.length + many.length; i++) {
+  if (f < few.length && (i >= next || m >= many.length)) {
+    tiles.push(few[f++]);
+    next += every;
+  } else tiles.push(many[m++]);
+}
 ---
 
 <div class="filters" role="group" aria-label="Filter work">
@@ -45,7 +60,41 @@ const tileTags = (e: CollectionEntry<'design'>) =>
             </span>
           </div>
         ))
-      : items.map((it) => {
+      : tiles.map((t) => {
+      if (t.kind === 'photo') {
+        const { photo, index } = t;
+        // Photos open PhotoLightbox (data-photo). Aspect comes from the build, so
+        // classifyAspects() skips these and never probes the image.
+        return (
+          <button
+            type="button"
+            class={`g-tile g-tile--photo ph-tile is-${photo.aspect}`}
+            data-tags="photo"
+            data-photo={index}
+            data-aspect={photo.measured ? photo.aspect : undefined}
+            aria-label={`Open photo: ${photo.alt}`}
+            aria-haspopup="dialog"
+          >
+            <div class="g-media ph-media">
+              <img src={photo.thumb} alt="" loading="lazy" decoding="async" />
+            </div>
+            <span class="g-tag">Photo</span>
+            {/* Title + location reveal on hover (styles/components/photo-caption.css). */}
+            {photo.title && (
+              <span class="ph-cap" aria-hidden="true">
+                <span class="ph-cap__t">{photo.title}</span>
+                {photo.location && (
+                  <span class="ph-cap__l">
+                    <Icon name="mdi:map-marker" />
+                    {photo.location}
+                  </span>
+                )}
+              </span>
+            )}
+          </button>
+        );
+      }
+      const it = t.entry;
       const action = resolveCardAction(it);
       const nav = cardNavigates(action);
       const inert = action.kind === 'gated' || action.kind === 'dead';
@@ -53,7 +102,7 @@ const tileTags = (e: CollectionEntry<'design'>) =>
         <a
           class:list={['g-tile', { 'is-gated': action.kind === 'gated', 'is-inert': inert }]}
           href={nav ? action.href : undefined}
-          data-tags={tileTags(it)}
+          data-tags={it.data.category}
           data-card-action={action.kind}
           data-glb={action.kind === 'model' ? action.glb : undefined}
           role={action.kind === 'model' ? 'button' : undefined}
@@ -62,11 +111,7 @@ const tileTags = (e: CollectionEntry<'design'>) =>
           aria-disabled={inert ? 'true' : undefined}
         >
           <div class="g-media">
-            {it.data.sprite ? (
-              <img class="g-sprite" src={it.data.sprite} data-freeze={it.data.spriteStatic} alt="" style={coverStyle(it.data)} />
-            ) : it.data.cover ? (
-              <img src={it.data.cover} alt="" loading="lazy" decoding="async" style={coverStyle(it.data)} />
-            ) : null}
+            {it.data.cover && <img src={it.data.cover} alt="" loading="lazy" decoding="async" style={coverStyle(it.data)} />}
           </div>
           {/* One category chip per tile, mirroring the filter chips. */}
           <span class="g-tag">{primaryTagLabel(it)}</span>
@@ -129,6 +174,9 @@ const tileTags = (e: CollectionEntry<'design'>) =>
     position: relative;
     display: block;
     width: 100%;
+    padding: 0; /* photo tiles are <button>s */
+    font: inherit;
+    text-align: left;
     /* Row rhythm inside the columns (multicolumn has no row-gap). */
     margin-bottom: 18px;
     break-inside: avoid;
@@ -174,11 +222,18 @@ const tileTags = (e: CollectionEntry<'design'>) =>
     object-fit: cover;
     display: block;
   }
-  /* Pixel-art sprite — contained (never cropped) + crisp scaling in the square tile. */
-  .g-media :global(.g-sprite) {
-    object-fit: contain;
-    image-rendering: pixelated;
-    padding: 0;
+  .g-tile--photo {
+    cursor: zoom-in;
+  }
+  /* Photos use the shared hover-only caption + its shorter scrim instead of the
+     always-on label scrim the design tiles carry. */
+  .g-tile--photo::after {
+    display: none;
+  }
+  .g-tile:focus-visible {
+    outline: 2px solid var(--dp-accent);
+    outline-offset: 3px;
+    z-index: 2;
   }
   .g-tile:hover .g-media {
     transform: scale(1.06);
@@ -278,7 +333,8 @@ const tileTags = (e: CollectionEntry<'design'>) =>
   // portrait) from its image's natural dimensions, so the masonry columns hold a
   // coherent set of shapes instead of force-cropping everything to squares.
   function classifyAspects() {
-    document.querySelectorAll<HTMLElement>('.g-tile').forEach((tile) => {
+    // Photo tiles ship their measured aspect (data-aspect) — skip them.
+    document.querySelectorAll<HTMLElement>('.g-tile:not([data-aspect])').forEach((tile) => {
       const img = tile.querySelector('img');
       const set = (cls: string) => {
         tile.classList.remove('is-landscape', 'is-square', 'is-portrait');

@@ -1,0 +1,27 @@
+---
+/* Visual studies: a catalogue index of every piece in the series. */
+interface Props {
+  items: { src: string; label: string; alt?: string; href?: string }[];
+}
+const { items } = Astro.props;
+---
+
+<ul class="cs-index cs-wide">
+  {
+    items.map((it) => (
+      <li>
+        {it.href ? (
+          <a href={it.href}>
+            <img src={it.src} alt={it.alt ?? ''} loading="lazy" decoding="async" />
+            <span>{it.label}</span>
+          </a>
+        ) : (
+          <div>
+            <img src={it.src} alt={it.alt ?? ''} loading="lazy" decoding="async" />
+            <span>{it.label}</span>
+          </div>
+        )}
+      </li>
+    ))
+  }
+</ul>

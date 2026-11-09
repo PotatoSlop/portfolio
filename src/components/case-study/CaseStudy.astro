@@ -1,0 +1,383 @@
+---
+/*
+  CaseStudy — the shared case-study page shell:
+    hero (crumb · eyebrow · title · lede + meta · links) → cover → at-a-glance
+    → body (default slot) → optional `after` slot → next study.
+
+  Theme-agnostic on purpose. It renders inside whatever theme the route's <Base>
+  sets and reads ONLY the --cs-* tokens in styles/components/case-study.css, which
+  map onto the --theme-* contract. So /engineering/<id> or /software/<id> can
+  reuse this unchanged: same props, different Base theme.
+
+  Two layouts:
+    ux     — text-led. Sticky contents (built from the body's ## headings),
+             a reading column at ~66ch, blocks break out to the full column.
+    visual — image-led, for 2D / 3D work. No contents rail; art sits on mats,
+             prose shrinks to a centred statement column.
+
+  The MDX body composes the blocks in ./blocks.ts (passed by the route as
+  <Content components={caseStudyBlocks} />, so study files need no imports).
+  Authoring guide: docs/case-study-template.md.
+*/
+import '../../../styles/components/case-study.css';
+
+export interface Crumb {
+  label: string;
+  href?: string;
+}
+export interface MetaItem {
+  label: string;
+  value: string;
+}
+export interface LinkItem {
+  label: string;
+  href: string;
+  primary?: boolean;
+}
+export interface GlanceItem {
+  label: string;
+  text: string;
+}
+export interface TocItem {
+  slug: string;
+  text: string;
+}
+export interface NextStudy {
+  href: string;
+  title: string;
+  meta?: string;
+  cover?: string;
+  kicker?: string;
+  cta?: string;
+}
+
+interface Props {
+  layout?: 'ux' | 'visual';
+  crumbs: Crumb[];
+  eyebrow: string;
+  title: string;
+  lede?: string;
+  meta?: MetaItem[];
+  links?: LinkItem[];
+  cover?: { src: string; alt?: string; caption?: string; label?: string };
+  glance?: GlanceItem[];
+  toc?: TocItem[];
+  next?: NextStudy;
+  all: { href: string; label: string };
+  /** Dev-only marker for an unpublished study (frontmatter `draft: true`). */
+  draft?: boolean;
+}
+
+const {
+  layout = 'ux',
+  crumbs,
+  eyebrow,
+  title,
+  lede,
+  meta = [],
+  links = [],
+  cover,
+  glance = [],
+  toc = [],
+  next,
+  all,
+  draft = false,
+} = Astro.props;
+
+// A single section doesn't need a contents rail.
+const showToc = layout === 'ux' && toc.length > 1;
+const isExternal = (href: string) => /^https?:\/\//.test(href);
+const coverLabel = cover?.label ?? (layout === 'ux' ? 'Fig. 00' : undefined);
+const pad2 = (n: number) => String(n).padStart(2, '0');
+// Longest word in a title → the CSS caps the font size so it never breaks mid-word.
+const longestWord = (s: string) => Math.max(4, ...s.split(/\s+/).map((w) => w.length));
+const titleChars = longestWord(title);
+---
+
+<main class="cs" data-cs-layout={layout}>
+  <div class="cs-progress" aria-hidden="true"></div>
+
+  <div class="cs-wrap">
+    <header class="cs-hero">
+      <nav class="cs-crumb" aria-label="Breadcrumb">
+        {
+          crumbs.map((c, i) => (
+            <>
+              {i > 0 && <span aria-hidden="true">/</span>}
+              {i === crumbs.length - 1 ? (
+                <b aria-current="page">{c.label}</b>
+              ) : c.href ? (
+                <a href={c.href}>{i === 0 ? `← ${c.label}` : c.label}</a>
+              ) : (
+                <span>{c.label}</span>
+              )}
+            </>
+          ))
+        }
+      </nav>
+      <p class="cs-eyebrow"><span class="cs-k">{eyebrow}</span></p>
+      <h1 class="cs-title cs-display" style={`--cs-title-chars:${titleChars}`}>{title}</h1>
+
+      {
+        (lede || meta.length > 0) && (
+          <div class="cs-hero__grid">
+            {lede ? <p class="cs-lede">{lede}</p> : <span />}
+            {meta.length > 0 && (
+              <dl class="cs-meta">
+                {meta.map((m) => (
+                  <div>
+                    <dt>{m.label}</dt>
+                    <dd>{m.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </div>
+        )
+      }
+
+      {
+        links.length > 0 && (
+          <div class="cs-links">
+            {links.map((l) =>
+              isExternal(l.href) ? (
+                <a class:list={['cs-btn', { 'cs-btn--solid': l.primary }]} href={l.href} target="_blank" rel="noopener noreferrer">
+                  {l.label} ↗
+                </a>
+              ) : (
+                <a class:list={['cs-btn', { 'cs-btn--solid': l.primary }]} href={l.href}>
+                  {l.label}
+                </a>
+              )
+            )}
+          </div>
+        )
+      }
+    </header>
+
+    {
+      cover && (
+        <figure class="cs-cover">
+          {layout === 'visual' ? (
+            <div class="cs-mat">
+              <img src={cover.src} alt={cover.alt ?? title} decoding="async" />
+            </div>
+          ) : (
+            <img src={cover.src} alt={cover.alt ?? title} decoding="async" />
+          )}
+          {(cover.caption || coverLabel) && (
+            <figcaption>
+              {coverLabel && <b>{coverLabel}</b>}
+              {cover.caption}
+            </figcaption>
+          )}
+        </figure>
+      )
+    }
+
+    {
+      glance.length > 0 && (
+        <section class="cs-glance" aria-label="At a glance">
+          {glance.map((g) => (
+            <article>
+              <span class="cs-k">{g.label}</span>
+              <p>{g.text}</p>
+            </article>
+          ))}
+        </section>
+      )
+    }
+
+    {
+      layout === 'ux' ? (
+        <div class:list={['cs-layout', { 'cs-layout--solo': !showToc }]}>
+          {showToc && (
+            <aside class="cs-toc" aria-label="Contents">
+              <span class="cs-k">Contents</span>
+              <div class="cs-toc__list">
+                <span class="cs-toc__fill" aria-hidden="true" />
+                <ol>
+                  {toc.map((t, i) => (
+                    <li>
+                      <a href={`#${t.slug}`}>
+                        <span>{pad2(i + 1)}</span>
+                        {t.text}
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              {next && (
+                <a class="cs-toc__next" href={next.href}>
+                  Next study<strong>{next.title} →</strong>
+                </a>
+              )}
+            </aside>
+          )}
+          <article class="cs-body">
+            <slot />
+          </article>
+        </div>
+      ) : (
+        <article class="cs-visual">
+          <slot />
+        </article>
+      )
+    }
+
+    <slot name="after" />
+
+    <nav class="cs-next" aria-label="More work">
+      {
+        next && (
+          <a class="cs-next__card" href={next.href}>
+            <div class="cs-next__text">
+              <span class="cs-k">{next.kicker ?? 'Next case study'}</span>
+              <span class="cs-next__t cs-display" style={`--cs-title-chars:${longestWord(next.title)}`}>
+                {next.title}
+              </span>
+              {next.meta && <span class="cs-next__m">{next.meta}</span>}
+              <span class="cs-next__go">
+                {next.cta ?? 'Read case study'} <i>→</i>
+              </span>
+            </div>
+            <div class="cs-next__media">{next.cover && <img src={next.cover} alt="" loading="lazy" decoding="async" />}</div>
+          </a>
+        )
+      }
+      <div class="cs-next__row">
+        <a href={all.href}>← {all.label}</a>
+        <a href="#top" data-cs-top>Back to top ↑</a>
+      </div>
+    </nav>
+  </div>
+
+  {draft && <p class="cs-draft" role="status">Draft · only built in dev</p>}
+</main>
+
+<style>
+  /* Dev-only draft marker — never ships (drafts aren't built in production). */
+  .cs-draft {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    z-index: 70;
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #111317;
+    color: #f5a045;
+    font: 600 11px/1 system-ui, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+</style>
+
+<script>
+  import { onPageReady } from '../../lib/motion/lifecycle';
+
+  // Reading progress (top hairline) + contents highlight/fill. Mounted through
+  // onPageReady so it initialises identically on a full load and an SPA entry,
+  // and tears its window listeners down on the next swap.
+  onPageReady('.cs', () => {
+    const root = document.querySelector<HTMLElement>('.cs');
+    if (!root) return;
+    const bar = root.querySelector<HTMLElement>('.cs-progress');
+    const links = [...root.querySelectorAll<HTMLAnchorElement>('.cs-toc ol a')];
+    const heads = links.map((a) => document.getElementById(decodeURIComponent(a.hash.slice(1))));
+    const body = root.querySelector<HTMLElement>('.cs-body');
+    const fill = root.querySelector<HTMLElement>('.cs-toc__fill');
+    const narrow = window.matchMedia('(max-width: 1000px)');
+    let raf = 0;
+    let last = -2;
+
+    const paint = () => {
+      raf = 0;
+      const y = window.scrollY;
+      const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      bar?.style.setProperty('--p', max > 0 ? (y / max).toFixed(4) : '0');
+      if (!links.length) return;
+
+      // Each section owns the scroll range from "its heading crosses the
+      // reading line (35% down the viewport)" to "the next heading does".
+      // Ranges are clamped to what's actually scrollable so late headings
+      // still activate — and the fill still completes — at the page bottom.
+      const line = window.innerHeight * 0.35;
+      const clamp = (v: number) => Math.min(max, Math.max(0, v));
+      const starts: number[] = [];
+      heads.forEach((h, i) => {
+        const prev = i ? starts[i - 1] : 0;
+        starts.push(h ? Math.max(prev, clamp(h.getBoundingClientRect().top + y - line)) : prev);
+      });
+      const bodyEnd = body ? clamp(body.getBoundingClientRect().bottom + y - line) : max;
+      const ends = starts.map((_, i) => (i + 1 < starts.length ? starts[i + 1] : Math.max(bodyEnd, starts[i])));
+
+      // Active = the last section whose range has begun (same anchors as the
+      // fill, so the highlighted label and the fill tip always agree).
+      let on = -1;
+      starts.forEach((s, i) => {
+        if (heads[i] && y >= s - 0.5) on = i;
+      });
+      if (on !== last) {
+        links.forEach((a, i) => {
+          a.classList.toggle('is-on', i === on);
+          if (i === on) a.setAttribute('aria-current', 'location');
+          else a.removeAttribute('aria-current');
+        });
+        // On the collapsed chip rail, slide the active chip into view
+        // horizontally only (scrollIntoView would also nudge the page).
+        const act = links[on];
+        const ol = act?.closest('ol');
+        if (act && ol && narrow.matches) {
+          const dx = act.getBoundingClientRect().left - ol.getBoundingClientRect().left;
+          ol.scrollTo({ left: ol.scrollLeft + dx - 16, behavior: 'smooth' });
+        }
+        last = on;
+      }
+      // Fill is piecewise: while reading section i the tip travels across
+      // label i's own band (its top → the next label's top), so it paces
+      // with each section regardless of how long that section is.
+      if (fill && !narrow.matches) {
+        const list = fill.parentElement as HTMLElement;
+        const h = list.clientHeight;
+        if (h > 0) {
+          const tops = links.map((a) => (a.closest('li') as HTMLElement).offsetTop);
+          let px = 0;
+          if (on >= 0) {
+            const a = tops[on];
+            const b = on + 1 < tops.length ? tops[on + 1] : h;
+            const span = ends[on] - starts[on];
+            const f = span > 0 ? Math.min(1, Math.max(0, (y - starts[on]) / span)) : 1;
+            px = a + (b - a) * f;
+          }
+          fill.style.setProperty('--tp', (px / h).toFixed(4));
+        }
+      }
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(paint);
+    };
+
+    const toTop = (e: Event) => {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    const topLink = root.querySelector('[data-cs-top]');
+    topLink?.addEventListener('click', toTop);
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    // Lazy images reflow the body without a scroll event; re-anchor then too.
+    const ro = body ? new ResizeObserver(onScroll) : null;
+    if (body) ro?.observe(body);
+    paint();
+
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  });
+</script>

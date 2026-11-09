@@ -14,9 +14,9 @@
 
    Mounted by mountCarousels() when the viewport is mobile; torn down on
    astro:before-swap / breakpoint change like every other page behavior
-   (see docs/routing-and-lifecycle.md). 2D (section 03) is NOT a queue — it stays
+   (see docs/routing-and-lifecycle.md). Photography (section 03) is NOT a queue — it stays
    a static, full-height stack showing every card, handled purely in CSS
-   (MasonryGrid.astro), so it isn't touched here. */
+   (PhotoMasonry.astro), so it isn't touched here. */
 
 // Tabler chevron-left / chevron-right (@iconify-json/tabler), matching the icon
 // pack used elsewhere on the site (see SettingsToggles.astro). Inlined as raw

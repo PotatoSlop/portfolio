@@ -1,8 +1,9 @@
+import { navigate } from 'astro:transitions/client';
 import { prefersReducedMotion } from './reduced-motion';
 import { mountQueue } from './mobile-queue';
 
 /* carousel.ts — scroll-responsive infinite carousel rows (design page), the
-   engine behind MarqueeRow / MasonryGrid. Mounted via mountCarousels().
+   engine behind MarqueeRow / PhotoMasonry. Mounted via mountCarousels().
 
    Rows drift at an ambient speed; scroll VELOCITY boosts it (not scroll-jacked).
    ("Drift" throughout = that ambient auto-motion.) Seamless infinite loop by
@@ -76,6 +77,38 @@ function swallowNextClick(el: HTMLElement): void {
   setTimeout(() => el.removeEventListener('click', swallow, true), 0);
 }
 
+// ----- Tap-to-open for LINKED cards (case studies, outbound links) -----
+// A row grabs the pointer (setPointerCapture) so a drag can scrub it, and the
+// cards are moving. Both mean a press + release on a card <a> never produces a
+// real click on it — the release lands on the track — so the link never fires.
+// (Same root cause as the 3D cards, which tap-open in design-model-viewer.ts.)
+// So: remember the link under pointerdown; if the release is within TAP_SLOP of
+// the press, follow it ourselves and swallow any stray native click so it can't
+// navigate twice. A real scrub travels further and stays a scrub. Keyboard
+// activation (Enter) is a native click on the focused link and is untouched.
+const TAP_SLOP = 10; // px of total travel still counted as a tap
+interface TapStart {
+  x: number;
+  y: number;
+  link: HTMLAnchorElement | null;
+}
+const tapStart = (e: PointerEvent): TapStart => ({
+  x: e.clientX,
+  y: e.clientY,
+  link: (e.target as Element | null)?.closest<HTMLAnchorElement>('a[href]') ?? null,
+});
+function followTap(e: PointerEvent, start: TapStart | null, track: HTMLElement): boolean {
+  const link = start?.link;
+  if (!link || Math.hypot(e.clientX - start.x, e.clientY - start.y) > TAP_SLOP) return false;
+  swallowNextClick(track);
+  const newTab = e.ctrlKey || e.metaKey || e.shiftKey || link.target === '_blank';
+  if (newTab) window.open(link.href, '_blank', 'noopener');
+  // SPA-navigate same-origin (never location.assign: docs/routing-and-lifecycle.md §3.1).
+  else if (link.origin === location.origin) navigate(link.pathname + link.search + link.hash);
+  else location.href = link.href;
+  return true;
+}
+
 // Rows own horizontal gestures, so keep Base's touch swipe-to-navigate (between
 // disciplines) from also firing when a swipe starts on a row.
 function blockPageSwipe(el: HTMLElement): () => void {
@@ -93,11 +126,13 @@ function enableDragScroll(vp: HTMLElement): () => void {
   let active = false;
   let lastX = 0;
   let moved = false;
+  let start: TapStart | null = null;
   const down = (e: PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     active = true;
     lastX = e.clientX;
     moved = false;
+    start = tapStart(e);
     try {
       grab.setPointerCapture(e.pointerId);
     } catch {}
@@ -110,10 +145,11 @@ function enableDragScroll(vp: HTMLElement): () => void {
     if (Math.abs(dx) > DRAG_THRESHOLD) moved = true;
     vp.scrollLeft -= dx;
   };
-  const up = () => {
+  const up = (e: PointerEvent) => {
     if (!active) return;
     active = false;
     grab.style.cursor = 'grab';
+    if (e.type === 'pointerup' && followTap(e, start, grab)) return;
     if (moved) swallowNextClick(grab);
   };
   grab.style.cursor = 'grab';
@@ -265,57 +301,76 @@ function mountAnimated(root: ParentNode): () => void {
 
   // ----- Grab-to-scrub: a drag freezes the ambient drift and moves the offset
   // 1:1, wrapping on the period so it loops infinitely in either direction (same
-  // seamless loop as the idle drift, no truncation). Horizontal rows only —
-  // vertical (masonry) columns leave the drag to page scroll. -----
-  // The gesture lives on the TRACK (card-height box), not the viewport, so the
-  // grab area doesn't reach into the viewport's top/bottom bleed padding.
+  // seamless loop as the idle drift, no truncation). Both axes:
+  //   x — the 3D / UI-UX rows: mouse, pen AND touch (a horizontal swipe on a row
+  //       is unambiguous; touch-action: pan-y keeps vertical page scroll).
+  //   y — each Photography masonry COLUMN scrubs on its own: mouse + pen only.
+  //       A vertical touch drag must stay page scroll, or a phone/tablet user
+  //       could get stuck inside a column.
+  // The gesture lives on the TRACK (card-height box / column), not the viewport,
+  // so the grab area doesn't reach into the viewport's bleed padding.
   let dragState:
-    | { d: Drifter; lastX: number; moved: boolean; vel: number; lastT: number }
+    | { d: Drifter; last: number; moved: boolean; vel: number; lastT: number; start: TapStart }
     | null = null;
+  const coord = (d: Drifter, e: PointerEvent) => (d.axis === 'x' ? e.clientX : e.clientY);
   for (const d of drifters) {
-    if (d.axis !== 'x') continue;
     const grab = d.track;
-    grab.style.cursor = 'grab';
+    if (d.axis === 'x') grab.style.cursor = 'grab';
     const down = (e: PointerEvent) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
-      dragState = { d, lastX: e.clientX, moved: false, vel: 0, lastT: e.timeStamp };
+      if (d.axis === 'y' && e.pointerType === 'touch') return;
+      // Vertical mouse drags would otherwise start a text selection across the page.
+      if (d.axis === 'y') e.preventDefault();
+      dragState = { d, last: coord(d, e), moved: false, vel: 0, lastT: e.timeStamp, start: tapStart(e) };
       d.dragging = true;
       d.flingVel = 0; // a fresh grab cancels any in-flight momentum
       try {
         grab.setPointerCapture(e.pointerId);
       } catch {}
       grab.style.cursor = 'grabbing';
+      grab.classList.add('is-grabbing');
     };
     grab.addEventListener('pointerdown', down);
-    const unblock = blockPageSwipe(grab);
+    const unblock = d.axis === 'x' ? blockPageSwipe(grab) : () => {};
     cleanups.push(() => {
       unblock();
       grab.removeEventListener('pointerdown', down);
       grab.style.cursor = '';
+      grab.classList.remove('is-grabbing');
     });
   }
   const onMove = (e: PointerEvent) => {
     if (!dragState) return;
-    const dx = e.clientX - dragState.lastX;
-    dragState.lastX = e.clientX;
-    if (Math.abs(dx) > DRAG_THRESHOLD) dragState.moved = true;
+    const d = dragState.d;
+    const p = coord(d, e);
+    const delta = p - dragState.last;
+    dragState.last = p;
+    if (Math.abs(delta) > DRAG_THRESHOLD) dragState.moved = true;
     // Track pointer velocity (px/s), smoothed, for the release fling.
     const dtv = (e.timeStamp - dragState.lastT) / 1000;
     dragState.lastT = e.timeStamp;
-    if (dtv > 0) dragState.vel += (dx / dtv - dragState.vel) * VEL_SMOOTH;
-    const d = dragState.d;
-    d.offset += dx;
+    if (dtv > 0) dragState.vel += (delta / dtv - dragState.vel) * VEL_SMOOTH;
+    d.offset += delta;
     if (d.size > 0) d.offset = wrap(d.offset, d.size) - d.size;
   };
   const onUp = (e: PointerEvent) => {
     if (!dragState) return;
-    const { d, moved, vel, lastT } = dragState;
+    const { d, moved, vel, lastT, start } = dragState;
     d.dragging = false;
+    // A tap on a linked card opens it (the captured pointer means no native click).
+    if (e.type === 'pointerup' && followTap(e, start, d.track)) {
+      d.flingVel = 0;
+      d.track.style.cursor = d.axis === 'x' ? 'grab' : '';
+      d.track.classList.remove('is-grabbing');
+      dragState = null;
+      return;
+    }
     // Fling only if the pointer was still moving at release — a grab-and-hold
     // (paused before letting go) places the row without launching it.
     const heldStill = e.timeStamp - lastT > FLING_HOLD_MS;
     d.flingVel = moved && !heldStill ? clamp(vel, -FLING_MAX, FLING_MAX) : 0;
-    d.track.style.cursor = 'grab';
+    d.track.style.cursor = d.axis === 'x' ? 'grab' : '';
+    d.track.classList.remove('is-grabbing');
     if (moved) swallowNextClick(d.track);
     dragState = null;
   };
@@ -406,7 +461,7 @@ function mountAnimated(root: ParentNode): () => void {
 
 export function mountCarousels(root: ParentNode = document): () => void {
   // Mobile (01/02): a fundamentally different structure — a FIFO card queue, not
-  // the drift with a media query. See src/lib/motion/mobile-queue.ts. (2D/03 is a
+  // the drift with a media query. See src/lib/motion/mobile-queue.ts. (Photography/03 is a
   // static full stack, handled in CSS.)
   if (isMobile()) return mountQueue(root);
   return prefersReducedMotion() ? mountReduced(root) : mountAnimated(root);

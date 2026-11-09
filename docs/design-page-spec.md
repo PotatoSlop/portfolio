@@ -25,14 +25,15 @@ mockups) can appear as work documentation.
 
 | # | Section | Treatment |
 |---|---------|-----------|
-| — | Hero | Big left-aligned `DESIGN` (deco), breadcrumb, caption, Featured/Recent toggle, full-width linked feature card |
+| — | Hero | **Hero-only first viewport** (like /engineering + /software), set as a press proof ("print sheet", `DesignHero.astro`): crop marks, left-gutter registration target, slug + live trim size above the trim, full-width colour bar as the sheet's bottom edge, type specimen opposite `DESIGN`, SEE WORK CTA + scroll chevron |
+| — | Featured | Featured / Most-recent cycler card (`FeaturedProject.astro`), the first thing under the fold; reveal + countdown start on scroll-into-view |
 | 01 | 3D models | Horizontal drift row (drifts ◀), studio look. Click → model viewer |
 | 02 | UI / UX | Horizontal drift row (drifts ▶, opposite dir). Click → full case study |
-| 03 | 2D / posters | 4-col masonry, columns alternate scroll ▲/▼. Click → zoom modal |
-| 04 | All work | Master grid, tag-filtered, bold **navy** block. "View all" from each zone scrolls here + applies that tag |
+| 03 | Photography | 4-col masonry (`PhotoMasonry`), columns alternate scroll ▲/▼. Photos are scanned from `public/Assets/Photography` (`src/lib/photos.ts`) and served as WebP derivatives (`npm run photos`). Tap → `PhotoLightbox`; "view all" jumps to All work filtered to Photography. (Replaced the 2D masonry in Nov 2026.) |
+| 04 | All work | Master grid, bold **navy** block: every 3D + UI/UX piece **and every photograph**, spread evenly. Chips: All · 3D · UI/UX · Photography. "View all" from each zone scrolls here + applies that filter. Photo tiles open `PhotoLightbox` |
 
-- **Game assets** is a **tag**, not a section — it surfaces across 3D/2D and has one
-  filtered view in the master grid.
+> **Nov 2026:** 2D work (illustration, design/branding, game assets) is off the site: `isOnSite()` in `src/lib/design-links.ts` hides the `2d` category everywhere. The entries and images are kept; remove `'2d'` from `HIDDEN_CATEGORIES` to restore them. Photography took its place in 03 and 04, with titles and locations in `src/data/photos.ts`.
+
 - Each zone's "view all" → scrolls to the master grid and auto-applies its tag
   (the keystone that unifies curated showcase with comprehensive browse in one SPA page).
 
@@ -85,7 +86,7 @@ on the two rows = parallax energy. Masonry columns alternate up/down.
 - Animate `transform: translate3d` only (GPU), throttle via rAF.
 
 ### Master grid + filter
-Stub tiles carry `data-tags`; chips filter (all / 3d / uiux / 2d / game-asset).
+Stub tiles carry `data-tags`; chips filter (all / 3d / uiux / photo).
 Active chip = amber fill; hover = amber border. Section must be `justify-content:
 flex-start` (centering re-shifts the title when filtering changes content height).
 
@@ -156,7 +157,7 @@ One schema across categories so adding work = drop a file, no layout edits:
 2. **Content**: add a `design` (or extend `projects`) collection with the §6 schema;
    author a few real entries.
 3. **Components** (`src/components/design/`): `HeroProject.astro` (toggle + linked
-   card), `MarqueeRow.astro` (3D/UIUX), `MasonryGrid.astro`, `FilterGrid.astro` (chips +
+   card), `MarqueeRow.astro` (3D/UIUX), `PhotoMasonry.astro`, `FilterGrid.astro` (chips +
    tiles), `ScrollRail.astro`, `SettingsToggles.astro` (now lifted into Base as
    site-wide chrome). Nav/pull-tabs already exist.
 4. **Motion** (`src/lib/motion/`): add reusable primitives —

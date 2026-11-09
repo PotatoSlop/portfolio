@@ -20,6 +20,6 @@ export const STUB_COUNTS = { row: 6, masonry: 8, grid: 8 } as const;
 
 // Blank tiles carry every filter key so the master-grid chips never hide them
 // (filtering a skeleton to empty would look broken).
-export const STUB_TAGS = 'all 3d uiux 2d game-asset';
+export const STUB_TAGS = 'all 3d uiux photo';
 
 export const stubList = (n: number): number[] => Array.from({ length: n }, (_, i) => i);

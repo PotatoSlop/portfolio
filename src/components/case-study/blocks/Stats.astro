@@ -1,0 +1,18 @@
+---
+/* Key numbers row. Values render in the theme's display face. */
+interface Props {
+  items: { value: string | number; label: string }[];
+}
+const { items } = Astro.props;
+---
+
+<div class="cs-stats cs-wide">
+  {
+    items.map((s) => (
+      <div>
+        <span class="v cs-display">{s.value}</span>
+        <span class="l">{s.label}</span>
+      </div>
+    ))
+  }
+</div>

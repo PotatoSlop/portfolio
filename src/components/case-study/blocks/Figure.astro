@@ -1,0 +1,47 @@
+---
+/*
+  One figure, full column width. No `src` → an obvious hatched placeholder
+  frame (label it with `placeholder`), so a study can be laid out before its
+  imagery exists.
+    ratio   — CSS aspect-ratio for the frame (default 16 / 10; ignored on a mat)
+    mat     — show the image whole on a tinted mat (art), never cropped
+    label   — caption tag; omit to auto-number ("Fig. 01"), false to drop it
+    still   — for an animated GIF: a static frame shown under reduced motion
+              (src/lib/motion/freeze-gifs.ts via data-freeze)
+*/
+interface Props {
+  src?: string;
+  alt?: string;
+  caption?: string;
+  label?: string | false;
+  ratio?: string;
+  mat?: boolean;
+  placeholder?: string;
+  still?: string;
+}
+const { src, alt = '', caption, label, ratio, mat = false, placeholder = 'Image', still } = Astro.props;
+const numbered = label === undefined;
+const style = ratio ? `--ratio:${ratio}` : undefined;
+---
+
+<figure class:list={['cs-fig', 'cs-wide', { 'cs-fig--n': numbered }]}>
+  {
+    mat ? (
+      <div class="cs-mat">{src ? <img src={src} alt={alt} data-freeze={still} loading="lazy" decoding="async" /> : <div class="cs-ph cs-media">{placeholder}</div>}</div>
+    ) : src ? (
+      <img class="cs-media" src={src} alt={alt} style={style} data-freeze={still} loading="lazy" decoding="async" />
+    ) : (
+      <div class="cs-media cs-ph" style={style}>
+        {placeholder}
+      </div>
+    )
+  }
+  {
+    (caption || label !== false) && (
+      <figcaption>
+        {label !== false && <b>{label ?? ''}</b>}
+        {caption}
+      </figcaption>
+    )
+  }
+</figure>

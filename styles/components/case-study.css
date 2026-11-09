@@ -1,0 +1,1336 @@
+/* ===== Case-study template =====
+   Shared by every case-study route (today: /design/<id>; engineering/software can
+   reuse it unchanged). GLOBAL on purpose: the study body is rendered Markdown/MDX,
+   whose nodes never carry an Astro scope id, so scoped styles can't reach them.
+   Everything is namespaced under `.cs` so the global scope stays contained.
+
+   THEMING: every block reads ONLY the --cs-* tokens below. They map onto the
+   site's --theme-* contract (styles/themes/_contract.css), so a study inherits
+   whichever discipline theme Base sets on <html> — including its dark scheme.
+   Per-theme rules are limited to a few token overrides + three idiom hooks
+   (engineering dot grid + ink eyebrow, software prompt/caret). See
+   docs/case-study-template.md. */
+
+.cs {
+  --cs-bg: var(--theme-bg);
+  --cs-surface: var(--theme-surface);
+  --cs-surface-2: color-mix(in srgb, var(--theme-ink) 6%, var(--theme-bg));
+  --cs-line: color-mix(in srgb, var(--theme-ink) 13%, transparent);
+  --cs-line-2: color-mix(in srgb, var(--theme-ink) 26%, transparent);
+  --cs-ink: var(--theme-ink);
+  --cs-muted: var(--theme-ink-muted);
+  --cs-accent: var(--theme-accent);
+  /* Accent that survives as SMALL text on --cs-bg (bright amber fails on cream). */
+  --cs-accent-ink: var(--theme-accent-deep, var(--theme-accent));
+  --cs-on-accent: var(--theme-accent-contrast);
+  --cs-glass: var(--theme-glass);
+  /* Full-bleed "wall" block (visual studies) */
+  --cs-block: var(--theme-ink);
+  --cs-block-ink: var(--theme-bg);
+
+  --cs-f-display: var(--theme-font-display);
+  --cs-f-body: var(--theme-font-body);
+  --cs-f-ui: var(--theme-font-body);
+  --cs-display-weight: 400;
+  --cs-display-case: uppercase;
+  --cs-display-track: 0;
+  --cs-radius: var(--theme-radius);
+  /* Prefix before every section number (software reads `// 01`). */
+  --cs-n-prefix: '';
+
+  --cs-edge: var(--dp-edge, clamp(16px, 5.8vw, 74px));
+  --cs-wrap: 1240px;
+  --cs-measure: 66ch;
+  --cs-nav-h: 72px;
+  --cs-stick: calc(var(--cs-nav-h) + 28px);
+  --cs-ease: cubic-bezier(0.075, 0.82, 0.165, 1);
+
+  display: block;
+  background: var(--cs-bg);
+  color: var(--cs-ink);
+  font-family: var(--cs-f-body);
+  /* clip (not hidden): stops the full-bleed wall from causing sideways scroll
+     without creating a scroll container, so position: sticky keeps working. */
+  overflow-x: clip;
+  counter-reset: cs-sec cs-fig;
+}
+
+/* ---- Per-theme token overrides ---- */
+[data-theme='design'] .cs {
+  --cs-block: #0e1a30;
+  --cs-block-ink: #e9e2d2;
+}
+[data-theme='design'][data-scheme='dark'] .cs {
+  --cs-block: #16233a;
+}
+[data-theme='engineering'] .cs {
+  --cs-display-weight: 800;
+  --cs-display-track: -0.01em;
+  --cs-accent-ink: #a85a14;
+}
+[data-theme='engineering'][data-scheme='dark'] .cs {
+  --cs-accent-ink: var(--theme-accent);
+  --cs-block: var(--theme-surface);
+  --cs-block-ink: var(--theme-ink);
+}
+[data-theme='software'] .cs {
+  /* Prose is NOT mono — mono tires the eye at paragraph length. Mono stays on
+     headings, labels and metadata; Plex Sans carries the reading. */
+  --cs-f-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --cs-f-ui: 'JetBrains Mono', ui-monospace, monospace;
+  --cs-display-weight: 700;
+  --cs-display-case: none;
+  --cs-display-track: -0.03em;
+  --cs-n-prefix: '// ';
+}
+[data-theme='software'][data-scheme='dark'] .cs {
+  --cs-block: var(--theme-surface);
+  --cs-block-ink: var(--theme-ink);
+}
+
+@media (max-width: 768px) {
+  .cs {
+    --cs-nav-h: 64px;
+  }
+}
+
+.cs img {
+  display: block;
+  max-width: 100%;
+}
+.cs ::selection {
+  background: var(--cs-accent);
+  color: var(--cs-on-accent);
+}
+.cs-wrap {
+  width: min(var(--cs-wrap), 100% - 2 * var(--cs-edge));
+  margin-inline: auto;
+}
+.cs-k {
+  display: block;
+  font: 600 11px/1.25 var(--cs-f-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cs-accent-ink);
+}
+.cs-display {
+  font-family: var(--cs-f-display);
+  font-weight: var(--cs-display-weight);
+  text-transform: var(--cs-display-case);
+  letter-spacing: var(--cs-display-track);
+}
+
+/* Reading progress — a hairline across the top of the viewport. */
+.cs-progress {
+  position: fixed;
+  z-index: 60;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--cs-accent);
+  transform: scaleX(var(--p, 0));
+  transform-origin: left;
+  pointer-events: none;
+}
+
+/* ---- Buttons (the shared default/hover model: face + fill rising from below) ---- */
+.cs-btn {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border: 1px solid var(--cs-line-2);
+  border-radius: var(--cs-radius);
+  background: var(--cs-glass);
+  color: var(--cs-ink);
+  font: 600 12px/1 var(--cs-f-ui);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 0.4s var(--cs-ease), color 0.4s var(--cs-ease);
+}
+.cs-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--cs-accent);
+  transform: translateY(100%);
+  transition: transform 0.4s var(--cs-ease);
+}
+.cs-btn:hover,
+.cs-btn:focus-visible {
+  border-color: var(--cs-accent);
+  color: var(--cs-on-accent);
+}
+.cs-btn:hover::before,
+.cs-btn:focus-visible::before {
+  transform: none;
+}
+.cs-btn--solid {
+  background: var(--cs-ink);
+  border-color: var(--cs-ink);
+  color: var(--cs-bg);
+}
+
+/* =====================================================================
+   HERO
+   ===================================================================== */
+.cs-hero {
+  position: relative;
+  isolation: isolate;
+  padding-top: 5vh;
+}
+.cs-crumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4vh;
+  font: 600 12px/1 var(--cs-f-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cs-muted);
+}
+.cs-crumb a {
+  color: var(--cs-ink);
+  text-decoration: none;
+}
+.cs-crumb a:hover {
+  color: var(--cs-accent-ink);
+}
+.cs-crumb b {
+  font-weight: 600;
+  color: var(--cs-accent-ink);
+}
+.cs-eyebrow {
+  margin: 0;
+}
+/* Sized so the LONGEST WORD always fits the column on one line: CaseStudy.astro
+   sets --cs-title-chars to that word's length, and a display glyph is ~0.92em
+   wide, so the cap is column-width / (chars × 0.92). Long titles wrap between
+   words ("Northeastern / Library Site"), never mid-word. */
+.cs-title {
+  margin: 14px 0 0 -0.02em;
+  font-size: min(
+    clamp(52px, 9vw, 144px),
+    calc(min(var(--cs-wrap), 100vw - 2 * var(--cs-edge)) / (var(--cs-title-chars, 6) * 0.92))
+  );
+  line-height: 0.92;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+.cs-hero__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: end;
+  margin-top: clamp(24px, 4vh, 40px);
+}
+.cs-lede {
+  margin: 0;
+  max-width: 32ch;
+  font: 500 clamp(20px, 1.9vw, 27px) / 1.36 var(--cs-f-body);
+}
+.cs-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 28px;
+  margin: 0;
+}
+.cs-meta div {
+  padding-top: 10px;
+  border-top: 1px solid var(--cs-line-2);
+}
+.cs-meta dt {
+  font: 600 11px/1 var(--cs-f-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cs-muted);
+}
+.cs-meta dd {
+  margin: 6px 0 0;
+  font: 500 15px/1.35 var(--cs-f-body);
+}
+.cs-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+}
+.cs-cover {
+  margin: clamp(32px, 6vh, 56px) 0 0;
+}
+.cs-cover > img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--cs-line);
+  border-radius: var(--cs-radius);
+  background: var(--cs-surface-2);
+}
+
+/* Captions (cover + every figure). Body figures auto-number via cs-fig. */
+.cs figcaption {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  font: 500 13px/1.45 var(--cs-f-body);
+  color: var(--cs-muted);
+}
+.cs figcaption b {
+  flex: 0 0 auto;
+  font: 600 11px/1.7 var(--cs-f-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cs-accent-ink);
+}
+/* Numbered figures: an EMPTY <b> in the caption is filled with "Fig. 01" etc.
+   (an explicit label like "No. 03" or "Before" is left as written). */
+.cs-fig--n {
+  counter-increment: cs-fig;
+}
+.cs-fig--n > figcaption > b:empty::before {
+  content: 'Fig. ' counter(cs-fig, decimal-leading-zero);
+}
+
+/* ---- At a glance ---- */
+.cs-glance {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: clamp(48px, 9vh, 88px);
+}
+.cs-glance article {
+  padding: 22px 22px 26px;
+  background: var(--cs-surface);
+  border: 1px solid var(--cs-line);
+  border-radius: var(--cs-radius);
+}
+.cs-glance p {
+  margin: 12px 0 0;
+  font: 400 16px/1.55 var(--cs-f-body);
+}
+
+/* =====================================================================
+   UX LAYOUT — sticky contents + a reading column with wide breakouts
+   ===================================================================== */
+.cs-layout {
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+  gap: clamp(40px, 6vw, 96px);
+  margin-top: clamp(64px, 11vh, 112px);
+}
+.cs-layout--solo {
+  grid-template-columns: minmax(0, 1fr);
+}
+.cs-toc {
+  position: sticky;
+  top: var(--cs-stick);
+  align-self: start;
+}
+.cs-toc__list {
+  position: relative;
+  margin-top: 14px;
+  padding-left: 14px;
+  border-left: 2px solid var(--cs-line);
+}
+.cs-toc__fill {
+  position: absolute;
+  left: -2px;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--cs-accent);
+  transform: scaleY(var(--tp, 0));
+  transform-origin: top;
+}
+.cs-toc ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cs-toc ol a {
+  display: flex;
+  gap: 10px;
+  padding: 7px 0;
+  font: 600 13px/1.25 var(--cs-f-ui);
+  color: var(--cs-muted);
+  text-decoration: none;
+  transition: color 0.25s;
+}
+.cs-toc ol a span {
+  color: var(--cs-line-2);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.25s;
+}
+.cs-toc ol a:hover,
+.cs-toc ol a.is-on {
+  color: var(--cs-ink);
+}
+.cs-toc ol a.is-on span {
+  color: var(--cs-accent-ink);
+}
+.cs-toc__next {
+  display: block;
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cs-line);
+  font: 500 13px/1.4 var(--cs-f-body);
+  color: var(--cs-muted);
+  text-decoration: none;
+}
+.cs-toc__next strong {
+  display: block;
+  margin-top: 4px;
+  font-weight: 600;
+  color: var(--cs-ink);
+}
+.cs-toc__next:hover strong {
+  color: var(--cs-accent-ink);
+}
+
+/* Reading column: prose holds the measure; blocks marked .cs-wide (and the
+   built-in wide blocks) span the full column. :where() keeps this at single-
+   class specificity so element rules below (e.g. the full-width h2 rule) win. */
+.cs-body > :where(:not(.cs-wide)) {
+  max-width: var(--cs-measure);
+}
+.cs-body > h2 {
+  counter-increment: cs-sec;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: clamp(64px, 10vh, 96px) 0 24px;
+  padding-top: clamp(40px, 6vh, 56px);
+  border-top: 1px solid var(--cs-line);
+  max-width: none;
+  font-family: var(--cs-f-display);
+  font-weight: var(--cs-display-weight);
+  text-transform: var(--cs-display-case);
+  letter-spacing: var(--cs-display-track);
+  font-size: clamp(28px, 3vw, 44px);
+  line-height: 1;
+  scroll-margin-top: calc(var(--cs-stick) - 20px);
+}
+.cs-body > h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.cs-body > h2::before {
+  content: var(--cs-n-prefix) counter(cs-sec, decimal-leading-zero);
+  flex: 0 0 auto;
+  font: 600 14px/1 var(--cs-f-ui);
+  letter-spacing: 0.06em;
+  text-transform: none;
+  color: var(--cs-accent-ink);
+  font-variant-numeric: tabular-nums;
+}
+.cs-body p,
+.cs-body li {
+  font: 400 17px/1.7 var(--cs-f-body);
+}
+.cs-body > p,
+.cs-visual > p {
+  margin: 0 0 1.1em;
+}
+.cs-body > h3 {
+  margin: 40px 0 12px;
+  font: 600 20px/1.3 var(--cs-f-body);
+}
+.cs-body > ul,
+.cs-body > ol {
+  margin: 0 0 1.2em;
+  padding-left: 1.2em;
+}
+.cs-body a:not([class]),
+.cs-visual a:not([class]) {
+  color: var(--cs-accent-ink);
+  text-underline-offset: 3px;
+}
+.cs-body code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.88em;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: var(--cs-surface-2);
+}
+/* A bare Markdown image becomes a full-column figure. */
+.cs-body > p > img:only-child {
+  width: 100%;
+  border: 1px solid var(--cs-line);
+  border-radius: var(--cs-radius);
+}
+.cs-body > p:has(> img:only-child) {
+  max-width: none;
+  margin: 40px 0;
+}
+
+/* ---- Pull quote (bare Markdown blockquote or <Quote>) ---- */
+.cs-body > blockquote,
+.cs-quote {
+  margin: 48px 0;
+  padding: 0;
+  border: 0;
+}
+/* The opening mark sits on its OWN line above the quote, never behind the text.
+   A tight line-height keeps the glyph (which lives in the top of its em box)
+   from leaving a big empty gap below it. */
+.cs-body > blockquote::before,
+.cs-quote::before {
+  content: '\201C';
+  display: block;
+  margin: 0 0 12px -0.04em;
+  font: 400 72px/0.72 var(--cs-f-display);
+  color: var(--cs-accent);
+}
+.cs-body > blockquote p,
+.cs-quote__text,
+.cs-quote__text p {
+  margin: 0;
+  font: 500 clamp(22px, 2.3vw, 30px) / 1.32 var(--cs-f-body);
+}
+.cs-quote cite {
+  display: block;
+  margin-top: 14px;
+  font: 600 12px/1 var(--cs-f-ui);
+  font-style: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cs-muted);
+}
+
+/* ---- Callout ---- */
+.cs-callout {
+  margin: 32px 0;
+  padding: 22px 26px 24px;
+  background: var(--cs-surface);
+  border: 1px solid var(--cs-line);
+  border-left: 3px solid var(--cs-accent);
+  border-radius: 0 var(--cs-radius) var(--cs-radius) 0;
+}
+.cs-callout__text {
+  margin-top: 10px;
+}
+.cs-callout__text,
+.cs-callout__text p {
+  font: 500 21px/1.42 var(--cs-f-body);
+}
+.cs-callout__text p {
+  margin: 0;
+}
+
+/* ---- Steps (timeline) ---- */
+.cs-steps {
+  list-style: none;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr));
+  margin: 36px 0 8px;
+  padding: 0;
+}
+.cs-steps::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 6px;
+  height: 1px;
+  background: var(--cs-line-2);
+}
+.cs-steps li {
+  position: relative;
+  padding: 26px 12px 0 0;
+  font: 600 14px/1.3 var(--cs-f-ui);
+}
+.cs-steps li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--cs-bg);
+  border: 2px solid var(--cs-accent);
+}
+.cs-steps li:last-child::before {
+  background: var(--cs-accent);
+}
+.cs-steps small {
+  display: block;
+  margin-top: 4px;
+  font: 500 12px/1.3 var(--cs-f-body);
+  color: var(--cs-muted);
+}
+
+/* ---- Stats ---- */
+.cs-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 36px 0;
+  border-block: 1px solid var(--cs-line-2);
+}
+.cs-stats div {
+  padding: 22px 0 20px;
+}
+.cs-stats div + div {
+  padding-left: 24px;
+  border-left: 1px solid var(--cs-line);
+}
+.cs-stats .v {
+  display: block;
+  font-size: clamp(36px, 4vw, 56px);
+  line-height: 1;
+}
+.cs-stats .l {
+  display: block;
+  margin-top: 8px;
+  font: 600 12px/1.3 var(--cs-f-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cs-muted);
+}
+
+/* ---- WIP stub (frontmatter `wip: true`, rendered in place of the body) ---- */
+.cs-stub {
+  margin: 8px 0 24px;
+  padding: clamp(24px, 4vw, 40px);
+  border: 1px dashed var(--cs-line-2);
+  border-radius: var(--cs-radius);
+  background:
+    repeating-linear-gradient(135deg, var(--cs-surface-2) 0 10px, transparent 10px 20px) top / 100% 10px no-repeat,
+    var(--cs-surface);
+}
+.cs-stub__h {
+  margin: 12px 0 10px;
+  font: 600 clamp(20px, 2.2vw, 26px) / 1.25 var(--cs-f-body);
+  color: var(--cs-ink);
+}
+.cs-stub p {
+  max-width: 56ch;
+  margin: 0 0 22px;
+  color: var(--cs-muted);
+}
+
+/* ---- Apps (labeled icon grid: 4-up row, 2×2 quadrant when narrow) ---- */
+.cs-apps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--cs-line);
+  border-radius: var(--cs-radius);
+  background: var(--cs-surface);
+  overflow: hidden;
+}
+.cs-apps li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 26px 14px 22px;
+  text-align: center;
+}
+.cs-apps li + li {
+  border-left: 1px solid var(--cs-line);
+}
+.cs-apps__icon {
+  display: grid;
+  place-items: center;
+  width: clamp(56px, 6vw, 76px);
+  aspect-ratio: 1;
+  margin-bottom: 10px;
+  /* App-icon squircle: ~22.5% corner radius, the iOS/Android launcher look. */
+  border-radius: 22.5%;
+  overflow: hidden;
+  background: var(--cs-surface-2);
+  box-shadow:
+    0 0 0 1px var(--cs-line),
+    0 1px 2px color-mix(in srgb, #000 10%, transparent),
+    0 6px 16px -6px color-mix(in srgb, #000 22%, transparent);
+}
+.cs-apps__icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cs-apps__icon--inset {
+  background: #fff;
+}
+.cs-apps__icon--inset img {
+  padding: 12%;
+  object-fit: contain;
+}
+.cs-apps__mono {
+  font: 700 clamp(18px, 2vw, 24px) / 1 var(--cs-f-body);
+  letter-spacing: -0.02em;
+  color: var(--cs-muted);
+}
+.cs-apps__name {
+  font: 600 15px/1.25 var(--cs-f-body);
+  color: var(--cs-ink);
+}
+.cs-apps__meta {
+  font: 600 11px/1.3 var(--cs-f-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cs-muted);
+}
+/* The cards that follow sit tight under the icon strip, as one research unit. */
+.cs-apps + .cs-cards {
+  margin-top: 14px;
+}
+@media (max-width: 768px) {
+  .cs-apps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cs-apps li + li {
+    border-left: 0;
+  }
+  .cs-apps li:nth-child(even) {
+    border-left: 1px solid var(--cs-line);
+  }
+  .cs-apps li:nth-child(n + 3) {
+    border-top: 1px solid var(--cs-line);
+  }
+}
+
+/* ---- Cards (insights) + Columns (reflection) ---- */
+.cs-cards,
+.cs-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 28px 0;
+}
+.cs-cards article,
+.cs-cols article {
+  padding: 20px 20px 22px;
+  background: var(--cs-surface);
+  border: 1px solid var(--cs-line);
+  border-radius: var(--cs-radius);
+}
+.cs-cards h4 {
+  margin: 10px 0 6px;
+  font: 600 17px/1.3 var(--cs-f-body);
+}
+.cs-cards p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--cs-muted);
+}
+.cs-cols ul {
+  margin: 12px 0 0;
+  padding-left: 18px;
+}
+.cs-cols li {
+  margin-bottom: 8px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* ---- Checklist (results) ---- */
+.cs-checklist ul {
+  list-style: none;
+  margin: 24px 0;
+  padding: 0;
+}
+.cs-checklist li {
+  position: relative;
+  padding: 12px 0 12px 32px;
+  border-bottom: 1px solid var(--cs-line);
+}
+.cs-checklist li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 20px;
+  width: 14px;
+  height: 8px;
+  border-left: 2px solid var(--cs-accent-ink);
+  border-bottom: 2px solid var(--cs-accent-ink);
+  transform: rotate(-45deg);
+}
+
+/* ---- Figures ---- */
+.cs-fig {
+  margin: 40px 0;
+}
+.cs-media {
+  width: 100%;
+  aspect-ratio: var(--ratio, 16 / 10);
+  object-fit: cover;
+  border: 1px solid var(--cs-line);
+  border-radius: var(--cs-radius);
+  background: var(--cs-surface-2);
+}
+/* Placeholder frame — any figure without a src. Obvious on purpose. */
+.cs-ph {
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: repeating-linear-gradient(135deg, var(--cs-surface-2) 0 10px, transparent 10px 20px), var(--cs-surface);
+  border: 1px dashed var(--cs-line-2);
+  font: 600 11px/1.3 var(--cs-f-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--cs-muted);
+}
+/* Mat — art is shown whole at its own ratio, never cropped. */
+.cs-mat {
+  display: grid;
+  place-items: center;
+  padding: clamp(20px, 5vw, 72px);
+  background: var(--cs-surface-2);
+  border-radius: var(--cs-radius);
+}
+.cs-mat > img {
+  width: auto;
+  max-height: 76vh;
+  box-shadow: 0 26px 50px -26px rgba(0, 0, 0, 0.45);
+}
+.cs-row {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
+  gap: 16px;
+  margin: 40px 0;
+}
+.cs-row figure {
+  position: relative;
+  margin: 0;
+}
+.cs-row .cs-media {
+  aspect-ratio: var(--ratio, 4 / 3);
+  object-fit: var(--fit, cover);
+}
+.cs-row .cs-mat {
+  aspect-ratio: var(--ratio, 4 / 5);
+}
+.cs-row .cs-mat > img {
+  max-height: 100%;
+  object-fit: contain;
+}
+/* Chip — a label above the frame (kept off the image so it never hides UI
+   such as a nav bar in the top-left of a screenshot). */
+.cs-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px 2px;
+  color: var(--cs-ink);
+  font: 600 11px/1.2 var(--cs-f-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cs-chip::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--cs-accent);
+}
+.cs-chip--spacer {
+  visibility: hidden;
+}
+.cs-screens {
+  display: flex;
+  gap: 16px;
+  margin: 40px 0;
+  padding-bottom: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+.cs-screens figure {
+  flex: 0 0 172px;
+  margin: 0;
+  scroll-snap-align: start;
+}
+.cs-screens .cs-media {
+  aspect-ratio: 9 / 19;
+  border-radius: 22px;
+}
+.cs-screens figcaption {
+  justify-content: center;
+}
+
+/* ---- Palette + type (design-system snapshot) ---- */
+.cs-ds {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 16px;
+  margin: 40px 0;
+}
+.cs-ds > div {
+  padding: 20px;
+  background: var(--cs-surface);
+  border: 1px solid var(--cs-line);
+  border-radius: var(--cs-radius);
+}
+.cs-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.cs-swatches span {
+  font: 600 11px/1.35 var(--cs-f-ui);
+  color: var(--cs-muted);
+}
+.cs-swatches span::before {
+  content: '';
+  display: block;
+  height: 64px;
+  margin-bottom: 8px;
+  border: 1px solid var(--cs-line);
+  border-radius: var(--cs-radius);
+  background: var(--c);
+}
+.cs-swatches b {
+  display: block;
+  color: var(--cs-ink);
+}
+.cs-type .aa {
+  margin-top: 10px;
+  font-size: 84px;
+  font-weight: 800;
+  line-height: 1;
+}
+.cs-type p {
+  margin: 8px 0 0;
+  font: 600 13px/1.5 var(--cs-f-ui);
+  color: var(--cs-muted);
+}
+.cs-type .w {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 18px;
+}
+
+/* ---- Specs (facts table) ---- */
+.cs-specs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--cs-line-2);
+}
+.cs-specs div {
+  padding: 16px 16px 0 0;
+}
+.cs-specs dt {
+  font: 600 11px/1 var(--cs-f-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cs-muted);
+}
+.cs-specs dd {
+  margin: 6px 0 0;
+  font: 500 15px/1.35 var(--cs-f-body);
+}
+
+/* =====================================================================
+   VISUAL LAYOUT — image-led (2D / 3D). No contents rail: the work carries
+   the page; prose shrinks to a centred statement column.
+   ===================================================================== */
+.cs-visual {
+  margin-top: clamp(64px, 12vh, 120px);
+}
+.cs-visual > p {
+  width: min(var(--cs-measure), 100%);
+  margin-inline: auto;
+  font: 400 18px/1.75 var(--cs-f-body);
+}
+/* The first paragraph opens the statement a size up. */
+.cs-visual > p:first-child {
+  font: 500 clamp(21px, 2vw, 26px) / 1.45 var(--cs-f-body);
+}
+.cs-visual > h2 {
+  counter-increment: cs-sec;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: clamp(64px, 12vh, 120px) 0 24px;
+  font-family: var(--cs-f-display);
+  font-weight: var(--cs-display-weight);
+  text-transform: var(--cs-display-case);
+  letter-spacing: var(--cs-display-track);
+  font-size: clamp(26px, 2.8vw, 40px);
+  line-height: 1;
+}
+.cs-visual > h2::before {
+  content: var(--cs-n-prefix) counter(cs-sec, decimal-leading-zero);
+  font: 600 14px/1 var(--cs-f-ui);
+  text-transform: none;
+  color: var(--cs-accent-ink);
+}
+.cs-visual > .cs-row,
+.cs-visual > .cs-feature,
+.cs-visual > .cs-fig {
+  margin-block: clamp(64px, 12vh, 120px);
+}
+.cs-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: start;
+}
+.cs-feature figure {
+  margin: 0;
+}
+.cs-feature__notes {
+  position: sticky;
+  top: var(--cs-stick);
+  font: 400 16px/1.65 var(--cs-f-body);
+}
+.cs-feature__notes h3 {
+  margin: 10px 0 14px;
+  font-size: clamp(26px, 2.6vw, 38px);
+  line-height: 1;
+}
+.cs-feature__notes p {
+  margin: 0 0 1em;
+  font: 400 16px/1.65 var(--cs-f-body);
+}
+.cs-feature__notes dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--cs-line-2);
+  font: 500 14px/1.3 var(--cs-f-body);
+}
+.cs-feature__notes dt {
+  font: 600 11px/1.3 var(--cs-f-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cs-muted);
+}
+.cs-feature__notes dd {
+  margin: 0;
+}
+/* The wall — one piece on a full-bleed block, all the air around it. */
+.cs-wall {
+  margin: clamp(80px, 14vh, 140px) calc(50% - 50vw);
+  padding: 12vh var(--cs-edge);
+  background: var(--cs-block);
+  color: var(--cs-block-ink);
+  text-align: center;
+}
+.cs-wall img {
+  width: auto;
+  max-height: 72vh;
+  margin: 0 auto;
+  box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.8);
+}
+.cs-wall figcaption {
+  justify-content: center;
+  margin-top: 22px;
+  color: color-mix(in srgb, var(--cs-block-ink) 70%, transparent);
+}
+.cs-wall figcaption b {
+  color: var(--cs-accent);
+}
+.cs-index {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-index a,
+.cs-index div {
+  display: block;
+  text-decoration: none;
+}
+.cs-index img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border: 1px solid var(--cs-line);
+  border-radius: var(--cs-radius);
+  transition: transform 0.5s var(--cs-ease);
+}
+.cs-index a:hover img {
+  transform: translateY(-4px);
+}
+.cs-index span {
+  display: block;
+  margin-top: 8px;
+  font: 600 11px/1.3 var(--cs-f-ui);
+  letter-spacing: 0.08em;
+  color: var(--cs-muted);
+}
+.cs-visual > .cs-specs {
+  margin-top: clamp(64px, 12vh, 120px);
+}
+.cs-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: clamp(48px, 8vh, 80px);
+}
+.cs-gallery figure {
+  margin: 0;
+}
+.cs-gallery img {
+  width: 100%;
+  border: 1px solid var(--cs-line);
+  border-radius: var(--cs-radius);
+}
+
+/* =====================================================================
+   NEXT STUDY
+   ===================================================================== */
+.cs-next {
+  margin-top: clamp(80px, 14vh, 140px);
+  padding-bottom: 12vh;
+}
+.cs-next__card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  overflow: hidden;
+  border: 1px solid var(--cs-line);
+  border-radius: var(--cs-radius);
+  background: var(--cs-surface);
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow 0.5s var(--cs-ease);
+}
+.cs-next__card:hover {
+  box-shadow: 28px 40px 60px -28px rgba(30, 24, 14, 0.4);
+}
+.cs-next__text {
+  /* Size container so the title fits THIS column (cqi), not the viewport. */
+  container-type: inline-size;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: clamp(24px, 4vw, 48px);
+}
+/* Same longest-word cap as .cs-title, against the card's text column: the
+   card's overflow: hidden used to crop a long word ("NORTHEASTERN"). */
+.cs-next__t {
+  font-size: min(clamp(32px, 4.2vw, 60px), calc(100cqi / (var(--cs-title-chars, 6) * 0.92)));
+  line-height: 0.95;
+  text-wrap: balance;
+}
+.cs-next__m {
+  font: 500 14px/1.3 var(--cs-f-body);
+  color: var(--cs-muted);
+}
+.cs-next__go {
+  margin-top: 14px;
+  font: 600 12px/1 var(--cs-f-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cs-next__go i {
+  display: inline-block;
+  font-style: normal;
+  transition: transform 0.4s var(--cs-ease);
+}
+.cs-next__card:hover .cs-next__go i {
+  transform: translateX(6px);
+}
+.cs-next__media {
+  min-height: 280px;
+  overflow: hidden;
+  background: var(--cs-surface-2);
+}
+.cs-next__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s var(--cs-ease);
+}
+.cs-next__card:hover .cs-next__media img {
+  transform: scale(1.04);
+}
+.cs-next__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  font: 600 12px/1 var(--cs-f-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cs-next__row a {
+  color: var(--cs-muted);
+  text-decoration: none;
+}
+.cs-next__row a:hover {
+  color: var(--cs-ink);
+}
+
+/* =====================================================================
+   THEME IDIOM HOOKS — the only theme-specific rules besides tokens
+   ===================================================================== */
+/* Engineering: drafting dot grid behind the hero + ink-block eyebrow. */
+[data-theme='engineering'] .cs-hero::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: calc(-1 * var(--cs-nav-h));
+  bottom: -8vh;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  background: var(--theme-grid);
+  background-size: var(--theme-grid-size, 22px) var(--theme-grid-size, 22px);
+  -webkit-mask-image: linear-gradient(#000 55%, transparent);
+  mask-image: linear-gradient(#000 55%, transparent);
+}
+[data-theme='engineering'] .cs-eyebrow .cs-k {
+  display: inline-block;
+  padding: 0.55em 0.85em;
+  background: var(--cs-ink);
+  color: var(--cs-bg);
+}
+/* Software: shell prompt + blinking caret on the title. */
+[data-theme='software'] .cs-title::before {
+  content: '>';
+  margin-right: 0.3em;
+  color: var(--cs-accent);
+}
+[data-theme='software'] .cs-title::after {
+  content: '';
+  display: inline-block;
+  width: 0.5em;
+  height: 0.82em;
+  margin-left: 0.08em;
+  vertical-align: -0.04em;
+  background: var(--cs-accent);
+  animation: cs-blink 1.1s steps(1) infinite;
+}
+@keyframes cs-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* =====================================================================
+   RESPONSIVE
+   ===================================================================== */
+@media (max-width: 1000px) {
+  .cs-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  /* Contents collapse to a sticky chip rail above the reading column. */
+  .cs-toc {
+    z-index: 20;
+    top: var(--cs-nav-h);
+    margin: 0 calc(-1 * var(--cs-edge)) 32px;
+    padding: 10px var(--cs-edge);
+    background: var(--cs-glass);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--cs-line);
+  }
+  .cs-toc > .cs-k,
+  .cs-toc__next,
+  .cs-toc__fill {
+    display: none;
+  }
+  .cs-toc__list {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .cs-toc ol {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .cs-toc ol a {
+    padding: 7px 11px;
+    white-space: nowrap;
+    border: 1px solid var(--cs-line);
+    border-radius: 999px;
+    background: var(--cs-surface);
+  }
+  .cs-toc ol a.is-on {
+    border-color: var(--cs-accent);
+  }
+}
+@media (max-width: 768px) {
+  .cs-hero__grid,
+  .cs-cards,
+  .cs-cols,
+  .cs-ds,
+  .cs-feature,
+  .cs-next__card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* Pairs stack; 3–4 up rows (process strips) drop to two columns. */
+  .cs-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cs-row[data-cols='3'],
+  .cs-row[data-cols='4'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* Stacked pairs have no neighbour to align with. */
+  .cs-row:not([data-cols='3'], [data-cols='4']) .cs-chip--spacer {
+    display: none;
+  }
+  .cs-meta {
+    margin-top: 8px;
+  }
+  .cs-steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .cs-steps::before {
+    left: 6px;
+    right: auto;
+    top: 6px;
+    bottom: 6px;
+    width: 1px;
+    height: auto;
+  }
+  .cs-steps li {
+    padding: 0 0 0 28px;
+  }
+  .cs-stats div + div {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--cs-line);
+  }
+  .cs-feature__notes {
+    position: static;
+  }
+  .cs-next__media {
+    min-height: 200px;
+  }
+}
+
+/* Reduced motion — OS pref OR the site toggle (html[data-sim-reduced]). */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='software'] .cs-title::after {
+    animation: none;
+  }
+}
+[data-sim-reduced][data-theme='software'] .cs-title::after {
+  animation: none;
+}

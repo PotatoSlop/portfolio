@@ -1,16 +1,32 @@
 ---
-import type { CollectionEntry } from 'astro:content';
-import { resolveCardAction, cardNavigates, coverStyle } from '../../lib/design-links';
+/*
+  PhotoMasonry — section 03 (Photography): a 4-column masonry whose columns
+  drift vertically in alternating directions (src/lib/motion/carousel.ts,
+  data-drift="y"). It took over from the 2D-illustration masonry.
+
+  Photos come from src/lib/photos.ts (build-time folder scan). Each tile already
+  carries its final aspect class from the photo's real dimensions, so the
+  client-side probe (classifyMasonry) skips it and the page doesn't download
+  every full photo up front. With a mouse or pen, each column can be dragged up
+  or down on its own (it loops, like the rows above); touch keeps page scroll.
+  Each tile's title + location reveal on hover
+  (styles/components/photo-caption.css). Tiles are buttons that open PhotoLightbox. The
+  drifting columns swallow native clicks, so opening is a pointer TAP (see
+  PhotoLightbox).
+*/
+import { Icon } from 'astro-icon/components';
+import type { Photo } from '../../lib/photos';
 import { DESIGN_WIP, STUB_COUNTS, stubList } from '../../lib/design-stub';
+import '../../../styles/components/photo-caption.css';
 
 interface Props {
-  items: CollectionEntry<'design'>[];
+  photos: Photo[];
 }
-const { items } = Astro.props;
+const { photos } = Astro.props;
 
 const COLS = 4;
-const columns: CollectionEntry<'design'>[][] = Array.from({ length: COLS }, () => []);
-items.forEach((it, i) => columns[i % COLS].push(it));
+const columns: Array<Array<{ photo: Photo; index: number }>> = Array.from({ length: COLS }, () => []);
+photos.forEach((photo, index) => columns[index % COLS].push({ photo, index }));
 ---
 
 <div class="masonry crop-tb">
@@ -21,42 +37,47 @@ items.forEach((it, i) => columns[i % COLS].push(it));
             {stubList(Math.ceil(STUB_COUNTS.masonry / COLS)).map(() => (
               <div class="m-card is-stub" aria-hidden="true">
                 <div class="m-media" />
-                <div class="m-label">
-                  <span class="stub-cap">Work in Progress</span>
-                </div>
               </div>
             ))}
           </div>
         ))
       : columns.map((col, i) => (
-      <div class="m-col" data-drift="y" data-dir={i % 2 === 0 ? -1 : 1}>
-        {col.map((it) => {
-          const action = resolveCardAction(it);
-          const nav = cardNavigates(action);
-          return (
-          <a
-            class:list={['m-card', { 'is-inert': !nav }]}
-            href={nav ? action.href : undefined}
-            data-card-action={action.kind}
-            aria-disabled={!nav ? 'true' : undefined}
-            draggable={false}
-          >
-            <div class="m-media">
-              {it.data.sprite ? (
-                <img class="m-sprite" src={it.data.sprite} data-freeze={it.data.spriteStatic} alt="" draggable={false} style={coverStyle(it.data)} />
-              ) : it.data.cover ? (
-                <img src={it.data.cover} alt="" loading="lazy" decoding="async" style={coverStyle(it.data)} />
-              ) : null}
-            </div>
-            <div class="m-label">
-              <b>{it.data.title}</b>
-              <span>{it.data.tools?.[0] ?? it.data.category}</span>
-            </div>
-          </a>
-          );
-        })}
-      </div>
-    ))
+          <div class="m-col" data-drift="y" data-dir={i % 2 === 0 ? -1 : 1}>
+            {col.map(({ photo, index }) => (
+              <button
+                type="button"
+                class="m-card ph-tile"
+                data-photo={index}
+                aria-label={`Open photo: ${photo.alt}`}
+                aria-haspopup="dialog"
+                draggable={false}
+              >
+                <div class={`m-media ph-media is-${photo.aspect}`} data-aspect={photo.measured ? photo.aspect : undefined}>
+                  <img
+                    src={photo.thumb}
+                    alt=""
+                    width={photo.width || undefined}
+                    height={photo.height || undefined}
+                    loading="lazy"
+                    decoding="async"
+                    draggable={false}
+                  />
+                </div>
+                {photo.title && (
+                  <span class="ph-cap" aria-hidden="true">
+                    <span class="ph-cap__t">{photo.title}</span>
+                    {photo.location && (
+                      <span class="ph-cap__l">
+                        <Icon name="mdi:map-marker" />
+                        {photo.location}
+                      </span>
+                    )}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        ))
   }
 </div>
 
@@ -82,11 +103,18 @@ items.forEach((it, i) => columns[i % COLS].push(it));
   .m-card {
     position: relative;
     display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
     border-radius: 5px;
     overflow: hidden;
     border: 1px solid var(--dp-line);
     background: var(--dp-card);
-    text-decoration: none;
+    font: inherit;
+    color: inherit;
+    cursor: zoom-in;
+    -webkit-user-drag: none;
+    user-select: none;
     transition: box-shadow 0.5s var(--dp-ease), transform 0.4s var(--dp-ease);
   }
   .m-card:hover {
@@ -94,15 +122,20 @@ items.forEach((it, i) => columns[i % COLS].push(it));
     transform: scale(1.05);
     z-index: 2;
   }
-  /* Inert placeholder (href '#' → no destination yet): keep the hover lift so the
-     gallery still feels alive, but reset the cursor so it doesn't promise a click
-     target that isn't there. */
-  .m-card.is-inert {
-    cursor: default;
+  /* Dragging a column (mouse/pen — src/lib/motion/carousel.ts adds .is-grabbing
+     to that .m-col): grabbing cursor everywhere in it, and no hover lift on
+     whichever tile happens to pass under the pointer. */
+  .m-col:global(.is-grabbing) .m-card {
+    cursor: grabbing;
+    transform: none;
+    box-shadow: none;
   }
-  /* Whole-page WIP stub: blank placeholder tile (see src/lib/design-stub.ts).
-     Coverless tiles already take their height from the nth-child media ratios
-     above, giving a naturally ragged skeleton. */
+  .m-card:focus-visible {
+    outline: 2px solid var(--dp-accent-deep);
+    outline-offset: 3px;
+    z-index: 2;
+  }
+  /* Whole-page WIP stub: blank placeholder tile (see src/lib/design-stub.ts). */
   .m-card.is-stub {
     cursor: default;
   }
@@ -110,23 +143,13 @@ items.forEach((it, i) => columns[i % COLS].push(it));
     transform: none;
     box-shadow: none;
   }
-  .m-card.is-stub:hover .m-media {
-    transform: none;
-  }
-  .stub-cap {
-    font-family: var(--dp-font-body);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: var(--dp-muted);
-  }
   .m-media {
+    position: relative; /* hosts the caption scrim (.ph-media::after) */
     overflow: hidden;
     /* A STABLE default aspect so the vertical drift measures a correct loop period
-       before lazy covers load; classifyMasonry() (design.astro) then sets the real
-       per-image aspect and the drift re-measures. Fixed heights (not height:auto)
-       are what keep the infinite cycling smooth instead of jumping as covers load. */
+       before images load. Real photos ship their final aspect class from the
+       build; only an unmeasured one is re-classed by classifyMasonry(). Fixed
+       heights (never height:auto) keep the infinite cycling from jumping. */
     aspect-ratio: 3 / 4;
     background: linear-gradient(150deg, #e9e3d6, #d5ccb9);
     transition: transform 0.6s var(--dp-ease);
@@ -134,8 +157,6 @@ items.forEach((it, i) => columns[i % COLS].push(it));
   .m-card:hover .m-media {
     transform: scale(1.06);
   }
-  /* Covers FILL the box (object-fit: cover → no letterbox bars); the box's shape
-     is chosen per-image by classifyMasonry so the crop is minimal. */
   .m-media :global(img) {
     display: block;
     width: 100%;
@@ -151,42 +172,6 @@ items.forEach((it, i) => columns[i % COLS].push(it));
   .m-media.is-portrait {
     aspect-ratio: 3 / 4;
   }
-  /* Pixel-art sprite — crisp nearest-neighbour on a flat tint; contained by default
-     (a logo fits whole), while a piece flagged coverFit:'cover' (Guy) fills the
-     frame via its inline object-fit override. */
-  .m-media :global(.m-sprite) {
-    object-fit: contain;
-    image-rendering: pixelated;
-    background: #1b1b20;
-  }
-  
-
-  .m-card::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    background: linear-gradient(0deg, rgba(243, 239, 230, 0.92) 0%, rgba(243, 239, 230, 0) 42%);
-  }
-  .m-label {
-    position: absolute;
-    left: 16px;
-    right: 16px;
-    bottom: 14px;
-    z-index: 2;
-  }
-  .m-label b {
-    display: block;
-    font-family: var(--dp-font-title);
-    font-size: 17px;
-    font-weight: 400;
-    text-transform: uppercase;
-  }
-  .m-label span {
-    font-size: 12px;
-    color: var(--dp-muted);
-    text-transform: uppercase;
-  }
 
   @media (prefers-reduced-motion: reduce) {
     .masonry {
@@ -198,7 +183,7 @@ items.forEach((it, i) => columns[i % COLS].push(it));
       will-change: auto;
     }
   }
-  
+
   :global([data-sim-reduced]) .masonry {
     height: auto;
     overflow: visible;

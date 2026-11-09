@@ -1,0 +1,12 @@
+---
+/* Highlighted statement (problem statement / "How might we…"). Slot = the text. */
+interface Props {
+  label?: string;
+}
+const { label = 'Problem statement' } = Astro.props;
+---
+
+<div class="cs-callout">
+  <span class="cs-k">{label}</span>
+  <div class="cs-callout__text"><slot /></div>
+</div>

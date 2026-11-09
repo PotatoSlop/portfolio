@@ -7,6 +7,72 @@ tools: [Procreate]
 cover: /Assets/design/2d/red-cross-poster.jpg
 order: 1
 href: '#'
+
+# ---- Case study (draft: built in `astro dev` only; the visual-layout example) ----
+caseStudy: true
+draft: true
+eyebrow: Illustration · Poster series · 2022
+summary: Red Cross interest-meeting posters, drawn as doodle-bombs that reward a second look.
+facts:
+  - label: Pieces
+    value: '2'
+  - label: Format
+    value: Print poster
 ---
 
-Red Cross interest-meeting poster — doodle-bomb background.
+{/*
+  PLACEHOLDER COPY. This entry demonstrates the VISUAL layout (image-led, art
+  on mats). Swap in the real story and process shots, then drop `draft: true`.
+*/}
+
+Placeholder statement. One or two short paragraphs on what ties the series together: the brief, the audience, the constraint you set yourself.
+
+Visual studies keep the text short and let the work carry the page. Captions sit beside or under each piece instead of in long sections.
+
+<Feature
+  src="/Assets/design/2d/red-cross-val-day-poster.jpg"
+  alt="Red Cross Valentine's Day poster"
+  kicker="No. 02"
+  title="Val Day poster"
+  specs={[
+    { label: 'Medium', value: 'Placeholder' },
+    { label: 'Year', value: 'Placeholder' },
+  ]}
+>
+  A sticky side note travels beside a tall piece as you scroll: what it is, how it was made, what to look for.
+</Feature>
+
+<Wall src="/Assets/design/2d/red-cross-poster.jpg" alt="Red Cross interest-meeting poster" label="No. 01" caption="The wall: one piece on a full-bleed block, with all the air around it." />
+
+## Process
+
+<Row
+  cols={4}
+  items={[
+    { label: '01', placeholder: 'Thumbnail', caption: 'Thumbnail' },
+    { label: '02', placeholder: 'Sketch', caption: 'Sketch' },
+    { label: '03', placeholder: 'Doodle pass', caption: 'Doodle pass' },
+    { label: '04', src: '/Assets/design/2d/red-cross-poster.jpg', caption: 'Final' },
+  ]}
+  ratio="3 / 4"
+/>
+
+## Index of works
+
+<WorkIndex
+  items={[
+    { src: '/Assets/design/2d/red-cross-poster.jpg', label: 'No. 01' },
+    { src: '/Assets/design/2d/red-cross-val-day-poster.jpg', label: 'No. 02' },
+  ]}
+/>
+
+## Details
+
+<Specs
+  items={[
+    { label: 'Pieces', value: '2' },
+    { label: 'Discipline', value: 'Illustration' },
+    { label: 'Tools', value: 'Procreate' },
+    { label: 'Year', value: '2022' },
+  ]}
+/>

@@ -1,0 +1,22 @@
+---
+/* Horizontal, snap-scrolling strip of phone-ratio screens. No `src` → placeholder. */
+interface Props {
+  items: { label: string; src?: string; alt?: string }[];
+}
+const { items } = Astro.props;
+---
+
+<div class="cs-screens cs-wide" aria-label="Key screens">
+  {
+    items.map((s) => (
+      <figure>
+        {s.src ? (
+          <img class="cs-media" src={s.src} alt={s.alt ?? s.label} loading="lazy" decoding="async" />
+        ) : (
+          <div class="cs-media cs-ph">{s.label}</div>
+        )}
+        <figcaption>{s.label}</figcaption>
+      </figure>
+    ))
+  }
+</div>

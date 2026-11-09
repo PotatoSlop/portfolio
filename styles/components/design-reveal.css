@@ -19,6 +19,15 @@
   transition: clip-path 0.6s var(--dp-ease, cubic-bezier(0.075, 0.82, 0.165, 1));
 }
 
+/* plain fade (hero print decals: crop marks, registration, chevron). */
+.fade-in {
+  opacity: 0;
+}
+.fade-in.in {
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+
 /* crop-in top→bottom for whole grid containers — no colour block. */
 .crop-tb {
   clip-path: inset(0 0 100% 0);
@@ -75,7 +84,7 @@
   animation: brBlock 0.95s var(--dp-ease, cubic-bezier(0.075, 0.82, 0.165, 1)) forwards;
   animation-delay: calc(var(--i) * 40ms);
 }
-.hero-feature.br--go .hf-inner {
+.feat-card.br--go .hf-inner {
   animation: brText 0.95s linear forwards;
   animation-delay: 180ms;
 }
@@ -107,7 +116,8 @@
 /* Reduced motion (OS pref OR the corner toggle's html[data-sim-reduced]) —
    show everything immediately, no blocks, no clips. */
 @media (prefers-reduced-motion: reduce) {
-  .pre-anim {
+  .pre-anim,
+  .fade-in {
     opacity: 1;
   }
   .crop-lr,
@@ -122,7 +132,8 @@
     display: none;
   }
 }
-[data-sim-reduced] .pre-anim {
+[data-sim-reduced] .pre-anim,
+[data-sim-reduced] .fade-in {
   opacity: 1;
 }
 [data-sim-reduced] .crop-lr,

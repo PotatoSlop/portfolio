@@ -1,12 +1,225 @@
 ---
-title: Duudle
+title: Koral
 category: 'uiux'
 tags: []
-year: 2024
-tools: [Figma]
-cover: /Assets/software/duudle.png
+year: 2026
+tools: [Figma, Kotlin, Jetpack Compose, Claude]
+cover: /Assets/software/koral.webp
 order: 2
 href: '#'
+
+# ---- Case study (draft: built in `astro dev` only, see docs/case-study-template.md) ----
+caseStudy: true
+draft: true
+summary: An Android native painting app for both casual and professional drawing. (Formerly Duudle.)
+role: Design, development
+timeline: Aug 2026 – present
+team: Solo
+coverCaption: The tablet workspace, with palettes and colour docked on the left and layers on the right.
+glance:
+  - label: Problem
+    text: Tablet painting apps tend to force a trade-off. Some keep a clean surface by moving their depth into full-screen modals, while desktop ports carry over every panel until the canvas becomes a small window in the middle.
+  - label: Approach
+    text: A small set of tools stays fixed and the rest sit one tap away. Every panel can dock, float or collapse, which lets each user decide how much interface surrounds the drawing.
+  - label: Outcome
+    text: Koral runs on a Galaxy Tab S7+. The accompanying Figma file covers light and dark modes, 122 icons and 47 components.
 ---
 
-Duudle — collaborative drawing-game interface.
+{/*
+  Figures are 1280×800 frames exported from the Koral Figma file
+  (uHbcDZCLpQZzd1N2OsKG4Q, pages Gallery / Editor / Dialogs). Decisions come
+  from the Drawing repo's design docs: COMMAND_BAR_DESIGN, MENUS_PLAN,
+  WINDOWS_PLAN, GALLERY_HUB_PLAN, FIGMA_SPEC. Lines marked "Placeholder" are
+  still yours to fill in; drop `draft: true` once they're done.
+*/}
+
+## Context
+
+Koral is a native Android painting app written in Kotlin and Jetpack Compose. I built Koral from a personal dissatisfaction for existing drawing apps on mobile devices and their limited capabilities/performance.
+
+The goal of this project was to build a user-friendly and highly configurable all-in-one drawing program that can be used by both professional and casual users alike. 
+
+<Callout>How might a tablet painter keep desktop-grade tools within reach without the interface crowding the drawing?</Callout>
+
+## Research
+
+Before designing any screens, I evaluated four established painting apps. For each, I identified one pattern worth adopting and one worth avoiding. Restricting the analysis to a single pair per app required a judgement about what defined each product, which a broader feature comparison would not have forced.
+
+<Apps
+  items={[
+    { name: 'Procreate', icon: '/Assets/design/uiux/koral/competitors/procreate.webp', meta: 'iPad' },
+    { name: 'Krita', icon: '/Assets/design/uiux/koral/competitors/krita.webp', meta: 'Desktop · Android', inset: true },
+    { name: 'Clip Studio Paint', icon: '/Assets/design/uiux/koral/competitors/clip-studio-paint.webp', meta: 'Desktop · Tablet' },
+    { name: 'Photoshop', icon: '/Assets/design/uiux/koral/competitors/photoshop.webp', meta: 'Desktop · iPad' },
+  ]}
+/>
+
+<Cards
+  items={[
+    { kicker: 'Procreate', title: 'The core trio', text: 'Brush, smudge and eraser sit side by side, and a second tap on any of them opens its options. The brush library is the weak point, since opening it takes over the entire screen.' },
+    { kicker: 'Krita', title: 'Brush previews', text: 'Every brush displays a thumbnail and supports tags and search. Its dockers, however, are designed for a monitor and become cramped on a tablet.' },
+    { kicker: 'Clip Studio Paint', title: 'Deep customisation', text: 'Users can assemble their own toolbar and reorder it against a live preview. The cost is an overwhelming default configuration and settings nested several levels deep.' },
+    { kicker: 'Photoshop', title: 'Saved layouts', text: 'Rarely used tools step aside, and toolbar layouts can be saved as presets. Many tools are only reachable by press-and-hold, which is difficult to discover on a touch screen.' },
+  ]}
+/>
+
+These findings became four principles, which served as the reference point whenever a later decision had no clear answer.
+
+- **Keep a small core and place everything else one tap away.** Displaying every tool at once was the most significant weakness of the desktop apps.
+- **Show the brush stroke.** A dropdown of brush names conveys very little about the mark a brush will make.
+- **Offer Clip Studio's depth without making it the default.** Most users will never customise the interface, so that capability should be available to those who seek it out.
+- **If a control needs instructions, redesign the control.** The interface contains no how-to text.
+
+## User flows
+
+Koral opens on a gallery of the user's projects. Opening directly into the most recent drawing was a reasonable alternative, and the decision is not yet final. The fixed constraint was that the path from the gallery to the canvas never exceeds two taps.
+
+<Steps
+  steps={[
+    { label: 'Gallery hub', note: 'Projects, stacks, multi-select' },
+    { label: 'New canvas', note: 'Preset, size, DPI, background' },
+    { label: 'Editor', note: 'The tile zooms into the canvas' },
+    { label: 'Re-tap a tool', note: 'Its options or brush switcher' },
+    { label: 'Brush Studio', note: 'Tap the active brush cell' },
+  ]}
+/>
+
+<Row
+  ratio="16 / 10"
+  items={[
+    { src: '/Assets/design/uiux/koral/gallery-hub.webp', alt: 'Gallery hub: a grid of projects and stacks with a floating tab bar', chip: 'Gallery', caption: 'The launch screen. Stacks fan out their covers, and the tab bar floats above the grid rather than taking space from it.' },
+    { src: '/Assets/design/uiux/koral/new-canvas.webp', alt: 'New canvas dialog with size presets, width, height, DPI and background swatches', chip: 'New canvas', caption: 'Presets lead the dialog. Exact size and DPI follow, along with an estimate of the memory each layer will use.' },
+  ]}
+/>
+
+The editor follows a single interaction rule adapted from Procreate. A first tap selects a tool, and a second tap reveals its options. For Brush, Smudge and Eraser this opens the brush switcher, while Symmetry and Eyedropper open their own menus. Because the rule applies consistently, the toolbar does not require a separate row of settings buttons.
+
+## Design
+
+### A canvas-first workspace
+
+The layout prioritises the drawing surface. The toolbar runs along the top, palettes and colour stack on the left, and layers sit on the right. Each panel docks into a dedicated lane at the screen edge, so no panel overlaps the area being drawn.
+
+<Figure src="/Assets/design/uiux/koral/editor-normal.webp" alt="Koral editor: toolbar across the top, palettes and colour docked left, layers docked right, canvas in the middle" caption="The default layout, with each panel assigned a lane beside the canvas." />
+
+### Toolbar: anchored wells
+
+The toolbar required the most iteration of any component, with four distinct versions (covered under Iterations). The final design uses fixed wells for Brush, Smudge, Eraser, Undo, Redo, size and opacity, which cannot be removed. The tools between them are optional and can be added, removed or reordered.
+
+Locking part of the toolbar resolves a tension between the two audiences. A beginner who removes tools cannot accidentally lose access to the brush or undo, and an advanced user can still populate the bar as densely as they like.
+
+The original plan for narrow screens moved surplus tools into an overflow menu. I removed it because the tools most likely to land there were the ones I most wanted users to discover. The optional section now scrolls horizontally instead.
+
+<Figure src="/Assets/design/uiux/koral/toolbar-densities.webp" alt="Three toolbar variants, from few optional tools to many, with the same fixed wells on the right" ratio="1330 / 278" caption="Minimal, Normal and Pro. Regardless of how many optional tools are present, the wells on the right remain in place." />
+
+A workspace stores a toolbar together with a panel layout. Since new users cannot yet know which configuration suits them, the first launch asks them to choose one of three as a starting point.
+
+<Row
+  ratio="16 / 10"
+  items={[
+    { src: '/Assets/design/uiux/koral/workspace-picker.webp', alt: 'First-launch dialog: choose your workspace, Minimal, Normal or Pro', chip: 'First launch', caption: 'Each card previews its corresponding toolbar.' },
+    { src: '/Assets/design/uiux/koral/editor-minimal.webp', alt: 'Minimal workspace with a floating colour window and layers collapsed to a thumbnail rail', chip: 'Minimal', caption: 'Minimal moves colour into a floating window and reduces layers to a rail of thumbnails.' },
+  ]}
+/>
+
+### Menus as pages
+
+Cascading menus are imprecise to operate by touch, and on a tablet they extend across the canvas. In Koral, opening a category replaces the menu's contents and adds a ‹ back control at the top, so only one column is ever visible. Each row displays its keyboard shortcut on the right.
+
+Actions that cannot run remain in place in a disabled state. Hiding them would change the menu's length depending on context, which undermines the positional memory that makes a menu faster with repeated use.
+
+<Row
+  ratio="16 / 10"
+  items={[
+    { src: '/Assets/design/uiux/koral/menu-pages.webp', alt: 'Settings menu index page: File, View, Panels, Keyboard shortcuts, Configuration', chip: 'Menu page', caption: 'The ⚙ index page. File, View and Panels each open as a separate page.' },
+    { src: '/Assets/design/uiux/koral/brush-switcher.webp', alt: 'Brush switcher dropdown with a category rail and brushes shown as stroke previews', chip: 'Re-tap Brush', caption: 'The switcher presents brushes as stroke previews. Placing the pen on the canvas dismisses it and begins drawing.' },
+  ]}
+/>
+
+### Brush Studio
+
+Tapping the active brush opens the Brush Studio, with settings on the left and a scratch pad on the right. The pad renders through the same engine as the canvas. An approximate preview would require returning to the canvas to verify every adjustment, so an exact one shortens the tuning loop considerably.
+
+<Figure src="/Assets/design/uiux/koral/brush-studio.webp" alt="Brush Studio dialog with a pressure curve, stroke, taper and size settings beside a live preview pad" caption="Pressure curve, spacing, scatter and taper, alongside a scratch pad driven by the production brush engine." />
+
+### Windows that dock, float or collapse
+
+Holding a window's grip for 160 ms allows it to be dragged. During the drag, an outline indicates where the window will land. Rounded corners signal that it will float, and square corners signal that it will snap into a lane. Windows sharing a lane divide it evenly, unless a split would leave one too short to be usable, in which case it remains floating.
+
+Header height proved to be a more significant constraint than anticipated. Any vertical space a header occupies is taken from the layer list or colour picker beneath it, and the cost compounds with several windows open. I prototyped six header designs. The selected version places the grip inline with the title, reducing header height from approximately 56 dp to 38 dp.
+
+<Figure src="/Assets/design/uiux/koral/dock-undock.webp" alt="Layers window lifted off its lane mid-drag, with a drag preview showing where it will land" caption="Layers being pulled out of its lane, with the outline marking its landing position." />
+
+### Settings, the one modal
+
+Settings is the only window in Koral that blocks the rest of the interface. Every other window is designed to coexist with the canvas, but settings are typically adjusted once and then left alone, which makes a brief interruption acceptable. On wide screens the window includes a section rail, and below 560 dp it becomes a drill-in list.
+
+The Personalization page controls theme, accent colour and interface size. Interface size scales menus and panels while leaving the canvas unaffected.
+
+<Figure src="/Assets/design/uiux/koral/settings-personalization.webp" alt="Configuration window on the Personalization page: theme, accent swatches and an interface size slider" caption="Eight preset accents, plus a custom colour and one derived from the wallpaper. Each generates its own light and dark variants." />
+
+### Design system
+
+Every screen in the Figma file is built on colour variables with light and dark modes. Menus and panels use a neutral grey with no accent tint. In a painting application the colours on screen should belong to the artwork, and the active tool is the sole exception.
+
+<Row
+  ratio="16 / 10"
+  items={[
+    { src: '/Assets/design/uiux/koral/editor-normal.webp', alt: 'Editor in light mode', chip: 'Light', label: false },
+    { src: '/Assets/design/uiux/koral/editor-normal-dark.webp', alt: 'Editor in dark mode with a lime accent', chip: 'Dark', label: false },
+  ]}
+/>
+
+<Figure src="/Assets/design/uiux/koral/foundations.webp" alt="Colour roles for light and dark modes, plus the accent collection" ratio="1300 / 960" caption="Colour roles in both modes and the accent collection. Selection rings use neutral black or white to avoid competing with the accent." />
+
+<Palette
+  colors={[
+    { name: 'Indigo (light accent)', hex: '#4F46E5' },
+    { name: 'Lime (dark accent)', hex: '#D1F229' },
+    { name: 'Surface, light', hex: '#FAFAFB' },
+    { name: 'Surface, dark', hex: '#1C1C1F' },
+    { name: 'Workspace, dark', hex: '#303030' },
+  ]}
+  font={{ family: 'Roboto, sans-serif', href: 'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap', note: 'Roboto, the Android system face', weights: [400, 500, 700] }}
+/>
+
+## Iterations
+
+The toolbar went through four versions before reaching its current form.
+
+<Steps
+  steps={[
+    { label: 'Fixed bar', note: 'Every tool always visible' },
+    { label: 'Modules', note: 'Peelable groups, overflow menu' },
+    { label: 'Locked core', note: 'Single items, no overflow' },
+    { label: 'Anchored wells', note: 'Fixed wells, optional middle' },
+  ]}
+/>
+
+Each version addressed a shortcoming of its predecessor. Showing every tool was the natural starting point, but it reproduced the wall of icons the research had identified as a problem. Peelable modules gave users control over what they saw, at the cost of reintroducing an overflow menu. The locked core eliminated the overflow, and the anchored wells kept that core in a consistent position regardless of what surrounded it.
+
+The flow for saving a custom workspace also changed substantially. The first design kept a draft alongside the saved toolbar, with a persistent Save / Save as new / Revert row and a "Modified" badge. It held up in static mockups. To evaluate it more rigorously, I built an interactive prototype and tested it against 44 edge cases, which exposed how much state the draft model asked users to track. The final version is considerably simpler. Save adapts to whatever is being edited, and the Revert button becoming active is the only indication of unsaved changes.
+
+## Outcome
+
+<Stats
+  items={[
+    { value: '122', label: 'Icons on one 24 px grid' },
+    { value: '47', label: 'Components with states' },
+    { value: '2', label: 'Colour modes, plus 8 accents' },
+    { value: '5', label: 'Interface sizes' },
+  ]}
+/>
+
+Koral runs on a Galaxy Tab S7+. It supports pressure-sensitive brushes, layers with groups and masks, selections, transform and liquify, and comprehensive keyboard shortcuts. The Figma file documents the interface as currently implemented, giving the next design pass an accurate baseline.
+
+Placeholder: anything measured, such as testers, sessions, or a release.
+
+## Reflection
+
+<Columns
+  cols={[
+    { label: 'What worked', items: ['Identifying one pattern to adopt and one to avoid from each app before designing. It provided a concrete standard for evaluating later decisions.', 'Prototyping the complex flows, such as workspace saving and window headers, rather than attempting to resolve them in static designs.', 'Excluding all how-to text. Each impulse to add a hint signalled that the control itself needed refinement.'] },
+    { label: 'Next time', items: ['Test drop gestures on the device earlier. Only one of the three is currently implemented.', 'Determine whether launch should open the gallery or the most recent project.', 'Design a focus mode with translucent, chromeless windows and a radial tool wheel.'] },
+  ]}
+/>

@@ -42,24 +42,35 @@ const reveal = (el: HTMLElement | null) => {
   el.classList.add('br--go');
 };
 
+/*
+  Design page reveals.
+    Hero (DesignHero)    — a load timeline. Every hero element declares its beat
+                           as `data-reveal-at="<ms>"`; the title gets the block-
+                           letter reveal on its beat, everything else gets `.in`
+                           (crop-lr wipe / fade-in). Timing lives in the markup.
+    Featured card        — below the fold, so its strip reveal + countdown bar
+                           wipe fire on scroll-into-view, not on load.
+    Section titles, grids — scroll-triggered, as before.
+*/
 export function mountDesignReveal(root: ParentNode = document): () => void {
   const q = <T extends HTMLElement>(s: string) => root.querySelector<T>(s);
-  const heroTitle = q('.hero-title');
-  const crumb = q('.hero-crumb');
-  const sub = q('.hero-sub');
-  const toggle = q('.hero-cycler');
-  const feature = q('.hero-feature');
+  const heroTitle = q('.dh-title');
+  const beats = Array.from(root.querySelectorAll<HTMLElement>('.dh [data-reveal-at]')).filter((el) => el !== heroTitle);
+  const featSection = q('#dp-featured');
+  const toggle = q('.feat-cycler');
+  const feature = q('.feat-card');
   const cropTbEls = Array.from(root.querySelectorAll<HTMLElement>('.crop-tb'));
+  const at = (el: HTMLElement | null) => Number(el?.dataset.revealAt ?? 0);
   const secTitleSpec: Array<[string, string]> = [
     ['#s-3d .dp-head h2', AMBER],
     ['#s-uiux .dp-head h2', AMBER],
-    ['#s-2d .dp-head h2', AMBER],
+    ['#s-photo .dp-head h2', AMBER],
     ['#s-grid .dp-head h2', AMBER],
   ];
 
   // Reduced motion
   if (prefersReducedMotion()) {
-    [crumb, sub, toggle, ...cropTbEls].forEach((e) => e?.classList.add('in'));
+    [...beats, toggle, ...cropTbEls].forEach((e) => e?.classList.add('in'));
     [heroTitle, feature].forEach((e) => e?.classList.remove('pre-anim'));
     return () => {};
   }
@@ -116,23 +127,35 @@ export function mountDesignReveal(root: ParentNode = document): () => void {
     observers.push(o);
   });
 
-  timers.push(
-    window.setTimeout(() => {
-      crumb?.classList.add('in');
-      reveal(feature);
-    }, 150)
-  );
-  timers.push(window.setTimeout(() => sub?.classList.add('in'), 270));
-  timers.push(window.setTimeout(() => toggle?.classList.add('in'), 390));
-  timers.push(window.setTimeout(() => reveal(heroTitle), 700));
-  timers.push(
-    window.setTimeout(() => {
-      feature?.classList.remove('br--go');
-      feature?.querySelector('.br-box')?.remove();
-      const hfInner = feature?.querySelector<HTMLElement>('.hf-inner');
-      if (hfInner) hfInner.style.opacity = '';
-    }, 1450)
-  );
+  // Hero load timeline — setTimeout, not rAF (rAF throttles in background tabs,
+  // which would leave the hero blank).
+  if (heroTitle) timers.push(window.setTimeout(() => reveal(heroTitle), at(heroTitle)));
+  beats.forEach((el) => timers.push(window.setTimeout(() => el.classList.add('in'), at(el))));
+
+  // Featured card — strip reveal when it scrolls in. The countdown bar is a
+  // crop-lr (clip-path), and a clipped node reports 0 intersection, so observe
+  // the unclipped section instead (the crop-tb deadlock gotcha).
+  if (featSection && feature) {
+    const ioFeat = new IntersectionObserver(
+      (entries, o) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        o.disconnect();
+        toggle?.classList.add('in');
+        reveal(feature);
+        timers.push(
+          window.setTimeout(() => {
+            feature.classList.remove('br--go');
+            feature.querySelector('.br-box')?.remove();
+            const hfInner = feature.querySelector<HTMLElement>('.hf-inner');
+            if (hfInner) hfInner.style.opacity = '';
+          }, 1300)
+        );
+      },
+      { threshold: 0.2 }
+    );
+    ioFeat.observe(featSection);
+    observers.push(ioFeat);
+  }
 
   return () => {
     timers.forEach((t) => clearTimeout(t));

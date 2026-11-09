@@ -10,16 +10,10 @@ interface Props {
 const { items, dir = -1 } = Astro.props;
 
 // One corner badge per card. A gated UI/UX card (no case study yet) reads as
-// 'soon'; that takes precedence, then the 'stub' placeholder marker, then
-// 'game-asset' — flagging the unfinished/gated state is the point of the badge.
+// 'soon'; that takes precedence, then the 'stub' placeholder marker — flagging
+// the unfinished/gated state is the point of the badge.
 const badgeFor = (it: CollectionEntry<'design'>, gated: boolean) =>
-  gated
-    ? 'soon'
-    : it.data.tags?.includes('stub')
-      ? 'stub'
-      : it.data.tags?.includes('game-asset')
-        ? 'game-asset'
-        : null;
+  gated ? 'soon' : it.data.tags?.includes('stub') ? 'stub' : null;
 ---
 
 <div class="row-viewport crop-tb">
@@ -162,7 +156,7 @@ const badgeFor = (it: CollectionEntry<'design'>, gated: boolean) =>
     border-radius: 3px;
   }
   /* Stub marker — amber fill so an unfinished/placeholder card reads distinctly
-     from the neutral game-asset tag. */
+     from the neutral ink tag. */
   .d-tag[data-stub='true'] {
     background: var(--dp-accent);
     color: var(--dp-ink);

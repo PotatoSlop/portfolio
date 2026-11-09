@@ -1,0 +1,35 @@
+---
+/* Visual studies: one piece on a mat, with a sticky side note that travels
+   beside it as you scroll (what it is, how it was made). Slot = the notes. */
+interface Props {
+  src?: string;
+  alt?: string;
+  title: string;
+  kicker?: string;
+  specs?: { label: string; value: string }[];
+}
+const { src, alt = '', title, kicker, specs = [] } = Astro.props;
+---
+
+<section class="cs-feature cs-wide">
+  <figure>
+    <div class="cs-mat">{src ? <img src={src} alt={alt} loading="lazy" decoding="async" /> : <div class="cs-ph cs-media">Image</div>}</div>
+  </figure>
+  <div class="cs-feature__notes">
+    {kicker && <span class="cs-k">{kicker}</span>}
+    <h3 class="cs-display">{title}</h3>
+    <slot />
+    {
+      specs.length > 0 && (
+        <dl>
+          {specs.map((s) => (
+            <>
+              <dt>{s.label}</dt>
+              <dd>{s.value}</dd>
+            </>
+          ))}
+        </dl>
+      )
+    }
+  </div>
+</section>

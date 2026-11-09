@@ -3,11 +3,96 @@ title: Portfolio Site
 category: 'uiux'
 tags: []
 year: 2025
-tools: [Astro]
-cover: /Assets/software/landingPortfolio.png
+tools: [Astro, TypeScript, Figma]
+cover: /Assets/design/uiux/portfolio/mockup.webp
 featured: true
 order: 0
 href: '#'
+
+# ---- Case study (draft: built in `astro dev` only, see docs/case-study-template.md) ----
+caseStudy: true
+draft: true
+wip: true
+summary: One sketchbook that branches into three disciplines, each with a visual language of its own.
+role: Design, development
+timeline: Mar 2025 – ongoing
+team: Solo
+links:
+  - label: View repo
+    href: https://github.com/PotatoSlop/portfolioslop
+    primary: true
+coverCaption: Home, Engineering, Software and Design, each in its own idiom.
+glance:
+  - label: Problem
+    text: My work spans engineering, software and design. One generic portfolio layout flattens them; three separate sites lose the person behind them.
+  - label: Approach
+    text: A sketchbook home page that branches into discipline pages, each re-skinning the same components through a shared theme contract.
+  - label: Outcome
+    text: An Astro site with three themed disciplines, a motion system that respects reduced motion, and content-driven galleries and case studies.
 ---
 
-This very site — the hero UI/UX case study, built in Astro with a custom motion system.
+{/*
+  First draft from the codebase itself. Facts are from the repo; the framing and
+  the "Reflection" are suggestions for you to rewrite in your own voice.
+*/}
+
+## Context
+
+My projects don't sit in one discipline. A macro pad is firmware and a 3D-printed case; a drawing app is a Kotlin codebase and a UI; a poster is design. A single grid of cards treats all of them the same, which hides the thing I most want to show: how I move between them.
+
+<Callout>How might one site show range across disciplines without feeling like three different people made it?</Callout>
+
+## Concept
+
+The site starts as a sketchbook: a hand-drawn version of me waving hello on a plain page. From there it branches. Every discipline page re-renders the same skeleton in its own idiom, so the contrast between pages carries the idea that it's one person working in three modes.
+
+<Row
+  items={[
+    { src: '/Assets/design/uiux/portfolio/home.webp', alt: 'Sketchbook home page with a doodled self-portrait', chip: 'Home', caption: 'The sketchbook: the unrendered origin.' },
+    { src: '/Assets/design/uiux/portfolio/engineering.webp', alt: 'Engineering page with a drafting dot grid and a large wordmark', chip: 'Engineering', caption: 'Drafting paper, a dot grid, heavy display type.' },
+  ]}
+  ratio="16 / 10"
+/>
+
+<Row
+  items={[
+    { src: '/Assets/design/uiux/portfolio/software.webp', alt: 'Software page styled like a terminal prompt', chip: 'Software', caption: 'An editor: mono type and a blinking caret.' },
+    { src: '/Assets/design/uiux/portfolio/design.webp', alt: 'Design page styled as a print proof with crop marks and a colour bar', chip: 'Design', caption: 'A press proof: crop marks, a colour bar, a type specimen.' },
+  ]}
+  ratio="16 / 10"
+/>
+
+## System
+
+The themes aren't separate stylesheets for separate components. Every page reads the same small contract of variables (surface, ink, accent, display face, radius, motion ease), and each discipline only overrides those values plus a few signature idioms. That keeps the components shared and the pages distinct, and it made dark mode a single extra layer per theme instead of a rewrite.
+
+<Cards
+  kickerPrefix="Decision"
+  items={[
+    { title: 'One theme contract', text: 'Disciplines override a fixed set of variables, never the components. A new surface only needs its tokens.' },
+    { title: 'Content drives layout', text: 'Projects, design pieces and photos are content files. Adding work means dropping in a file, not editing a page.' },
+    { title: 'Motion with an off switch', text: 'Reveals and drifting galleries all honour reduced motion, from the OS setting or the on-page toggle, and phones default to calm.' },
+    { title: 'Navigation that holds state', text: 'Page transitions keep the site feeling like one object. Every behaviour mounts the same way whether you arrive by link or by refresh.' },
+  ]}
+/>
+
+<Figure src="/Assets/design/uiux/portfolio/about.webp" alt="About page with a sketched portrait and résumé download" ratio="16 / 10" caption="About: back to the sketchbook, with a résumé picker per discipline." />
+
+## Outcome
+
+<Checklist>
+
+- Three themed discipline pages on one shared component set, with light and dark schemes
+- A design page with drifting galleries, a 3D model viewer and a photo viewer
+- A case-study template, used by this page, that re-skins for any discipline
+
+</Checklist>
+
+## Reflection
+
+<Columns
+  cols={[
+    { label: 'What worked', items: ['Treating the theme as a contract, so a new discipline is mostly tokens', 'Prototyping layouts as throwaway pages before building them in'] },
+    { label: 'Next time', items: ['Test the discipline navigation with people who don\'t know me', 'Measure performance budgets earlier, before galleries and 3D'] },
+  ]}
+/>

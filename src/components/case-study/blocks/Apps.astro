@@ -1,0 +1,43 @@
+---
+/* Labeled app-icon grid — competitors, references, tools studied. Four across
+   on wide screens, a 2×2 quadrant below that. `icon` is a /public path; if
+   the file isn't there yet, a monogram tile stands in so drafts still read.
+   `inset` is for free-form icons on a transparent background (not a full
+   square): they sit padded on a white plate instead of being cropped. */
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
+interface Props {
+  items: { name: string; icon?: string; meta?: string; inset?: boolean }[];
+}
+const { items } = Astro.props;
+
+const hasFile = (src?: string) => !!src && existsSync(join(process.cwd(), 'public', decodeURI(src)));
+const monogram = (name: string) =>
+  name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
+---
+
+<ul class="cs-apps cs-wide" role="list">
+  {
+    items.map((a) => (
+      <li>
+        <span class:list={['cs-apps__icon', { 'cs-apps__icon--inset': a.inset && hasFile(a.icon) }]}>
+          {hasFile(a.icon) ? (
+            <img src={a.icon} alt="" width="96" height="96" loading="lazy" decoding="async" />
+          ) : (
+            <span class="cs-apps__mono" aria-hidden="true">
+              {monogram(a.name)}
+            </span>
+          )}
+        </span>
+        <span class="cs-apps__name">{a.name}</span>
+        {a.meta && <span class="cs-apps__meta">{a.meta}</span>}
+      </li>
+    ))
+  }
+</ul>

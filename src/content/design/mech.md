@@ -9,4 +9,4 @@ glb: /Assets/models/WIPMecha.glb
 order: 1
 ---
 
-Hard-surface mech turret game asset. Click to orbit the model.
+First-time self-study of hard-surface modelling techniques for a OC mech turret robot. Click to orbit the model.

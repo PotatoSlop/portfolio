@@ -92,7 +92,6 @@ const others = ORDER.filter((d) => d !== discipline);
        either scheme — cream-on-white and navy-on-navy both stay legible —
        without borrowing a color from outside the destination's palette. */
     --door-edge: color-mix(in srgb, var(--door-ink) 34%, var(--door-bg));
-    --door-edge-soft: color-mix(in srgb, var(--door-ink) 16%, var(--door-bg));
 
     display: flex;
     flex-direction: column;
@@ -107,12 +106,10 @@ const others = ORDER.filter((d) => d !== discipline);
     border: 1px solid var(--door-edge);
     border-right: 0;
     border-radius: 10px 0 0 10px;
-    /* Two layers: a tight tonal edge-shadow that survives on light-on-light
-       pages, plus the original soft ambient cast to the LEFT (onto the page)
-       so the grip's right edge stays a clean seam where it meets the door. */
-    box-shadow:
-      -1px 0 0 var(--door-edge-soft),
-      -5px 0 16px rgba(0, 0, 0, 0.16);
+    /* No drop shadow: the tonal border alone carries the silhouette. A blurred
+       cast read as a grey smudge on light pages, and it bled ~11px past the
+       grip's right edge onto its own door strip (and a sibling grip's onto the
+       door below it), tinting the seam the two are meant to share. */
   }
   .pull-tab__grip svg {
     width: 18px;

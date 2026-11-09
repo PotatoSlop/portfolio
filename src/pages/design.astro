@@ -1,29 +1,42 @@
 ---
 import Base from '../layouts/Base.astro';
 import PullTabs from '../components/PullTabs.astro';
-import HeroProject from '../components/design/HeroProject.astro';
+import DesignHero from '../components/design/DesignHero.astro';
+import FeaturedProject from '../components/design/FeaturedProject.astro';
 import MarqueeRow from '../components/design/MarqueeRow.astro';
-import MasonryGrid from '../components/design/MasonryGrid.astro';
+import PhotoMasonry from '../components/design/PhotoMasonry.astro';
+import PhotoLightbox from '../components/design/PhotoLightbox.astro';
 import FilterGrid from '../components/design/FilterGrid.astro';
 import DesignModal from '../components/design/DesignModal.astro';
 import { getCollection } from 'astro:content';
 import { DESIGN_WIP } from '../lib/design-stub';
+import { getPhotos } from '../lib/photos';
+import { isOnSite } from '../lib/design-links';
 import '../../styles/components/design-reveal.css';
 
-const all = await getCollection('design');
-const byCat = (c: '3d' | 'uiux' | '2d') =>
+// 2D work is off the site (isOnSite, src/lib/design-links.ts); its files are kept.
+const all = (await getCollection('design')).filter(isOnSite);
+const byCat = (c: '3d' | 'uiux') =>
   all.filter((d) => d.data.category === c).sort((a, b) => a.data.order - b.data.order);
 
 const models = byCat('3d');
 const uiux = byCat('uiux');
-const posters = byCat('2d');
-const featured = all.find((d) => d.data.featured) ?? all[0];
-const recent = all.find((d) => d.data.recent) ?? featured;
+// Photography took 2D's place: section 03 AND the All-work grid. Scanned from
+// public/Assets/Photography; titles/locations come from src/data/photos.ts.
+const photos = await getPhotos();
+// Featured / Most recent only ever showcase UI/UX or 3D work (a `featured` or
+// `recent` flag on any other category is ignored). Fallback: the first piece.
+const showcase = [...uiux, ...models];
+const featured = showcase.find((d) => d.data.featured) ?? showcase[0];
+const recent = showcase.find((d) => d.data.recent && d.id !== featured.id) ?? featured;
 ---
 
 <Base title="Design — Dylan Chen" theme="design">
   <main class="design-page">
-    <HeroProject featured={featured} recent={recent} />
+    {/* First viewport is hero-only (like /engineering + /software); the gallery
+        opens with the featured card just under the fold. */}
+    <DesignHero />
+    <FeaturedProject featured={featured} recent={recent} />
 
     {
       DESIGN_WIP && (
@@ -54,14 +67,14 @@ const recent = all.find((d) => d.data.recent) ?? featured;
       {!DESIGN_WIP && <a class="dp-viewall" data-goto="uiux" href="#s-grid">view all</a>}
     </section>
 
-    <section id="s-2d" class="dp-section" data-rail aria-label="2D / posters">
+    <section id="s-photo" class="dp-section" data-rail aria-label="Photography">
       <div class="dp-head">
         <span class="dp-idx">03</span>
-        <h2>2D Illustration and Graphics</h2>
-        <span class="dp-note">— game assets · posters · digital art</span>
+        <h2>Photography</h2>
+        <span class="dp-note">— life has its moments</span>
       </div>
-      <MasonryGrid items={posters} />
-      {!DESIGN_WIP && <a class="dp-viewall" data-goto="2d" href="#s-grid">view all</a>}
+      <PhotoMasonry photos={photos} />
+      {!DESIGN_WIP && <a class="dp-viewall" data-goto="photo" href="#s-grid">view all</a>}
     </section>
 
     <section id="s-grid" class="dp-section dp-section--grid" data-rail aria-label="All work">
@@ -70,17 +83,18 @@ const recent = all.find((d) => d.data.recent) ?? featured;
         <h2>All work</h2>
         <span class="dp-note">— "A little bit of this" · "and a little bit of that"</span>
       </div>
-      <FilterGrid items={all} />
+      <FilterGrid items={all} photos={photos} />
     </section>
   </main>
 
   <DesignModal />
+  {!DESIGN_WIP && photos.length > 0 && <PhotoLightbox photos={photos} />}
 
   <PullTabs discipline="design" />
 
   <style>
     /* Design-page tokens.
-       Custom properties inherit into the child components (HeroProject, MarqueeRow). */
+       Custom properties inherit into the child components (DesignHero, FeaturedProject, MarqueeRow…). */
     .design-page {
       --dp-paper: #f3efe6;
       --dp-ink: #16233a; /* dark navy — carries the navy motif */
@@ -190,7 +204,7 @@ const recent = all.find((d) => d.data.recent) ?? featured;
       align-self: end;
     }
     /* Place the content row full-width. It MUST use :global() on the content
-       classes: .row-viewport (MarqueeRow) and .masonry (MasonryGrid) are child-component
+       classes: .row-viewport (MarqueeRow) and .masonry (PhotoMasonry) are child-component
        roots, so they carry THEIR OWN astro scope id — not design.astro's. The old
        `> :not(.dp-head):not(.dp-viewall)` (and the mobile `order`) got design's
        scope id appended and thus never matched, so the row lost `grid-column: 1/-1`
@@ -241,7 +255,7 @@ const recent = all.find((d) => d.data.recent) ?? featured;
       /* Gentler slope + lower cap than the old (4.4vw, 58px): that flattened at
          the cap by ~1319px, so 1080p AND a high-DPI laptop both rendered ~58px
          but the laptop's scaled (narrower) CSS viewport left the longest title
-         ("2D Illustration and Graphics") no room and it wrapped. 2.7vw shrinks
+         (then "2D Illustration and Graphics") no room and it wrapped. 2.7vw shrinks
          the title on narrow/high-res viewports where vw is proportionally large,
          while 1080p only eases 58 → ~52px. */
       font-size: clamp(24px, 2.7vw, 54px);
@@ -303,8 +317,7 @@ const recent = all.find((d) => d.data.recent) ?? featured;
     }
 
     /* On narrower / high-DPI (OS-scaled) desktop viewports the section head has
-       less horizontal room, and the longest title ("2D Illustration and
-       Graphics") would wrap. Drop the supplementary caption here so the title
+       less horizontal room, and the longest titles would wrap. Drop the supplementary caption here so the title
        keeps its own line; the caption returns on wide screens (≥1500px) that
        have room for both. Same intent as the mobile rule below. */
     @media (max-width: 1500px) {
@@ -316,7 +329,7 @@ const recent = all.find((d) => d.data.recent) ?? featured;
     /* ===== Mobile ===== */
     @media (max-width: 768px) {
       /* Section heads: smaller title, drop the little caption — the long ones
-         (e.g. "2D Illustration and Graphics") were wrapping messily. */
+         were wrapping messily. */
       .dp-head h2 {
         font-size: clamp(20px, 6vw, 30px);
       }
@@ -353,16 +366,15 @@ const recent = all.find((d) => d.data.recent) ?? featured;
     let destroyReveal: (() => void) | null = null;
     let destroyModel: (() => void) | null = null;
 
-    // The 2D masonry columns are VERTICAL infinite drifters. Their loop period is
+    // The photo masonry columns are VERTICAL infinite drifters. Their loop period is
     // measured from card heights, so those heights must be stable + correct BEFORE
-    // (and not change during) the drift — otherwise lazy covers loading mid-cycle
-    // make it jump. Each .m-media starts at a stable default aspect (CSS), then this
-    // probes every cover and applies its real aspect class in ONE batch, then the
-    // caller re-measures the drift. Probing (not the visible lazy <img>) means we
-    // don't wait for on-screen entry.
+    // (and not change during) the drift — otherwise lazy images loading mid-cycle
+    // make it jump. Photos measured at build time ship their final aspect class
+    // (data-aspect) and are skipped; only an unmeasured tile is probed here, its real
+    // aspect applied in ONE batch, then the caller re-measures the drift.
     function classifyMasonry(done: () => void) {
       const medias = Array.from(
-        document.querySelectorAll<HTMLElement>('.masonry .m-media')
+        document.querySelectorAll<HTMLElement>('.masonry .m-media:not([data-aspect])')
       ).filter((m) => m.querySelector('img'));
       if (!medias.length) return void done();
       let pending = medias.length;

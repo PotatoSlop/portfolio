@@ -11,9 +11,11 @@
 </div>
 
 {/* Design-only scroll rail: numbers-only section index (01–0N) at true section
-    positions, with a progress fill and click-to-scroll. Additive to the default
-    thumb slot (which is hidden on the design theme). Ticks are built at runtime
-    from [data-rail] sections, so it stays empty/hidden on every other page. */}
+    positions, with a progress fill and click-to-scroll. Stands in for the
+    default thumb slot (hidden on the design theme) on EVERY design-theme page:
+    /design tags its zones with [data-rail], a case study's `##` sections carry
+    it too (case-study/blocks/SectionHeading.astro), and a page with none still
+    gets the progress line. Hidden on every other theme. */}
 <nav class="scroll-rail" aria-label="Section navigation" hidden>
   <div class="scroll-rail__inner">
     <div class="scroll-rail__line"><div class="scroll-rail__fill"></div></div>
@@ -342,10 +344,11 @@
   update();
 
   // ===== Design scroll rail (section numerics) =====
-  // Additive, design-only. Builds numbers-only ticks (01–0N) from the page's
-  // [data-rail] sections, positions them at true section offsets, and tracks a
-  // progress fill + the active section as you scroll. No-op on every other theme
-  // (the rail stays hidden), so this never touches the default thumb behaviour.
+  // Design-only. Builds numbers-only ticks (01–0N) from the page's [data-rail]
+  // sections, positions them at true section offsets, and tracks a progress
+  // fill + the active section as you scroll. On the design theme it replaces the
+  // thumb slot on every page (ticks or not); on every other theme it stays
+  // hidden, so this never touches the default thumb behaviour.
   interface RailTick {
     b: HTMLButtonElement;
     sec: HTMLElement;
@@ -354,6 +357,16 @@
   let railSecs: HTMLElement[] = [];
 
   const isDesign = () => document.documentElement.dataset.theme === 'design';
+
+  // Layout offset from the top of the DOCUMENT. offsetTop alone is relative to
+  // the offsetParent, which is the document only for top-level sections (the
+  // /design zones); a case study's headings sit inside positioned wrappers.
+  // Summed offsets (not getBoundingClientRect) so reveal transforms don't skew it.
+  const docTop = (el: HTMLElement) => {
+    let y = 0;
+    for (let n: HTMLElement | null = el; n; n = n.offsetParent as HTMLElement | null) y += n.offsetTop;
+    return y;
+  };
 
   function buildRail() {
     const rail = document.querySelector('.scroll-rail') as HTMLElement | null;
@@ -371,11 +384,6 @@
       return;
     }
     railSecs = [...document.querySelectorAll<HTMLElement>('[data-rail]')];
-    if (railSecs.length === 0) {
-      rail.hidden = true;
-      return;
-    }
-    rail.hidden = false;
 
     railSecs.forEach((sec, i) => {
       const b = document.createElement('button');
@@ -384,7 +392,8 @@
       // Numbers-only: an explicit data-rail value wins, else the 2-digit index.
       const label = sec.dataset.rail || String(i + 1).padStart(2, '0');
       b.innerHTML = `<span class="n">${label}</span>`;
-      b.title = sec.getAttribute('aria-label') || label;
+      // Tooltip: a zone's aria-label, else a heading's own text.
+      b.title = sec.getAttribute('aria-label') || sec.textContent?.trim() || label;
       b.setAttribute('aria-label', `Jump to ${b.title}`);
       b.addEventListener('click', () => sec.scrollIntoView({ behavior: 'smooth' }));
       inner.appendChild(b);
@@ -395,31 +404,53 @@
     updateRail();
   }
 
+  // Min px between tick centres so the 12px numerals never stack.
+  const RAIL_TICK_GAP = 15;
+
+  // Keep each tick at its true position where it can be, but nudge neighbours
+  // apart to the minimum gap: a case study's short sections (an intro pair, a
+  // closing pair) would otherwise pile their numbers on top of each other.
+  // More ticks than fit → even spacing. Only the LABELS move; the fill and the
+  // active highlight still follow the real section offsets.
+  function spreadTicks(tops: number[], h: number, gap: number) {
+    const n = tops.length;
+    if (n < 2) return;
+    if ((n - 1) * gap > h) {
+      tops.forEach((_, i) => (tops[i] = (i * h) / (n - 1)));
+      return;
+    }
+    for (let i = 1; i < n; i++) tops[i] = Math.max(tops[i], tops[i - 1] + gap);
+    tops[n - 1] = Math.min(tops[n - 1], h);
+    for (let i = n - 2; i >= 0; i--) tops[i] = Math.min(tops[i], tops[i + 1] - gap);
+  }
+
   function layoutRail() {
     if (railTicks.length === 0) return;
     const inner = document.querySelector('.scroll-rail__inner') as HTMLElement | null;
     if (!inner) return;
     const docH = document.documentElement.scrollHeight - window.innerHeight;
     const h = inner.clientHeight;
-    railTicks.forEach(({ b, sec }) => {
-      const frac = docH > 0 ? Math.min(sec.offsetTop / docH, 1) : 0;
-      b.style.top = `${frac * h}px`;
-    });
+    const tops = railTicks.map(({ sec }) => (docH > 0 ? Math.min(docTop(sec) / docH, 1) : 0) * h);
+    spreadTicks(tops, h, RAIL_TICK_GAP);
+    railTicks.forEach(({ b }, i) => (b.style.top = `${tops[i]}px`));
   }
 
   function updateRail() {
-    if (railSecs.length === 0) return;
+    const rail = document.querySelector('.scroll-rail') as HTMLElement | null;
     const fill = document.querySelector('.scroll-rail__fill') as HTMLElement | null;
-    if (!fill) return;
+    if (!rail || !fill || !isDesign()) return;
     const docH = document.documentElement.scrollHeight - window.innerHeight;
+    // Like the thumb slot: nothing to scroll → no rail.
+    rail.hidden = docH <= 1;
     const frac = docH > 0 ? Math.min(Math.max(window.scrollY / docH, 0), 1) : 0;
     fill.style.height = `${frac * 100}%`;
+    if (railSecs.length === 0) return;
     // Active = the last section whose top has passed the viewport midline;
     // -1 (nothing lit) while still in the hero.
     const mid = window.scrollY + window.innerHeight / 2;
     let active = -1;
     railSecs.forEach((sec, i) => {
-      if (mid >= sec.offsetTop) active = i;
+      if (mid >= docTop(sec)) active = i;
     });
     railTicks.forEach(({ b }, i) =>
       b.setAttribute('aria-current', i === active ? 'true' : 'false')

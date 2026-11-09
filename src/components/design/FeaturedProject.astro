@@ -1,7 +1,26 @@
 ---
+/*
+  FeaturedProject — the Featured / Most-recent pick that opens the /design
+  gallery, directly under the hero-only first viewport.
+
+  EDITORIAL SPLIT (chosen from the featured-layouts prototype): a text column
+  (tag · title · meta · summary · CTA) beside a media box at a FIXED HEIGHT
+  whose aspect ratio is the image's own (`--ar`, read at build time by
+  src/lib/image-meta.ts). Nothing is cropped whatever the image's shape; any
+  space the box can't use is painted in the image's sampled edge colour, so it
+  reads as part of the image, not a letterbox bar. A wide image squeezes the
+  text column to its minimum; a tall one gives it more room. Stacks on mobile.
+
+  Featured / Most recent tabs switch picks (cross-fade); a countdown advances
+  them while the card is on screen. Clicking the media advances to the next
+  pick (it is a cycler, not a link); only the CTA opens the project. Picks
+  come only from UI/UX + 3D entries (chosen in design.astro).
+  The strip reveal fires on scroll-into-view (src/lib/motion/design-reveal.ts).
+*/
 import type { CollectionEntry } from 'astro:content';
-import { resolveCardAction, type CardAction } from '../../lib/design-links';
+import { resolveCardAction, primaryTagLabel, type CardAction } from '../../lib/design-links';
 import { DESIGN_WIP } from '../../lib/design-stub';
+import { imageMeta } from '../../lib/image-meta';
 
 interface Props {
   featured: CollectionEntry<'design'>;
@@ -9,10 +28,9 @@ interface Props {
 }
 const { featured, recent } = Astro.props;
 
-const meta = (e: CollectionEntry<'design'>) =>
-  [e.data.category.toUpperCase(), e.data.tools?.[0], e.data.year].filter(Boolean).join(' · ');
+const metaLine = (e: CollectionEntry<'design'>) => [primaryTagLabel(e), e.data.tools?.[0], e.data.year].filter(Boolean).join(' · ');
 
-// The hero CTA mirrors the card actions (src/lib/design-links.ts): a gated UI/UX
+// The CTA mirrors the card actions (src/lib/design-links.ts): a gated UI/UX
 // pick can't be read yet, so its CTA is inert; a wired 3D pick opens the viewer.
 const ctaLabel = (a: CardAction) => {
   switch (a.kind) {
@@ -27,44 +45,90 @@ const ctaLabel = (a: CardAction) => {
   }
 };
 
-// The hero card interior is rebuilt in JS (the cross-fade cycler), so it can't
-// hold an <img> — it takes the cover's raw public path and paints it as a
-// background instead.
-const coverUrl = (e: CollectionEntry<'design'>) => e.data.cover ?? '';
+interface Mode {
+  tag: string;
+  title: string;
+  meta: string;
+  summary: string;
+  kind: string;
+  href: string;
+  glb: string;
+  cta: string;
+  cover: string;
+  w: number;
+  h: number;
+  edge: string;
+}
 
-const item = async (e: CollectionEntry<'design'>, tag: string) => {
+const item = async (e: CollectionEntry<'design'>, tag: string): Promise<Mode> => {
   const action = resolveCardAction(e);
+  const cover = e.data.cover ?? '';
+  const m = await imageMeta(cover);
   return {
     tag,
     title: e.data.title,
-    meta: meta(e),
+    meta: metaLine(e),
+    summary: e.data.summary ?? '',
     // Only 'case'/'link' navigate; 'model' opens the viewer via data attrs; the
     // rest are inert (no destination yet).
     kind: action.kind,
     href: action.kind === 'case' || action.kind === 'link' ? action.href : '',
     glb: action.kind === 'model' ? action.glb : '',
     cta: ctaLabel(action),
-    cover: coverUrl(e),
+    cover,
+    w: m.width,
+    h: m.height,
+    edge: m.edge,
   };
 };
 
-// Whole-page WIP stub: skip the real hero entirely (no image processing, no
-// cycler data) and render a blank placeholder frame — see src/lib/design-stub.ts.
-const modes = DESIGN_WIP
+// Whole-page WIP stub: no picks, a blank frame (see src/lib/design-stub.ts).
+const modes: Mode[] = DESIGN_WIP
   ? []
   : featured.id === recent.id
     ? [await item(featured, 'Featured')]
     : [await item(featured, 'Featured'), await item(recent, 'Most recent')];
-const first = modes[0];
 const multi = modes.length > 1;
+
+// ---- Interior markup. The client cycler (script below) builds the SAME string
+// for each switch; keep the two builders in step. `next` is the following
+// pick's title: when given, the media becomes the cycler's "next" control
+// (a full-cover button) instead of a dead box. ----
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const actionAttrs = (m: Mode) =>
+  m.kind === 'model' ? `href="#" data-card-action="model" data-glb="${esc(m.glb)}" role="button"` : m.href ? `href="${esc(m.href)}"` : '';
+const buildInner = (m: Mode, next?: string) => {
+  const live = m.kind !== 'gated' && m.kind !== 'dead';
+  const cta = live
+    ? `<a class="fs-cta" ${actionAttrs(m)}>${esc(m.cta)}</a>`
+    : `<span class="fs-cta is-disabled" aria-disabled="true">${esc(m.cta)}</span>`;
+  const img = m.cover ? `<img src="${esc(m.cover)}" alt="" width="${m.w}" height="${m.h}" decoding="async">` : '';
+  const hit = next
+    ? `<button type="button" class="fs-next" data-fc-next aria-label="Next pick: ${esc(next)}"><span>Next →</span></button>`
+    : '';
+  return (
+    `<div class="fs-text">` +
+    `<span class="fs-k">${esc(m.tag)}</span>` +
+    `<span class="fs-t" style="--fs-chars:${Math.max(4, ...m.title.split(/\s+/).map((w) => w.length))}">${esc(m.title)}</span>` +
+    `<span class="fs-m">${esc(m.meta)}</span>` +
+    (m.summary ? `<p class="fs-s">${esc(m.summary)}</p>` : '') +
+    cta +
+    `</div>` +
+    `<div class="fs-media${next ? ' is-cycle' : ''}" style="--ar:${m.w} / ${m.h};--edgec:${esc(m.edge)}">${img}${hit}</div>`
+  );
+};
+const first = modes[0];
 ---
 
-<section id="dp-hero">
-  <p class="hero-crumb crop-lr">Sketchbook / <b>Design</b></p>
-  <h1 class="hero-title pre-anim">Design</h1>
-
-  <div class="hero-cycler crop-lr" role="group" aria-label="Featured work carousel" data-multi={String(multi)}>
-
+<section id="dp-featured" aria-label="Featured work">
+  <div class="feat-cycler crop-lr" role="group" aria-label="Featured work" data-multi={String(multi)}>
+    {
+      modes.map((m, i) => (
+        <button type="button" class="fc-tab" data-fc-tab={String(i)} aria-pressed={i === 0 ? 'true' : 'false'}>
+          {m.tag}
+        </button>
+      ))
+    }
     <span class="hc-progress" aria-hidden="true">
       {
         modes.map((_, i) => (
@@ -76,95 +140,56 @@ const multi = modes.length > 1;
     </span>
   </div>
 
-  <div
-    class:list={['hero-feature', 'pre-anim', { 'is-stub': DESIGN_WIP }]}
-    id="heroFeature"
-    data-hero={DESIGN_WIP ? undefined : JSON.stringify(modes)}
-  >
-    <div class="hf-inner">
-      {DESIGN_WIP ? (
-        <>
-          <div class="hf-media"></div>
-          <div class="hf-label">
-            <span class="hf-stub-cap">Work in Progress</span>
+  <div class:list={['feat-card', 'pre-anim', { 'is-stub': DESIGN_WIP }]} id="featCard" data-hero={DESIGN_WIP ? undefined : JSON.stringify(modes)}>
+    {
+      DESIGN_WIP ? (
+        <div class="hf-inner">
+          <div class="fs-text">
+            <span class="fs-t">Work in Progress</span>
           </div>
-        </>
+        </div>
       ) : (
-        <>
-          <div class="hf-media" style={first.cover ? `background-image:url('${first.cover}')` : undefined}></div>
-          <span class="hf-tag">{first.tag}</span>
-          <div class="hf-label">
-            <span class="hf-title">{first.title}</span>
-            <span class="hf-meta">{first.meta}</span>
-            {first.kind === 'gated' || first.kind === 'dead' ? (
-              <span class="hf-cta is-disabled" aria-disabled="true">{first.cta}</span>
-            ) : first.kind === 'model' ? (
-              <a class="hf-cta" href="#" data-card-action="model" data-glb={first.glb} role="button">{first.cta}</a>
-            ) : (
-              <a class="hf-cta" href={first.href}>{first.cta}</a>
-            )}
-          </div>
-        </>
-      )}
-    </div>
+        <div class="hf-inner" set:html={buildInner(first, modes[1]?.title)} />
+      )
+    }
   </div>
 </section>
 
 <style>
-  #dp-hero {
-    min-height: calc(100vh - 72px);
-    padding: 3.5vh var(--dp-edge) 4vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: flex-start;
+  #dp-featured {
+    /* Fixed height of the split on desktop: tall enough to feature, short enough
+       that switching picks never moves the page. */
+    --feat-h: clamp(380px, 58vh, 620px);
+    padding: 6vh var(--dp-edge) 0;
+    scroll-margin-top: 72px;
   }
 
-  .hero-crumb {
-    font-family: var(--dp-font-body);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-size: 13px;
-    color: var(--dp-muted);
-    margin: 0 0 1vh;
-  }
-  .hero-crumb b {
-    color: var(--dp-accent-deep);
-    font-weight: 600;
-  }
-  .hero-title {
-    font-family: var(--dp-font-title);
-    text-transform: uppercase;
-    font-size: clamp(52px, 12vw, 188px);
-    line-height: 0.9;
-    letter-spacing: 0.01em;
-    margin: 0.03em 0 0 -0.02em;
-    color: var(--dp-ink);
-  }
-
-  /* ===== Hero project cycler =====
-     Auto cross-fades between the featured + most-recent project on a timer. */
-  .hero-cycler {
+  /* ===== Tabs + countdown ===== */
+  .feat-cycler {
     display: flex;
     align-items: center;
     gap: 16px;
     width: 100%;
-    margin-top: 2vh;
   }
-  .hc-kicker {
-    flex: 0 0 auto;
-    font-family: var(--dp-font-body);
-    font-weight: 600;
+  .fc-tab {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: 600 12px/1 var(--dp-font-body);
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-size: 12px;
-    line-height: 1;
-    white-space: nowrap;
-    color: var(--dp-ink);
+    color: var(--dp-muted);
+    cursor: pointer;
+    transition: color 0.25s;
   }
-  /* Segmented story timer — flexes to fill the hero width; each segment is an
-     empty track holding a left-anchored fill the JS scales along X. */
+  .fc-tab:hover,
+  .fc-tab[aria-pressed='true'] {
+    color: var(--dp-accent-deep);
+  }
+  .fc-tab:focus-visible {
+    outline: 2px solid var(--dp-accent-deep);
+    outline-offset: 4px;
+  }
   .hc-progress {
     flex: 1 1 auto;
     min-width: 0;
@@ -188,12 +213,10 @@ const multi = modes.length > 1;
     transform: scaleX(0);
     transform-origin: left;
   }
-  /* Single slide: nothing to cycle — drop the countdown, keep the tag. */
-  .hero-cycler[data-multi='false'] .hc-progress {
+  .feat-cycler[data-multi='false'] .hc-progress {
     display: none;
   }
-  /* Reduced motion (OS pref OR the corner toggle): no auto-advance, so the
-     countdown bars have nothing to count — hide them (chevrons still cycle). */
+  /* Reduced motion: no auto-advance, so the countdown has nothing to count. */
   @media (prefers-reduced-motion: reduce) {
     .hc-progress {
       visibility: hidden;
@@ -203,148 +226,85 @@ const multi = modes.length > 1;
     visibility: hidden;
   }
 
-  .hero-feature {
-    position: relative;
-    display: block;
-    margin-top: 1.8vh;
-    width: 100%;
-    /* Grow to fill whatever the tightened header leaves inside the 100vh hero, so
-       the project claims the most room possible while still fitting the first
-       viewport (with a floor for short screens). */
-    flex: 1 1 auto;
-    min-height: clamp(360px, 46vh, 560px);
-    border: 1px solid var(--dp-line);
-    border-radius: 5px;
-    overflow: hidden;
-    /* Transparent (not white) so the empty frame reads as the cream page before
-       the block reveal fills it — no white flash during the load animation. */
-    background: transparent;
-    cursor: pointer;
-    text-decoration: none;
-    transition: box-shadow 0.5s var(--dp-ease), border-color 0.4s var(--dp-ease);
+  /* ===== The split =====
+     Layers (.hf-inner) stack in ONE grid cell so a cross-fade overlays the old
+     and new pick without absolute positioning — the card keeps a real height on
+     mobile, where it stacks. */
+  .feat-card {
+    position: relative; /* hosts the strip reveal's .br-box */
+    display: grid;
+    margin-top: 18px;
   }
-  /* During the block reveal the interior fills navy but the 1px border is outside
-     the fill, so its thin cream edge flickers into view as the strips rise. Hold
-     the border transparent until the reveal finishes, then fade it in. */
-  .hero-feature.pre-anim,
-  .hero-feature.br--go {
-    border-color: transparent;
-  }
-  .hero-feature:hover {
-    box-shadow: var(--dp-shadow);
+  :global(.feat-card > .hf-inner) {
+    grid-area: 1 / 1;
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) auto;
+    align-items: center;
+    gap: clamp(24px, 4vw, 64px);
+    height: var(--feat-h);
   }
 
-  /* ===== Card interior =====
-     These nodes are REBUILT at runtime by the cycler (cross-fade layers), so
-     Astro's scoped class hash never lands on them — the styles MUST be :global()
-     or the layout collapses to unstyled text the instant the card first cycles.
-     Loaded only with this component (design page), so global scope stays tame. */
-
-  /* Fill the card so the media / scrim / label all share ONE stacking context.
-     Keeping the scrim (::after) here — not on .hero-feature — means the label
-     (z-index 2) stays above the scrim (z-index 1) throughout the opacity reveal,
-     instead of the label jumping above the scrim only once the animation ends.
-     During a cross-fade two .hf-inner layers stack here and fade past each other. */
-  :global(.hf-inner) {
-    position: absolute;
-    inset: 0;
-    isolation: isolate;
-  }
-  /* Dark scheme: the hero label/tag/CTA sit OVER the media behind a fixed CREAM
-     scrim (::after, below) — a light backdrop regardless of page scheme. So this
-     zone keeps the LIGHT --dp-* palette (dark navy ink, deep amber, cream glass);
-     inverting it to cream ink would vanish against the cream scrim. The scrim +
-     media gradient are literals, so they already stay light — only the text vars
-     need re-pinning. */
-  :global([data-scheme='dark'] .hf-inner) {
-    --dp-ink: #16233a;
-    --dp-muted: #6c7183;
-    --dp-accent: #f5a045;
-    --dp-accent-deep: #b5611b;
-    --dp-line: rgba(20, 18, 12, 0.12);
-    --theme-glass: rgba(247, 244, 238, 0.72);
-  }
-  :global(.hf-inner)::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    background: linear-gradient(0deg, rgba(243, 239, 230, 0.94) 0%, rgba(243, 239, 230, 0) 46%);
-  }
-  :global(.hf-media) {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(150deg, #e9e3d6, #d5ccb9);
-    background-size: cover;
-    background-position: center;
-    transition: transform 0.6s var(--dp-ease);
-  }
-  .hero-feature:hover :global(.hf-media) {
-    transform: scale(1.05);
-  }
-  :global(.hf-tag) {
-    position: absolute;
-    top: 18px;
-    left: 20px;
-    z-index: 2;
-    font-family: var(--dp-font-body);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-size: 12px;
-    color: var(--dp-accent-deep);
-  }
-  :global(.hf-label) {
-    position: absolute;
-    left: 20px;
-    bottom: 18px;
-    z-index: 2;
+  /* Interior nodes are rebuilt by the cycler (no scope id) → :global. */
+  :global(.fs-text) {
+    /* A size container so the title can fit ITS column (cqi), which a wide
+       image squeezes to ~260px. */
+    container-type: inline-size;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+    width: 100%;
   }
-  :global(.hf-title) {
-    font-family: var(--dp-font-title);
+  :global(.fs-k) {
+    font: 600 12px/1 var(--dp-font-body);
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    font-size: clamp(24px, 3vw, 40px);
-    line-height: 1;
-    color: var(--dp-ink);
+    color: var(--dp-accent-deep);
   }
-  :global(.hf-meta) {
-    font-family: var(--dp-font-body);
-    font-size: 14px;
+  /* Capped so the LONGEST WORD fits the column on one line (--fs-chars is set
+     per pick; a display glyph is ~0.92em wide): wraps between words, never
+     mid-word, however narrow a wide image leaves the column. */
+  :global(.fs-t) {
+    font-family: var(--dp-font-title);
+    font-weight: 400;
+    font-size: min(clamp(28px, 3.6vw, 56px), calc(100cqi / (var(--fs-chars, 6) * 0.92)));
+    line-height: 0.95;
+    text-transform: uppercase;
+    text-wrap: balance;
+    color: var(--dp-ink);
+    max-width: 100%;
+  }
+  :global(.fs-m) {
+    font: 500 14px/1.3 var(--dp-font-body);
     color: var(--dp-muted);
   }
-  /* Redirect CTA — sits inside the card, in the label stack directly under the
-     caption. Outlined by default; on hover an amber fill rises bottom→top behind
-     the label (a clipped ::before slab). No arrow. The card body cycles, so this
-     link stops that (guarded in the click handler) and redirects instead. */
-  :global(.hf-cta) {
+  :global(.fs-s) {
+    max-width: 38ch;
+    margin: 4px 0 6px;
+    font: 400 16px/1.55 var(--dp-font-body);
+    color: var(--dp-ink);
+  }
+  /* CTA: solid navy face, amber rising on hover (the hero button's twin). */
+  :global(.fs-cta) {
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    align-self: flex-start;
-    margin-top: 12px;
-    padding: 9px 18px;
-    /* Unified button face: subtle border + translucent-cream (frosted) fill,
-       matching the nav islands. As a non-toggle it fills amber from the bottom
-       on hover; the navy label stays legible on cream AND on amber. */
-    border: 1px solid var(--dp-line);
+    display: inline-flex;
+    margin-top: 6px;
+    padding: 11px 20px;
+    border: 1px solid var(--dp-ink);
     border-radius: 5px;
-    background: var(--theme-glass);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    color: var(--dp-ink);
-    font-family: var(--dp-font-body);
-    font-weight: 600;
-    font-size: 12px;
-    letter-spacing: 0.06em;
+    background: var(--dp-ink);
+    color: var(--dp-paper);
+    font: 600 12px/1 var(--dp-font-body);
+    letter-spacing: 0.07em;
     text-transform: uppercase;
     text-decoration: none;
     white-space: nowrap;
     transition: color 0.4s var(--dp-ease), border-color 0.4s var(--dp-ease);
   }
-  :global(.hf-cta)::before {
+  :global(.fs-cta)::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -353,35 +313,117 @@ const multi = modes.length > 1;
     transform: translateY(100%);
     transition: transform 0.4s var(--dp-ease);
   }
-  :global(.hf-cta:hover) {
+  :global(.fs-cta:hover),
+  :global(.fs-cta:focus-visible) {
+    color: #16233a;
     border-color: var(--dp-accent);
+    outline: none;
   }
-  :global(.hf-cta:hover)::before {
-    transform: translateY(0);
+  :global(.fs-cta:hover)::before,
+  :global(.fs-cta:focus-visible)::before {
+    transform: none;
   }
-  /* Inert CTA — a gated UI/UX hero (case study not written yet). Reads as a quiet
-     status pill, not a button: dimmed, no cursor promise, no hover fill. */
-  :global(.hf-cta.is-disabled) {
-    opacity: 0.6;
+  :global(.fs-cta.is-disabled) {
+    opacity: 0.55;
     cursor: default;
     pointer-events: none;
   }
-  /* Whole-page WIP stub: blank hero frame — no cycler, no click (src/lib/design-stub.ts). */
-  .hero-feature.is-stub {
-    cursor: default;
+
+  /* Media: the image's own shape at the split's height (width = height × ratio),
+     capped so the text column keeps ~300px. Contained, never cropped; spare
+     space takes the image's edge colour. */
+  :global(.fs-media) {
+    position: relative; /* hosts the full-cover .fs-next cycler button */
+    display: block;
+    justify-self: end;
+    height: var(--feat-h);
+    aspect-ratio: var(--ar);
+    max-width: min(72vw, calc(100vw - 2 * var(--dp-edge) - 320px));
+    overflow: hidden;
+    border: 1px solid var(--dp-line);
+    border-radius: 5px;
+    background: var(--edgec, #e9e3d6);
+    transition: box-shadow 0.5s var(--dp-ease);
   }
-  :global(.hf-stub-cap) {
-    font-family: var(--dp-font-title);
-    font-weight: 400;
+  :global(.fs-media.is-cycle:hover) {
+    box-shadow: var(--dp-shadow);
+  }
+  :global(.fs-media img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: transform 0.6s var(--dp-ease);
+  }
+  :global(.fs-media.is-cycle:hover img) {
+    transform: scale(1.02);
+  }
+  /* The media is the cycler's "next" control: a transparent button over the
+     whole image, with a small chip bottom-right that names what a click does
+     (shown on hover/focus; always on for touch, which has no hover). */
+  :global(.fs-next) {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 14px;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+  :global(.fs-next:focus-visible) {
+    outline: none;
+  }
+  /* Ring the media box itself (its overflow would clip a ring on the button). */
+  :global(.fs-media:has(.fs-next:focus-visible)) {
+    outline: 2px solid var(--dp-accent-deep);
+    outline-offset: 4px;
+  }
+  :global(.fs-next span) {
+    padding: 8px 12px;
+    border-radius: 5px;
+    background: var(--dp-ink);
+    color: var(--dp-paper);
+    font: 600 11px/1 var(--dp-font-body);
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    font-size: clamp(20px, 2.4vw, 30px);
-    line-height: 1;
-    color: var(--dp-muted);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.3s var(--dp-ease), transform 0.5s var(--dp-ease);
   }
-  @media (max-width: 520px) {
-    :global(.hf-label) {
-      left: 16px;
-      bottom: 14px;
+  :global(.fs-media.is-cycle:hover .fs-next span),
+  :global(.fs-next:focus-visible span) {
+    opacity: 1;
+    transform: none;
+  }
+  @media (hover: none) {
+    :global(.fs-next span) {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* During the strip reveal the media's 1px border sits outside the fill and
+     flickers; hold it transparent until the reveal ends. */
+  .feat-card.pre-anim :global(.fs-media),
+  .feat-card.br--go :global(.fs-media) {
+    border-color: transparent;
+  }
+
+  /* Stacked: text above, media full width at its own ratio (capped tall). */
+  @media (max-width: 900px) {
+    :global(.feat-card > .hf-inner) {
+      grid-template-columns: minmax(0, 1fr);
+      height: auto;
+      gap: 20px;
+    }
+    :global(.fs-media) {
+      justify-self: stretch;
+      width: 100%;
+      height: auto;
+      max-width: none;
+      max-height: 70vh;
     }
   }
 </style>
@@ -389,110 +431,113 @@ const multi = modes.length > 1;
 <script>
   import { prefersReducedMotion } from '../../lib/motion/reduced-motion';
   import { onPageReady } from '../../lib/motion/lifecycle';
-  import { navigate } from 'astro:transitions/client';
 
   interface Mode {
     tag: string;
     title: string;
     meta: string;
+    summary: string;
     kind: string;
     href: string;
     glb: string;
     cta: string;
-    cover?: string;
+    cover: string;
+    w: number;
+    h: number;
+    edge: string;
   }
 
-  const AUTO_MS = 6000; // dwell before the hero cross-fades to the next project
+  const AUTO_MS = 7000; // dwell before switching to the next pick
 
-  const esc = (s: string) =>
-    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  // ---- Same builder as the SSR frontmatter; keep them in step. ----
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const actionAttrs = (m: Mode) =>
+    m.kind === 'model' ? `href="#" data-card-action="model" data-glb="${esc(m.glb)}" role="button"` : m.href ? `href="${esc(m.href)}"` : '';
+  const buildInner = (m: Mode, next?: string) => {
+    const live = m.kind !== 'gated' && m.kind !== 'dead';
+    const cta = live
+      ? `<a class="fs-cta" ${actionAttrs(m)}>${esc(m.cta)}</a>`
+      : `<span class="fs-cta is-disabled" aria-disabled="true">${esc(m.cta)}</span>`;
+    const img = m.cover ? `<img src="${esc(m.cover)}" alt="" width="${m.w}" height="${m.h}" decoding="async">` : '';
+    const hit = next
+      ? `<button type="button" class="fs-next" data-fc-next aria-label="Next pick: ${esc(next)}"><span>Next →</span></button>`
+      : '';
+    return (
+      `<div class="fs-text">` +
+      `<span class="fs-k">${esc(m.tag)}</span>` +
+      `<span class="fs-t" style="--fs-chars:${Math.max(4, ...m.title.split(/\s+/).map((w) => w.length))}">${esc(m.title)}</span>` +
+      `<span class="fs-m">${esc(m.meta)}</span>` +
+      (m.summary ? `<p class="fs-s">${esc(m.summary)}</p>` : '') +
+      cta +
+      `</div>` +
+      `<div class="fs-media${next ? ' is-cycle' : ''}" style="--ar:${m.w} / ${m.h};--edgec:${esc(m.edge)}">${img}${hit}</div>`
+    );
+  };
 
-  // CTA mirrors the SSR branch: inert for gated/dead, viewer-opener for model,
-  // plain link otherwise. Keeps the runtime-rebuilt card honest about dead ends.
-  const buildCta = (m: Mode) =>
-    m.kind === 'gated' || m.kind === 'dead'
-      ? `<span class="hf-cta is-disabled" aria-disabled="true">${esc(m.cta)}</span>`
-      : m.kind === 'model'
-        ? `<a class="hf-cta" href="#" data-card-action="model" data-glb="${esc(m.glb)}" role="button">${esc(m.cta)}</a>`
-        : `<a class="hf-cta" href="${esc(m.href)}">${esc(m.cta)}</a>`;
-
-  const buildInner = (m: Mode) =>
-    `<div class="hf-media"${m.cover ? ` style="background-image:url('${esc(m.cover)}')"` : ''}></div>` +
-    `<span class="hf-tag">${esc(m.tag)}</span>` +
-    `<div class="hf-label"><span class="hf-title">${esc(m.title)}</span><span class="hf-meta">${esc(m.meta)}</span>` +
-    `${buildCta(m)}</div>`;
-
-  function initHeroCycler(): (() => void) | null {
-    const feature = document.getElementById('heroFeature');
-    if (!feature) return null;
+  function initFeatured(): (() => void) | null {
+    const card = document.getElementById('featCard');
+    if (!card) return null;
     let modes: Mode[];
     try {
-      modes = JSON.parse(feature.dataset.hero || '[]');
+      modes = JSON.parse(card.dataset.hero || '[]');
     } catch {
       return null;
     }
-    if (!Array.isArray(modes) || modes.length === 0) return null;
+    if (!Array.isArray(modes) || modes.length < 2) return null; // nothing to cycle
 
-    const label = document.querySelector<HTMLElement>('[data-hc-label]');
+    // Warm the other picks' images so a switch never flashes empty.
+    modes.forEach((m) => m.cover && (new Image().src = m.cover));
+
+    const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-fc-tab]')];
     const segs = [...document.querySelectorAll<HTMLElement>('[data-hc-seg]')];
-
-    const reduced = prefersReducedMotion();
-    const multi = modes.length > 1;
-
+    // Phones are always reduced-motion on this site; check the breakpoint too, since
+    // this can mount before the page sets html[data-sim-reduced].
+    const reduced = prefersReducedMotion() || window.matchMedia('(max-width: 768px)').matches;
     let idx = 0;
     let raf = 0;
-    let runStart = 0; // performance.now() when the current countdown run began
-    const fadeTimers = new Set<number>();
+    let runStart = 0;
+    let elapsed = 0; // countdown already spent before a pause (off-screen)
+    let visible = false;
+    const timers = new Set<number>();
 
-    // Story segments: full before the active slide, empty after it, the active
-    // one riding the countdown. Wrapping back to slide 0 resets them all.
-    const paintSegs = (active: number, p: number) => {
+    const paintSegs = (active: number, p: number) =>
       segs.forEach((fill, i) => {
         const v = i < active ? 1 : i === active ? Math.max(0, Math.min(p, 1)) : 0;
         fill.style.transform = `scaleX(${v})`;
       });
-    };
 
-    const render = (i: number, animate: boolean) => {
-      const m = modes[i];
-      if (label) label.textContent = m.tag;
-
-      // Collapse any mid-fade stragglers (rapid clicks) down to the visible layer.
-      const layers = [...feature.querySelectorAll<HTMLElement>('.hf-inner')];
-      const old = layers[layers.length - 1] || null;
-      layers.slice(0, -1).forEach((l) => l.remove());
-
-      if (!animate || !old) {
-        if (old) {
-          old.style.transition = '';
-          old.style.opacity = '';
-          old.innerHTML = buildInner(m);
-        } else {
-          const d = document.createElement('div');
-          d.className = 'hf-inner';
-          d.innerHTML = buildInner(m);
-          feature.appendChild(d);
-        }
+    const inner = (i: number) => buildInner(modes[i], modes[(i + 1) % modes.length].title);
+    const render = (i: number) => {
+      tabs.forEach((t, k) => t.setAttribute('aria-pressed', String(k === i)));
+      const layers = [...card.querySelectorAll<HTMLElement>('.hf-inner')];
+      const old = layers[layers.length - 1] ?? null;
+      layers.slice(0, -1).forEach((l) => l.remove()); // collapse rapid-switch stragglers
+      // Keyboard users who cycled via the media keep focus on the new pick's
+      // "next" button instead of dropping to <body> when the old layer goes.
+      const refocus = !!old?.contains(document.activeElement) && document.activeElement?.matches('[data-fc-next]');
+      if (reduced || !old) {
+        if (old) old.innerHTML = inner(i);
+        if (refocus) old?.querySelector<HTMLElement>('[data-fc-next]')?.focus();
         return;
       }
-
-      // Cross-fade: the incoming layer eases in over the outgoing one.
+      // Cross-fade: both layers share one grid cell, the new one eases in on top.
       const nu = document.createElement('div');
       nu.className = 'hf-inner';
       nu.style.opacity = '0';
-      nu.innerHTML = buildInner(m);
-      feature.appendChild(nu);
-      void nu.offsetWidth; // commit opacity:0 before transitioning
-      nu.style.transition = 'opacity 0.55s var(--dp-ease)';
-      old.style.transition = 'opacity 0.55s var(--dp-ease)';
+      nu.innerHTML = inner(i);
+      card.appendChild(nu);
+      if (refocus) nu.querySelector<HTMLElement>('[data-fc-next]')?.focus({ preventScroll: true });
+      void nu.offsetWidth;
+      nu.style.transition = old.style.transition = 'opacity 0.5s var(--dp-ease)';
       nu.style.opacity = '1';
       old.style.opacity = '0';
+      old.style.pointerEvents = 'none';
       const t = window.setTimeout(() => {
         old.remove();
         nu.style.transition = '';
-        fadeTimers.delete(t);
-      }, 600);
-      fadeTimers.add(t);
+        timers.delete(t);
+      }, 560);
+      timers.add(t);
     };
 
     const stop = () => {
@@ -500,55 +545,67 @@ const multi = modes.length > 1;
       raf = 0;
     };
     const frame = () => {
-      const p = (performance.now() - runStart) / AUTO_MS;
+      const p = (elapsed + performance.now() - runStart) / AUTO_MS;
       paintSegs(idx, p);
       if (p >= 1) {
         raf = 0;
-        go(1);
+        go((idx + 1) % modes.length);
         return;
       }
       raf = requestAnimationFrame(frame);
     };
     const run = () => {
-      if (reduced || !multi || raf) return;
+      if (reduced || raf || !visible) return;
       runStart = performance.now();
       raf = requestAnimationFrame(frame);
     };
-    const go = (dir: number) => {
-      idx = (idx + dir + modes.length) % modes.length;
-      render(idx, !reduced);
+    const pause = () => {
+      if (!raf) return;
+      elapsed += performance.now() - runStart;
       stop();
+    };
+    const go = (i: number) => {
+      idx = i;
+      render(idx);
+      stop();
+      elapsed = 0;
       paintSegs(idx, reduced ? 1 : 0);
       run();
     };
 
-    // Clicking the card body is the manual advance (no chevrons). A click on the
-    // CTA under the caption falls through to the link instead of cycling. On a
-    // single-slide hero there's nothing to cycle, so the body opens the project.
-    feature.addEventListener('click', (e) => {
-      if ((e.target as Element).closest('.hf-cta')) return;
-      if (!multi) {
-        // SPA-navigate (never location.assign) so opening the project runs the
-        // same ClientRouter lifecycle as every other link — a full reload here
-        // reintroduces the dual entry-path divergence (docs/routing-and-lifecycle.md §3.1).
-        const href = modes[idx]?.href;
-        if (href && href !== '#') navigate(href);
-        return;
-      }
-      go(1);
-    });
+    const onTab = (e: Event) => {
+      const i = Number((e.currentTarget as HTMLElement).dataset.fcTab);
+      if (i !== idx) go(i);
+    };
+    tabs.forEach((t) => t.addEventListener('click', onTab));
+    // Clicking the media advances to the next pick (delegated: layers are rebuilt
+    // on every switch; a fading-out layer has pointer-events: none).
+    const onCard = (e: Event) => {
+      if ((e.target as Element).closest('[data-fc-next]')) go((idx + 1) % modes.length);
+    };
+    card.addEventListener('click', onCard);
 
+    // Below the fold: only count down while the card is on screen.
+    const io = new IntersectionObserver(
+      ([e]) => {
+        visible = e.isIntersecting;
+        if (visible) run();
+        else pause();
+      },
+      { threshold: 0.35 }
+    );
+    io.observe(card);
     paintSegs(0, reduced ? 1 : 0);
-    run();
 
     return () => {
       stop();
-      fadeTimers.forEach((t) => clearTimeout(t));
-      fadeTimers.clear();
+      io.disconnect();
+      tabs.forEach((t) => t.removeEventListener('click', onTab));
+      card.removeEventListener('click', onCard);
+      timers.forEach((t) => clearTimeout(t));
+      timers.clear();
     };
   }
 
-  // onPageReady adds the first-SPA-entry catch-up (see src/lib/motion/lifecycle.ts)
-  // so the hero cycler mounts whether /design is loaded directly or navigated into.
-  onPageReady('#heroFeature', () => initHeroCycler());
+  onPageReady('#featCard', () => initFeatured());
 </script>

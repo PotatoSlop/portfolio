@@ -1,0 +1,63 @@
+---
+/*
+  Figures side by side — before/after (`chip`), pairs of pieces (`mat`), or a
+  3–4 up process strip. Each item follows Figure's rules: no `src` → hatched
+  placeholder; no `label` → auto "Fig. NN" (set label to false to drop it).
+  Mobile: pairs stack, 3–4 up rows drop to two columns.
+*/
+interface Item {
+  src?: string;
+  alt?: string;
+  caption?: string;
+  label?: string | false;
+  chip?: string;
+  placeholder?: string;
+}
+interface Props {
+  items: Item[];
+  /** Columns per row; more items than cols wrap onto further rows. */
+  cols?: number;
+  mat?: boolean;
+  ratio?: string;
+  /** 'contain' shows screens of slightly different shapes whole in one shared frame. */
+  fit?: 'cover' | 'contain';
+}
+const { items, cols = Math.min(items.length, 4), mat = false, ratio, fit = 'cover' } = Astro.props;
+// Chips sit above the frame (never over the image). If any item in the row
+// has one, chipless items get an invisible spacer so the frames stay aligned.
+const anyChip = items.some((it) => it.chip);
+const style = `--cols:${cols}${ratio ? `;--ratio:${ratio}` : ''}${fit === 'contain' ? ';--fit:contain' : ''}`;
+---
+
+<div class="cs-row cs-wide" data-cols={cols} style={style}>
+  {
+    items.map((it) => (
+      <figure class:list={[{ 'cs-fig--n': it.label === undefined }]}>
+        {it.chip ? (
+          <span class="cs-chip">{it.chip}</span>
+        ) : (
+          anyChip && (
+            <span class="cs-chip cs-chip--spacer" aria-hidden="true">
+              &nbsp;
+            </span>
+          )
+        )}
+        {mat ? (
+          <div class="cs-mat">
+            {it.src ? <img src={it.src} alt={it.alt ?? ''} loading="lazy" decoding="async" /> : <div class="cs-ph cs-media">{it.placeholder ?? 'Image'}</div>}
+          </div>
+        ) : it.src ? (
+          <img class="cs-media" src={it.src} alt={it.alt ?? ''} loading="lazy" decoding="async" />
+        ) : (
+          <div class="cs-media cs-ph">{it.placeholder ?? it.chip ?? 'Image'}</div>
+        )}
+        {(it.caption || it.label !== false) && (
+          <figcaption>
+            {it.label !== false && <b>{it.label ?? ''}</b>}
+            {it.caption}
+          </figcaption>
+        )}
+      </figure>
+    ))
+  }
+</div>

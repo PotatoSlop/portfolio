@@ -1,0 +1,55 @@
+---
+/*
+  Design-system snapshot: the project's palette, plus (optionally) a type
+  specimen set in the project's own face. Pass `font.href` (a Google Fonts css2
+  URL) when the face isn't already loaded by the site.
+*/
+interface Props {
+  colors: { name: string; hex: string }[];
+  font?: {
+    family: string;
+    note?: string;
+    href?: string;
+    weights?: { label: string; weight: number }[];
+  };
+}
+const { colors, font } = Astro.props;
+// "'Poppins', sans-serif" → "Poppins" (kept out of the template: quote
+// characters inside a regex literal there trip Astro's parser).
+const familyName = font ? font.family.split(',')[0].replace(/['"]/g, '').trim() : '';
+---
+
+{font?.href && <link rel="stylesheet" href={font.href} />}
+<div class="cs-ds cs-wide" style={font ? undefined : 'grid-template-columns:minmax(0,1fr)'}>
+  <div>
+    <span class="cs-k">Palette</span>
+    <div class="cs-swatches">
+      {
+        colors.map((c) => (
+          <span style={`--c:${c.hex}`}>
+            <b>{c.name}</b>
+            {c.hex.toUpperCase()}
+          </span>
+        ))
+      }
+    </div>
+  </div>
+  {
+    font && (
+      <div class="cs-type">
+        <span class="cs-k">Type</span>
+        <div class="aa" style={`font-family:${font.family}`}>
+          Aa
+        </div>
+        <p>{font.note ?? familyName}</p>
+        {font.weights && (
+          <div class="w" style={`font-family:${font.family}`}>
+            {font.weights.map((w) => (
+              <span style={`font-weight:${w.weight}`}>{w.label}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+</div>

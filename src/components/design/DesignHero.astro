@@ -1,0 +1,477 @@
+---
+/*
+  DesignHero — the /design landing, set as a press proof ("print sheet").
+
+  Like /engineering and /software, the first viewport is HERO ONLY: the featured
+  card lives just under the fold (FeaturedProject). The discipline idiom here is
+  print production: crop marks frame the trim, a registration target sits in the
+  left margin, a slug line runs above the trim, and the sheet's bottom edge is a
+  colour bar of the page's real tokens, so the design system itself is the art.
+
+  Margin map (keep decals OUT of the fixed chrome):
+    top band     slug (left) · live trim size (right), inset past the crop marks
+    corners      crop marks, drawn in the --dp-edge gutter
+    left gutter  registration target (the right gutter belongs to the scroll rail)
+    bottom band  scroll chevron, centred, clear of the bottom crop marks
+  Inside the trim: crumb / title / lede / CTA, with a type specimen opposite.
+
+  Load choreography: each element declares `data-reveal-at` (ms), and
+  mountDesignReveal (src/lib/motion/design-reveal.ts) adds `.in` on that beat;
+  the title gets the block-letter reveal. Reduced motion shows all at once.
+*/
+import { Icon } from 'astro-icon/components';
+
+const year = new Date().getFullYear();
+
+// The colour bar IS the palette (design.astro --dp-* + styles/themes/design.css).
+const SWATCHES: Array<[name: string, hex: string, light?: boolean]> = [
+  ['Navy', '#16233a'],
+  ['Deep', '#0e1a30'],
+  ['Muted', '#6c7183'],
+  ['Brass', '#b5611b'],
+  ['Amber', '#f5a045', true],
+  ['Terra', '#c8553d'],
+  ['Cream', '#f3efe6', true],
+  ['Paper', '#ffffff', true],
+];
+---
+
+<section id="dp-hero" class="dh" aria-label="Design">
+  <div class="dh-band" aria-hidden="true">
+    <span class="dh-slug crop-lr" data-reveal-at="500">dylan-chen_design.pdf<i>·</i>proof {year}</span>
+    <span class="dh-slug dh-slug--trim crop-lr" data-reveal-at="600" data-dh-trim>trim 100vw × 100vh</span>
+  </div>
+
+  <div class="dh-sheet">
+    <span class="dh-cm dh-cm--tl fade-in" data-reveal-at="0" aria-hidden="true"></span>
+    <span class="dh-cm dh-cm--tr fade-in" data-reveal-at="60" aria-hidden="true"></span>
+    <span class="dh-cm dh-cm--bl fade-in" data-reveal-at="120" aria-hidden="true"></span>
+    <span class="dh-cm dh-cm--br fade-in" data-reveal-at="180" aria-hidden="true"></span>
+    <span class="dh-reg fade-in" data-reveal-at="240" aria-hidden="true"></span>
+
+    <div class="dh-main">
+      <nav class="dh-crumb crop-lr" data-reveal-at="550" aria-label="Breadcrumb">
+        <a href="/">Sketchbook</a> / <b aria-current="page">Design</b>
+      </nav>
+      <h1 class="dh-title pre-anim" data-reveal-at="150">Design</h1>
+      <p class="dh-sub crop-lr" data-reveal-at="750">Models, interfaces and photography, set on one sheet.</p>
+      <div class="dh-cta crop-lr" data-reveal-at="850">
+        <a class="dh-btn" href="#dp-featured">See work</a>
+      </div>
+    </div>
+
+    <aside class="dh-spec crop-lr" data-reveal-at="900" aria-label="Type specimen">
+      <div class="dh-aa" aria-hidden="true">Aa</div>
+      <dl>
+        <div><dt>Display</dt><dd>Dela Gothic One</dd></div>
+        <div><dt>Interface</dt><dd>Archivo 600</dd></div>
+      </dl>
+      <p class="dh-glyphs" aria-hidden="true">ABCDEFGHIJ<br />KLMNOPQRS<br />0123456789</p>
+    </aside>
+
+    <ul class="dh-bar crop-lr" data-reveal-at="1000" aria-label="Palette">
+      {
+        SWATCHES.map(([name, hex, light]) => (
+          <li class:list={{ 'is-light': light }} style={`--c:${hex}`} title={`${name} ${hex}`}>
+            <span>{name}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  <a class="dh-chev fade-in" data-reveal-at="1150" href="#dp-featured" aria-label="Scroll to work">
+    <span class="dh-chev__icon"><Icon name="mdi:chevron-down" /></span>
+    <span class="dh-chev__text">Scroll to work</span>
+  </a>
+</section>
+
+<style>
+  .dh {
+    --cm-len: 22px;
+    --cm-gap: 10px;
+    --cm-reach: calc(var(--cm-len) + var(--cm-gap));
+    /* Inner padding of the trim; the colour bar bleeds back out to the trim edge. */
+    --sheet-pad: clamp(24px, 4vw, 56px);
+    --dh-rule: color-mix(in srgb, var(--dp-ink) 24%, transparent);
+
+    position: relative;
+    min-height: calc(100svh - 72px);
+    padding: 0 var(--dp-edge);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---- Top band: slug + live trim size, inset past the crop marks ---- */
+  .dh-band {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    height: clamp(40px, 6.5vh, 60px);
+    padding: 0 calc(var(--cm-gap) + 8px) 12px;
+  }
+  .dh-slug {
+    font: 600 10px/1 var(--dp-font-body);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dp-muted);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .dh-slug i {
+    font-style: normal;
+    margin: 0 0.7em;
+    opacity: 0.6;
+  }
+
+  /* ---- The trim ---- */
+  .dh-sheet {
+    position: relative;
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: 1fr auto;
+    column-gap: clamp(32px, 6vw, 96px);
+    padding: var(--sheet-pad) var(--sheet-pad) 0;
+  }
+
+  /* Crop marks: two hairlines per corner, extending OUTWARD along the trim
+     lines and never touching the corner itself. */
+  .dh-cm {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+  .dh-cm::before,
+  .dh-cm::after {
+    content: '';
+    position: absolute;
+    background: var(--dp-ink);
+  }
+  .dh-cm::before {
+    width: var(--cm-len);
+    height: 1px;
+  }
+  .dh-cm::after {
+    width: 1px;
+    height: var(--cm-len);
+  }
+  .dh-cm--tl {
+    top: 0;
+    left: 0;
+  }
+  .dh-cm--tr {
+    top: 0;
+    right: 0;
+  }
+  .dh-cm--bl {
+    bottom: 0;
+    left: 0;
+  }
+  .dh-cm--br {
+    bottom: 0;
+    right: 0;
+  }
+  .dh-cm--tl::before,
+  .dh-cm--bl::before {
+    right: var(--cm-gap);
+  }
+  .dh-cm--tr::before,
+  .dh-cm--br::before {
+    left: var(--cm-gap);
+  }
+  .dh-cm--tl::after,
+  .dh-cm--tr::after {
+    bottom: var(--cm-gap);
+  }
+  .dh-cm--bl::after,
+  .dh-cm--br::after {
+    top: var(--cm-gap);
+  }
+
+  /* Registration target, centred in the LEFT gutter (the right gutter is the
+     scroll rail's), vertically centred on the trim. */
+  .dh-reg {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--dp-edge) / -2);
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;
+    border: 1px solid var(--dp-ink);
+    border-radius: 50%;
+  }
+  .dh-reg::before,
+  .dh-reg::after {
+    content: '';
+    position: absolute;
+    background: var(--dp-ink);
+  }
+  .dh-reg::before {
+    left: -7px;
+    right: -7px;
+    top: 50%;
+    height: 1px;
+  }
+  .dh-reg::after {
+    top: -7px;
+    bottom: -7px;
+    left: 50%;
+    width: 1px;
+  }
+
+  /* ---- Main column ---- */
+  .dh-main {
+    /* The title sizes to THIS column (cqi), so DESIGN can never wrap or
+       overflow beside the specimen at any width. */
+    container-type: inline-size;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-block: 2vh 5vh;
+    min-width: 0;
+  }
+  .dh-crumb {
+    font: 600 13px/1 var(--dp-font-body);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dp-muted);
+  }
+  .dh-crumb a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.3s var(--dp-ease);
+  }
+  .dh-crumb a:hover {
+    color: var(--dp-ink);
+  }
+  .dh-crumb b {
+    font-weight: 600;
+    color: var(--dp-accent-deep);
+  }
+  .dh-title {
+    margin: 2.2vh 0 0 -0.03em;
+    font-family: var(--dp-font-title);
+    font-weight: 400;
+    font-size: min(18.5cqi, 184px);
+    line-height: 0.88;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--dp-ink);
+  }
+  .dh-sub {
+    margin: 2.6vh 0 3.4vh;
+    max-width: 40ch;
+    font: 500 clamp(16px, 1.35vw, 20px) / 1.45 var(--dp-font-body);
+    color: var(--dp-ink);
+  }
+
+  /* Hero CTA: solid navy face (the design twin of engineering's ink SEE
+     PROJECTS); amber rises from the bottom and the label flips to navy. */
+  .dh-btn {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    padding: 13px 22px;
+    border: 1px solid var(--dp-ink);
+    border-radius: 5px;
+    background: var(--dp-ink);
+    color: var(--dp-paper);
+    font: 600 13px/1 var(--dp-font-body);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: color 0.4s var(--dp-ease), border-color 0.4s var(--dp-ease);
+  }
+  .dh-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--dp-accent);
+    transform: translateY(100%);
+    transition: transform 0.4s var(--dp-ease);
+  }
+  .dh-btn:hover,
+  .dh-btn:focus-visible {
+    color: #16233a;
+    border-color: var(--dp-accent);
+    outline: none;
+  }
+  .dh-btn:hover::before,
+  .dh-btn:focus-visible::before {
+    transform: none;
+  }
+
+  /* ---- Type specimen ---- */
+  .dh-spec {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    display: grid;
+    gap: 18px;
+    width: clamp(200px, 20vw, 280px);
+    padding: 4px 0 4px clamp(20px, 2vw, 32px);
+    border-left: 1px solid var(--dh-rule);
+  }
+  .dh-aa {
+    font: 400 clamp(76px, 8vw, 124px) / 0.9 var(--dp-font-title);
+    color: var(--dp-ink);
+  }
+  .dh-spec dl {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+  }
+  .dh-spec dt {
+    font: 600 10px/1 var(--dp-font-body);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dp-muted);
+  }
+  .dh-spec dd {
+    margin: 5px 0 0;
+    font: 600 14px/1.2 var(--dp-font-body);
+    color: var(--dp-ink);
+  }
+  .dh-glyphs {
+    margin: 0;
+    font: 400 clamp(13px, 1.1vw, 16px) / 1.4 var(--dp-font-title);
+    letter-spacing: 0.05em;
+    color: var(--dp-ink);
+  }
+
+  /* ---- Colour bar: the sheet's bottom edge, full trim width ---- */
+  .dh-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    margin: 0 calc(-1 * var(--sheet-pad));
+    padding: 0;
+    list-style: none;
+  }
+  .dh-bar li {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    height: 24px;
+    padding: 0 10px;
+    background: var(--c);
+    color: #f3efe6;
+    font: 600 9px/1 var(--dp-font-body);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    overflow: hidden;
+  }
+  .dh-bar li.is-light {
+    color: #16233a;
+    box-shadow: inset 0 0 0 1px rgba(20, 18, 12, 0.12);
+  }
+
+  /* ---- Bottom band: chevron ---- */
+  .dh-chev {
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    /* Clear of the bottom crop marks (which drop --cm-reach below the trim). */
+    margin: calc(var(--cm-reach) - 6px) 0 clamp(14px, 3vh, 28px);
+    padding: 4px 8px;
+    color: var(--dp-ink);
+    text-decoration: none;
+    transition: transform 0.3s var(--dp-ease);
+  }
+  .dh-chev:hover,
+  .dh-chev:focus-visible {
+    transform: scale(1.08);
+    outline: none;
+  }
+  .dh-chev__icon {
+    display: block;
+    line-height: 0;
+  }
+  .dh-chev__icon :global(svg) {
+    width: 32px;
+    height: 32px;
+    animation: dhBob 2s ease-in-out 1.6s infinite;
+  }
+  .dh-chev__text {
+    font: 600 11px/1 var(--dp-font-body);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dp-muted);
+  }
+  @keyframes dhBob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(5px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dh-chev__icon :global(svg) {
+      animation: none;
+    }
+  }
+  :global(html[data-sim-reduced]) .dh-chev__icon :global(svg) {
+    animation: none;
+  }
+
+  /* ---- Responsive ---- */
+  /* No room for the specimen column: drop it (and the trim-size readout). */
+  @media (max-width: 900px) {
+    .dh-sheet {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .dh-spec,
+    .dh-slug--trim {
+      display: none;
+    }
+  }
+  /* Mobile: the gutter shrinks to 16px, so the marks shrink to fit inside it,
+     the registration target retires, and the bar keeps colour without labels. */
+  @media (max-width: 768px) {
+    .dh {
+      --cm-len: 8px;
+      --cm-gap: 4px;
+      --sheet-pad: 20px;
+      min-height: calc(100svh - 64px);
+    }
+    .dh-reg {
+      display: none;
+    }
+    .dh-bar li {
+      height: 14px;
+    }
+    .dh-bar li span {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  import { onPageReady } from '../../lib/motion/lifecycle';
+
+  // Live trim size in the slug ("trim 1440 × 900 px") — the sheet IS the viewport.
+  onPageReady('[data-dh-trim]', () => {
+    const el = document.querySelector<HTMLElement>('[data-dh-trim]');
+    if (!el) return;
+    const paint = () => {
+      el.textContent = `trim ${window.innerWidth} × ${window.innerHeight} px`;
+    };
+    paint();
+    window.addEventListener('resize', paint);
+    return () => window.removeEventListener('resize', paint);
+  });
+</script>

@@ -83,7 +83,9 @@ const projects = defineCollection({
 const DESIGN_CATEGORIES = ['3d', 'uiux', '2d'] as const;
 
 const design = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/design' }),
+  // .mdx too: a case study's body composes the template blocks
+  // (src/components/case-study/blocks.ts) — plain .md entries stay as they are.
+  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/design' }),
   schema: z.object({
       title: z.string(),
       category: z.enum(DESIGN_CATEGORIES),
@@ -122,18 +124,41 @@ const design = defineCollection({
       // modal instead of following `href`. Absent → the card is a non-navigating
       // stub (see the 'stub' tag / badge).
       glb: z.string().optional(),
-      // UI/UX pieces: flip to true once a real case study has been WRITTEN for this
-      // project. false (the default) marks the card as WIP-gated — it shows a
-      // "case study in progress" state and does NOT navigate. true routes the card
-      // to /design/<id>. This is the switch that "graduates" a UI/UX project.
+      // Flip to true once a case study has been WRITTEN (the entry's .mdx body).
+      // true routes the card to /design/<id> (any category; a 3D piece with a
+      // `glb` keeps opening its viewer). For UI/UX, false (the default) keeps the
+      // card WIP-gated: a "case study in progress" state that does NOT navigate.
       caseStudy: z.boolean().default(false),
-      // Case-study hero metadata (only read by the /design/<id> template; safe to
-      // omit until a project graduates).
+      // Unfinished study: the /design/<id> page and the card link exist ONLY in
+      // `astro dev` (a "Draft" pill marks the page). Production builds skip the
+      // page and keep the card gated, so a half-written study can't ship.
+      draft: z.boolean().default(false),
+      // Work-in-progress lock: /design/<id> renders the shared "case study in
+      // progress" stub (hero only, no cover / glance / body) in EVERY build,
+      // and the card links to that stub. The .mdx body is kept but never
+      // rendered. Remove the flag to publish. Takes precedence over `draft`.
+      wip: z.boolean().default(false),
+      // Template layout: 'ux' (text-led, sticky contents) or 'visual' (image-led,
+      // art on mats). Defaults by category: uiux → ux, 2d/3d → visual.
+      caseLayout: z.enum(['ux', 'visual']).optional(),
+
+      // ---- Case-study hero (read only by the /design/<id> template) ----
+      // `summary` is the hero lede. Eyebrow defaults to "<Category> case study · <year>".
+      summary: z.string().optional(),
+      eyebrow: z.string().optional(),
+      // Meta grid, in this order: role · timeline · team · tools, then `facts`.
       role: z.string().optional(),
       timeline: z.string().optional(),
-      summary: z.string().optional(),
-      // Process/solution imagery for the case-study body — PUBLIC paths, shown in
-      // order under the writeup.
+      team: z.string().optional(),
+      facts: z.array(z.object({ label: z.string(), value: z.string() })).default([]),
+      // Hero buttons (repo, live site, Figma…). The first `primary` is solid.
+      links: z
+        .array(z.object({ label: z.string(), href: z.string(), primary: z.boolean().default(false) }))
+        .default([]),
+      // "At a glance" cards under the cover — typically Problem / Approach / Outcome.
+      glance: z.array(z.object({ label: z.string(), text: z.string() })).default([]),
+      coverCaption: z.string().optional(),
+      // Extra imagery appended after the study body — PUBLIC paths, in order.
       gallery: z.array(z.string()).default([]),
     }),
 });
