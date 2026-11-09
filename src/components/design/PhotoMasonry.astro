@@ -1,0 +1,211 @@
+---
+/*
+  PhotoMasonry — section 03 (Photography): a 4-column masonry whose columns
+  drift vertically in alternating directions (src/lib/motion/carousel.ts,
+  data-drift="y"). It took over from the 2D-illustration masonry.
+
+  Photos come from src/lib/photos.ts (build-time folder scan). Each tile already
+  carries its final aspect class from the photo's real dimensions, so the
+  client-side probe (classifyMasonry) skips it and the page doesn't download
+  every full photo up front. With a mouse or pen, each column can be dragged up
+  or down on its own (it loops, like the rows above); touch keeps page scroll.
+  Each tile's title + location reveal on hover
+  (styles/components/photo-caption.css). Tiles are buttons that open PhotoLightbox. The
+  drifting columns swallow native clicks, so opening is a pointer TAP (see
+  PhotoLightbox).
+*/
+import { Icon } from 'astro-icon/components';
+import type { Photo } from '../../lib/photos';
+import { DESIGN_WIP, STUB_COUNTS, stubList } from '../../lib/design-stub';
+import '../../../styles/components/photo-caption.css';
+
+interface Props {
+  photos: Photo[];
+}
+const { photos } = Astro.props;
+
+const COLS = 4;
+const columns: Array<Array<{ photo: Photo; index: number }>> = Array.from({ length: COLS }, () => []);
+photos.forEach((photo, index) => columns[index % COLS].push({ photo, index }));
+---
+
+<div class="masonry crop-tb">
+  {
+    DESIGN_WIP
+      ? Array.from({ length: COLS }, (_, i) => (
+          <div class="m-col" data-drift="y" data-dir={i % 2 === 0 ? -1 : 1}>
+            {stubList(Math.ceil(STUB_COUNTS.masonry / COLS)).map(() => (
+              <div class="m-card is-stub" aria-hidden="true">
+                <div class="m-media" />
+              </div>
+            ))}
+          </div>
+        ))
+      : columns.map((col, i) => (
+          <div class="m-col" data-drift="y" data-dir={i % 2 === 0 ? -1 : 1}>
+            {col.map(({ photo, index }) => (
+              <button
+                type="button"
+                class="m-card ph-tile"
+                data-photo={index}
+                aria-label={`Open photo: ${photo.alt}`}
+                aria-haspopup="dialog"
+                draggable={false}
+              >
+                <div class={`m-media ph-media is-${photo.aspect}`} data-aspect={photo.measured ? photo.aspect : undefined}>
+                  <img
+                    src={photo.thumb}
+                    alt=""
+                    width={photo.width || undefined}
+                    height={photo.height || undefined}
+                    loading="lazy"
+                    decoding="async"
+                    draggable={false}
+                  />
+                </div>
+                {photo.title && (
+                  <span class="ph-cap" aria-hidden="true">
+                    <span class="ph-cap__t">{photo.title}</span>
+                    {photo.location && (
+                      <span class="ph-cap__l">
+                        <Icon name="mdi:map-marker" />
+                        {photo.location}
+                      </span>
+                    )}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        ))
+  }
+</div>
+
+<style>
+  .masonry {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    /* Taller viewport so more of the cycling gallery is visible at once. */
+    height: 124vh;
+    overflow: hidden;
+    padding-inline: var(--dp-bleed);
+    margin-inline: calc(-1 * var(--dp-bleed));
+  }
+  .m-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+    align-self: start;
+    will-change: transform;
+  }
+  .m-card {
+    position: relative;
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid var(--dp-line);
+    background: var(--dp-card);
+    font: inherit;
+    color: inherit;
+    cursor: zoom-in;
+    -webkit-user-drag: none;
+    user-select: none;
+    transition: box-shadow 0.5s var(--dp-ease), transform 0.4s var(--dp-ease);
+  }
+  .m-card:hover {
+    box-shadow: var(--dp-shadow);
+    transform: scale(1.05);
+    z-index: 2;
+  }
+  /* Dragging a column (mouse/pen — src/lib/motion/carousel.ts adds .is-grabbing
+     to that .m-col): grabbing cursor everywhere in it, and no hover lift on
+     whichever tile happens to pass under the pointer. */
+  .m-col:global(.is-grabbing) .m-card {
+    cursor: grabbing;
+    transform: none;
+    box-shadow: none;
+  }
+  .m-card:focus-visible {
+    outline: 2px solid var(--dp-accent-deep);
+    outline-offset: 3px;
+    z-index: 2;
+  }
+  /* Whole-page WIP stub: blank placeholder tile (see src/lib/design-stub.ts). */
+  .m-card.is-stub {
+    cursor: default;
+  }
+  .m-card.is-stub:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .m-media {
+    position: relative; /* hosts the caption scrim (.ph-media::after) */
+    overflow: hidden;
+    /* A STABLE default aspect so the vertical drift measures a correct loop period
+       before images load. Real photos ship their final aspect class from the
+       build; only an unmeasured one is re-classed by classifyMasonry(). Fixed
+       heights (never height:auto) keep the infinite cycling from jumping. */
+    aspect-ratio: 3 / 4;
+    background: linear-gradient(150deg, #e9e3d6, #d5ccb9);
+    transition: transform 0.6s var(--dp-ease);
+  }
+  .m-card:hover .m-media {
+    transform: scale(1.06);
+  }
+  .m-media :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .m-media.is-landscape {
+    aspect-ratio: 3 / 2;
+  }
+  .m-media.is-square {
+    aspect-ratio: 1 / 1;
+  }
+  .m-media.is-portrait {
+    aspect-ratio: 3 / 4;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .masonry {
+      height: auto;
+      overflow: visible;
+    }
+    .m-col {
+      transform: none !important;
+      will-change: auto;
+    }
+  }
+
+  :global([data-sim-reduced]) .masonry {
+    height: auto;
+    overflow: visible;
+  }
+  :global([data-sim-reduced]) .m-col {
+    transform: none !important;
+    will-change: auto;
+  }
+
+  @media (max-width: 900px) {
+    .masonry {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .masonry {
+      height: auto;
+      overflow: visible;
+    }
+    .m-col {
+      transform: none;
+    }
+  }
+</style>

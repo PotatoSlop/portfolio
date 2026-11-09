@@ -1,0 +1,23 @@
+---
+/* Visual studies: one piece on a full-bleed block (the theme's --cs-block),
+   with all the air around it. Breaks out of the page column edge to edge. */
+interface Props {
+  src: string;
+  alt?: string;
+  caption?: string;
+  label?: string;
+}
+const { src, alt = '', caption, label } = Astro.props;
+---
+
+<figure class="cs-wall cs-wide">
+  <img src={src} alt={alt} loading="lazy" decoding="async" />
+  {
+    (caption || label) && (
+      <figcaption>
+        {label && <b>{label}</b>}
+        {caption}
+      </figcaption>
+    )
+  }
+</figure>

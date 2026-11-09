@@ -1,0 +1,49 @@
+.cursor-effects {
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity var(--duration-medium) var(--ease-default),
+    transform var(--duration-medium) var(--ease-default);
+  position: absolute;
+  z-index: var(--z-base);
+  width: 9vh;
+  height: 9vh;
+  border-radius: 50%;
+  background-color: var(--color-white);
+  pointer-events: none;
+}
+
+.card-cursor { /* Hover CTA for cursor over projects*/
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  pointer-events: none;
+  padding: 0.55em 1.4em;
+  background: var(--color-primary);
+  color: var(--color-black);
+  border-radius: var(--radius-pill);
+  border: var(--border-width-medium) solid var(--color-black);
+  font-family: var(--font-secondary);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.6);
+  transition:
+    opacity var(--duration-fast) var(--ease-default),
+    transform var(--duration-smooth) var(--ease-bouncy);
+}
+
+.card-cursor.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+@media (hover: none) { /* no hover state -> no CTA*/
+  .card-cursor {
+    display: none;
+  }
+}

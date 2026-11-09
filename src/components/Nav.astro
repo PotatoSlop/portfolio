@@ -1,0 +1,344 @@
+---
+import { Icon } from 'astro-icon/components';
+
+// Project routes shared by the desktop dropdown and the mobile sidebar group,
+// so the two stay in sync from one source.
+const projectLinks = [
+  { href: '/engineering', label: 'Engineering' },
+  { href: '/design', label: 'Design' },
+  { href: '/software', label: 'Software' },
+  // Temporarily hidden — restore to re-enable the Playground menu entry
+  // { href: '/playground', label: 'Playground' },
+];
+
+interface Props {
+  theme?: 'sketchbook' | 'engineering' | 'design' | 'software';
+}
+const { theme = 'sketchbook' } = Astro.props;
+
+// On discipline pages the side pull-tabs are the discipline switcher, so the
+// Projects dropdown is redundant — show Home / About / Contact instead. Other
+// pages keep the Projects ▾ dropdown.
+const isDiscipline = theme === 'engineering' || theme === 'design' || theme === 'software';
+
+// Engineering, Design, and Software use the wordmark logo (amber tick + "DYLAN
+// CHEN"), skinned per-theme in nav.css (Software swaps in its mono display font).
+// Other themes keep the boiling-name gif.
+const useWordmark = theme === 'engineering' || theme === 'design' || theme === 'software';
+---
+
+<nav>
+  <ul>
+    <li class="logo">
+      {
+        useWordmark ? (
+          <a href="/" class="logo-text" aria-label="Dylan Chen Portfolio Home">
+            <span class="logo-chip" aria-hidden="true" />
+            <span class="logo-name">DYLAN CHEN</span>
+          </a>
+        ) : (
+          <a href="/">
+            <img src="/Assets/motion/boilingName.gif" data-freeze="/Assets/motion/boilingName-static.png" alt="Dylan Chen Portfolio Home" class="logo-img asset-recolor" />
+          </a>
+        )
+      }
+    </li>
+    {
+      isDiscipline ? (
+        <li class="hideOnMobile nav-link"><a href="/">Home</a></li>
+      ) : (
+        <li class="hideOnMobile nav-item nav-dropdown">
+          <button
+            id="projects-trigger"
+            type="button"
+            class="nav-dropdown-trigger"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="projects-menu"
+          >
+            Projects
+            <span class="nav-caret" aria-hidden="true" />
+          </button>
+          <ul class="nav-dropdown-menu" id="projects-menu" role="menu" aria-labelledby="projects-trigger">
+            {projectLinks.map((link) => (
+              <li role="none">
+                <a role="menuitem" href={link.href}>{link.label}</a>
+              </li>
+            ))}
+          </ul>
+        </li>
+      )
+    }
+    <li class="hideOnMobile nav-link"><a href="/about">About</a></li>
+    <li class="hideOnMobile nav-link"><a href="/contact">Contact</a></li>
+    <li class="menu-button">
+      <button id="hamburger-menu" type="button" aria-label="Open menu">
+        <Icon 
+        name="tabler:menu-2" 
+        class="hamburger-icon"
+        stroke-width="2.5"
+        />
+      </button>
+    </li>
+  </ul>
+</nav>
+
+{/* The drawer lives OUTSIDE <nav> on purpose: <nav> is position:sticky + z-index,
+    so it forms a stacking context that would trap the drawer beneath the fixed
+    settings toggles / scrim no matter how high its own z-index. As a body-level
+    sibling of the scrim it stacks freely (drawer > scrim > toggles). It's
+    position:fixed, so leaving nav costs nothing in layout. */}
+<ul class="sidebar">
+  <li>
+    <button id="close-sidebar" type="button" aria-label="Close menu">
+      <Icon name="at-icons:cross" class="close-icon" width="24" height="24" />
+    </button>
+  </li>
+  <li><a href="/">Home</a></li>
+  {
+    !isDiscipline && (
+      <li class="sidebar-group">
+        <button
+          type="button"
+          class="sidebar-group-trigger"
+          aria-expanded="false"
+          aria-controls="sidebar-projects"
+        >
+          Projects
+          <span class="nav-caret" aria-hidden="true" />
+        </button>
+        <ul class="sidebar-submenu" id="sidebar-projects">
+          {projectLinks.map((link) => (
+            <li>
+              <a href={link.href}>{link.label}</a>
+            </li>
+          ))}
+        </ul>
+      </li>
+    )
+  }
+  <li><a href="/about">About</a></li>
+  <li><a href="/contact">Contact</a></li>
+</ul>
+
+<div class="sidebar-overlay"></div>
+
+<style>
+  .hamburger-icon {
+    width: 24px;
+    height: 24px;
+    display: block;
+
+    stroke-width: 2.5px;
+  }
+
+  /* at-icons:cross is a fill="currentColor" glyph, so it recolours via `color`
+     (inherited from the close button) — no stroke-width needed. */
+  .close-icon {
+    width: 24px;
+    height: 24px;
+    display: block;
+  }
+
+
+</style>
+
+<script>
+  import { onPageReady } from '../lib/motion/lifecycle';
+
+  function showSidebar() {
+    const sidebar = document.querySelector('.sidebar') as HTMLElement | null;
+    const overlay = document.querySelector('.sidebar-overlay');
+    if (!sidebar || !overlay) return;
+    sidebar.style.display = 'flex';
+    overlay.classList.add('active');
+    setTimeout(() => sidebar.classList.add('active'), 10);
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideSidebar() {
+    const sidebar = document.querySelector('.sidebar') as HTMLElement | null;
+    const overlay = document.querySelector('.sidebar-overlay');
+    if (!sidebar || !overlay) return;
+    sidebar.classList.remove('active');
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+
+    setTimeout(() => {
+      sidebar.style.display = 'none';
+    }, 300);
+  }
+
+  // ---- Mobile "Projects" accordion: rail-draw-driven reveal ----
+  // One progress value (0→1) drives BOTH the chain-rail clip-path AND, from the
+  // options' real layout positions, the moment each is revealed — so the wire
+  // front reaches every row exactly as it un-hides, guaranteed in sync however
+  // many options there are.
+  let railRaf = 0;
+  const RAIL_DRAW_MS = 700;
+  // Deliberately keys off the OS pref only (not html[data-sim-reduced], which is
+  // force-on at mobile widths where this accordion lives) — mirrors the matching
+  // note in sidebar.css.
+  const railReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function openSidebarGroup(group: HTMLElement) {
+    const items = Array.from(group.querySelectorAll<HTMLElement>('.sidebar-submenu li'));
+    group.classList.add('open');
+    cancelAnimationFrame(railRaf);
+    railRaf = 0;
+
+    if (railReduced() || items.length === 0) {
+      group.style.setProperty('--rail-progress', '1');
+      items.forEach((li) => li.classList.add('revealed'));
+      return;
+    }
+
+    // Each option's centre as a fraction of the rail's full span. The rail (the
+    // group's ::before) runs top→bottom of the group, and the group is the
+    // options' offsetParent (it's the only positioned ancestor), so an option's
+    // offsetTop already includes the trigger + gaps and the last option's bottom
+    // is the rail's end. offsetTop is unaffected by the submenu's max-height
+    // clip, so this is valid the moment .open is added.
+    const last = items[items.length - 1];
+    const railTotal = last.offsetTop + last.offsetHeight || 1;
+    const fracs = items.map((li) => (li.offsetTop + li.offsetHeight / 2) / railTotal);
+
+    items.forEach((li) => li.classList.remove('revealed'));
+    const start = performance.now();
+    const step = (now: number) => {
+      const p = Math.min(1, (now - start) / RAIL_DRAW_MS);
+      group.style.setProperty('--rail-progress', String(p));
+      items.forEach((li, i) => {
+        if (p >= fracs[i]) li.classList.add('revealed');
+      });
+      railRaf = p < 1 ? requestAnimationFrame(step) : 0;
+    };
+    railRaf = requestAnimationFrame(step);
+  }
+
+  function closeSidebarGroup(group: HTMLElement) {
+    cancelAnimationFrame(railRaf);
+    railRaf = 0;
+    group.classList.remove('open');
+    group.style.removeProperty('--rail-progress');
+    group
+      .querySelectorAll('.sidebar-submenu li.revealed')
+      .forEach((li) => li.classList.remove('revealed'));
+  }
+
+  // ---- Desktop "Projects" dropdown ----
+  function openDropdown() {
+    const dd = document.querySelector('.nav-dropdown');
+    const trigger = document.getElementById('projects-trigger');
+    dd?.classList.add('open');
+    trigger?.setAttribute('aria-expanded', 'true');
+  }
+  function closeDropdown(returnFocus = false) {
+    const dd = document.querySelector('.nav-dropdown');
+    const trigger = document.getElementById('projects-trigger');
+    if (!dd?.classList.contains('open')) return;
+    dd.classList.remove('open');
+    trigger?.setAttribute('aria-expanded', 'false');
+    if (returnFocus) (trigger as HTMLElement | null)?.focus();
+  }
+  function dropdownItems(): HTMLElement[] {
+    return Array.from(document.querySelectorAll<HTMLElement>('#projects-menu a[role="menuitem"]'));
+  }
+
+  // closest() handles clicks landing on the inner <svg>/<path> of the buttons.
+  document.addEventListener('click', (e) => {
+    const t = e.target as Element;
+    if (t.closest('#hamburger-menu')) {
+      e.preventDefault();
+      showSidebar();
+    } else if (t.closest('#close-sidebar')) {
+      e.preventDefault();
+      hideSidebar();
+    } else if (t.closest('.sidebar-overlay')) {
+      hideSidebar();
+    } else if (t.closest('#projects-trigger')) {
+      e.preventDefault();
+      const dd = document.querySelector('.nav-dropdown');
+      dd?.classList.contains('open') ? closeDropdown() : openDropdown();
+    } else if (t.closest('.sidebar-group-trigger')) {
+      e.preventDefault();
+      const trigger = t.closest('.sidebar-group-trigger') as HTMLElement;
+      const group = trigger.closest('.sidebar-group') as HTMLElement | null;
+      if (!group) return;
+      const willOpen = !group.classList.contains('open');
+      if (willOpen) openSidebarGroup(group);
+      else closeSidebarGroup(group);
+      trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    } else if (!t.closest('.nav-dropdown')) {
+      // Click outside the dropdown closes it.
+      closeDropdown();
+    }
+  });
+
+  // Pointer hover opens the dropdown on desktop (kept in sync with aria).
+  document.addEventListener('pointerover', (e) => {
+    const dd = (e.target as Element).closest?.('.nav-dropdown');
+    if (dd) openDropdown();
+  });
+  document.addEventListener('pointerout', (e) => {
+    const from = (e.target as Element).closest?.('.nav-dropdown');
+    const to = (e.relatedTarget as Element | null)?.closest?.('.nav-dropdown');
+    if (from && !to) closeDropdown();
+  });
+
+  // Keyboard: Escape closes (sidebar or dropdown); arrows move within the menu.
+  document.addEventListener('keydown', (e) => {
+    const sidebar = document.querySelector('.sidebar');
+    if (e.key === 'Escape') {
+      if (sidebar?.classList.contains('active')) return hideSidebar();
+      return closeDropdown(true);
+    }
+
+    const inMenu = (e.target as Element).closest?.('.nav-dropdown');
+    if (!inMenu) return;
+    const items = dropdownItems();
+    if (items.length === 0) return;
+    const idx = items.indexOf(document.activeElement as HTMLElement);
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      openDropdown();
+      items[idx < 0 ? 0 : Math.min(idx + 1, items.length - 1)]?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (idx <= 0) return closeDropdown(true);
+      items[idx - 1]?.focus();
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    const sidebar = document.querySelector('.sidebar');
+    if (window.innerWidth > 768 && sidebar?.classList.contains('active')) hideSidebar();
+  });
+
+  // Per-navigation: reset open states and mark the current route. Runs on first
+  // load AND after each View Transition (ClientRouter re-renders the nav).
+  function syncNavState() {
+    closeDropdown();
+    document
+      .querySelectorAll<HTMLElement>('.sidebar-group.open')
+      .forEach((g) => closeSidebarGroup(g));
+    document
+      .querySelectorAll('.sidebar-group-trigger[aria-expanded="true"]')
+      .forEach((t) => t.setAttribute('aria-expanded', 'false'));
+
+    const path = window.location.pathname.replace(/\/$/, '') || '/';
+    // Includes the drawer, which now lives outside <nav> (see the markup note).
+    document.querySelectorAll('nav a[href], .sidebar a[href]').forEach((a) => {
+      const href = (a as HTMLAnchorElement).getAttribute('href') || '';
+      const norm = href.replace(/\/$/, '') || '/';
+      if (norm === path) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    });
+  }
+  // onPageReady adds the first-SPA-entry catch-up (see src/lib/motion/lifecycle.ts)
+  // so aria-current + reset run whether a page is loaded directly or navigated into.
+  // Global (the nav is on every page) → no page-specific root. The interaction
+  // listeners above stay bound once at module scope (window/document persist).
+  onPageReady(null, syncNavState);
+</script>

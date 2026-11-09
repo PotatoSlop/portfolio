@@ -1,0 +1,22 @@
+---
+/* Two-up card grid — research insights, principles, findings. `kicker`
+   defaults to "<kickerPrefix> 01", "02"… */
+interface Props {
+  items: { title: string; text: string; kicker?: string }[];
+  kickerPrefix?: string;
+}
+const { items, kickerPrefix = 'Insight' } = Astro.props;
+const pad2 = (n: number) => String(n).padStart(2, '0');
+---
+
+<div class="cs-cards cs-wide">
+  {
+    items.map((c, i) => (
+      <article>
+        <span class="cs-k">{c.kicker ?? `${kickerPrefix} ${pad2(i + 1)}`}</span>
+        <h4>{c.title}</h4>
+        <p>{c.text}</p>
+      </article>
+    ))
+  }
+</div>

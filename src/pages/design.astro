@@ -1,0 +1,471 @@
+---
+import Base from '../layouts/Base.astro';
+import PullTabs from '../components/PullTabs.astro';
+import DesignHero from '../components/design/DesignHero.astro';
+import FeaturedProject from '../components/design/FeaturedProject.astro';
+import MarqueeRow from '../components/design/MarqueeRow.astro';
+import PhotoMasonry from '../components/design/PhotoMasonry.astro';
+import PhotoLightbox from '../components/design/PhotoLightbox.astro';
+import FilterGrid from '../components/design/FilterGrid.astro';
+import DesignModal from '../components/design/DesignModal.astro';
+import { getCollection } from 'astro:content';
+import { DESIGN_WIP } from '../lib/design-stub';
+import { getPhotos } from '../lib/photos';
+import { isOnSite } from '../lib/design-links';
+import '../../styles/components/design-reveal.css';
+
+// 2D work is off the site (isOnSite, src/lib/design-links.ts); its files are kept.
+const all = (await getCollection('design')).filter(isOnSite);
+const byCat = (c: '3d' | 'uiux') =>
+  all.filter((d) => d.data.category === c).sort((a, b) => a.data.order - b.data.order);
+
+const models = byCat('3d');
+const uiux = byCat('uiux');
+// Photography took 2D's place: section 03 AND the All-work grid. Scanned from
+// public/Assets/Photography; titles/locations come from src/data/photos.ts.
+const photos = await getPhotos();
+// Featured / Most recent only ever showcase UI/UX or 3D work (a `featured` or
+// `recent` flag on any other category is ignored). Fallback: the first piece.
+const showcase = [...uiux, ...models];
+const featured = showcase.find((d) => d.data.featured) ?? showcase[0];
+const recent = showcase.find((d) => d.data.recent && d.id !== featured.id) ?? featured;
+---
+
+<Base title="Design — Dylan Chen" theme="design">
+  <main class="design-page">
+    {/* First viewport is hero-only (like /engineering + /software); the gallery
+        opens with the featured card just under the fold. */}
+    <DesignHero />
+    <FeaturedProject featured={featured} recent={recent} />
+
+    {
+      DESIGN_WIP && (
+        <p class="dp-wip-note" role="status">
+          <span class="dp-wip-dot" aria-hidden="true" />
+          Design portfolio in progress — the gallery and case studies are being rebuilt.
+        </p>
+      )
+    }
+
+    <section id="s-3d" class="dp-section" data-rail aria-label="3D models">
+      <div class="dp-head">
+        <span class="dp-idx">01</span>
+        <h2>3D models</h2>
+        <span class="dp-note">— creative assets · products</span>
+      </div>
+      <MarqueeRow items={models} dir={-1} />
+      {!DESIGN_WIP && <a class="dp-viewall" data-goto="3d" href="#s-grid">view all</a>}
+    </section>
+
+    <section id="s-uiux" class="dp-section" data-rail aria-label="UI / UX">
+      <div class="dp-head">
+        <span class="dp-idx">02</span>
+        <h2>UI / UX</h2>
+        <span class="dp-note">— case studies in progress</span>
+      </div>
+      <MarqueeRow items={uiux} dir={1} />
+      {!DESIGN_WIP && <a class="dp-viewall" data-goto="uiux" href="#s-grid">view all</a>}
+    </section>
+
+    <section id="s-photo" class="dp-section" data-rail aria-label="Photography">
+      <div class="dp-head">
+        <span class="dp-idx">03</span>
+        <h2>Photography</h2>
+        <span class="dp-note">— life has its moments</span>
+      </div>
+      <PhotoMasonry photos={photos} />
+      {!DESIGN_WIP && <a class="dp-viewall" data-goto="photo" href="#s-grid">view all</a>}
+    </section>
+
+    <section id="s-grid" class="dp-section dp-section--grid" data-rail aria-label="All work">
+      <div class="dp-head">
+        <span class="dp-idx">04</span>
+        <h2>All work</h2>
+        <span class="dp-note">— "A little bit of this" · "and a little bit of that"</span>
+      </div>
+      <FilterGrid items={all} photos={photos} />
+    </section>
+  </main>
+
+  <DesignModal />
+  {!DESIGN_WIP && photos.length > 0 && <PhotoLightbox photos={photos} />}
+
+  <PullTabs discipline="design" />
+
+  <style>
+    /* Design-page tokens.
+       Custom properties inherit into the child components (DesignHero, FeaturedProject, MarqueeRow…). */
+    .design-page {
+      --dp-paper: #f3efe6;
+      --dp-ink: #16233a; /* dark navy — carries the navy motif */
+      --dp-muted: #6c7183;
+      --dp-card: #ffffff;
+      --dp-line: rgba(20, 18, 12, 0.12);
+      --dp-accent: #f5a045; /* bright amber (site identity) */
+      --dp-accent-deep: #b5611b; /* readable amber for small text on cream */
+      --dp-shadow: 28px 40px 60px -28px rgba(30, 24, 14, 0.45);
+      /* Bleed the clip frames (drift rows / masonry / master grid) outward on the
+         axis that ISN'T being masked, so a hover-scaled card's drop shadow has
+         room to render instead of being cropped at the frame edge. Applied as
+         padding + equal negative margin, so layout position is unchanged and only
+         the paint/clip region grows. Sized to the shadow's reach; shrunk on mobile
+         (tighter gutter, no hover) so the negative margin can't overflow the page. */
+      --dp-bleed: 52px;
+      /* --dp-edge (page gutter) is defined at the [data-theme='design'] root so
+         the nav logo island can share it; inherited here. */
+      --dp-ease: cubic-bezier(0.075, 0.82, 0.165, 1);
+      --dp-font-title: 'Dela Gothic One', 'Chinese Rocks', sans-serif;
+      --dp-font-body: 'Archivo', system-ui, sans-serif;
+
+      background: var(--dp-paper);
+      color: var(--dp-ink);
+      font-family: var(--dp-font-body);
+    }
+
+    /* Dark scheme — invert the editorial palette: the navy that was INK becomes
+       the paper/card surfaces, the cream becomes the ink, amber pops on navy so
+       it brightens. Mirrors the [data-theme='design'][data-scheme='dark'] block
+       in styles/themes/design.css; kept here because the page runs its own --dp-*
+       shadow-palette. The
+       :global() wrap is required — the theme/scheme flags live on <html>, an
+       ancestor outside this component's scoped selectors. */
+    :global([data-scheme='dark']) .design-page {
+      --dp-paper: #0f1826;
+      --dp-ink: #e9e2d2;
+      --dp-muted: #9aa0ad;
+      --dp-card: #16233a;
+      --dp-line: rgba(233, 226, 210, 0.16);
+      --dp-accent: #f5a045;
+      --dp-accent-deep: #f0a24e;
+      --dp-shadow: 28px 40px 60px -28px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Tighter bleed below the tablet breakpoint: the gutter narrows to 24px there,
+       so a 52px negative margin would push the frames off-page (horizontal scroll).
+       Touch has no hover shadow to protect anyway. */
+    @media (max-width: 768px) {
+      .design-page {
+        --dp-bleed: 16px;
+      }
+    }
+
+    /* Whole-page WIP notice (src/lib/design-stub.ts) — a slim status line under the
+       hero explaining why the sections below are blank placeholders. */
+    .dp-wip-note {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      padding: 16px var(--dp-edge) 0;
+      font-family: var(--dp-font-body);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--dp-muted);
+    }
+    .dp-wip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--dp-accent);
+      flex-shrink: 0;
+    }
+
+    /* Uniform vertical padding (not min-height + centering) so the gap between
+       01 / 02 / 03 is consistent regardless of each zone's content height. */
+    .dp-section {
+      padding: 8vh var(--dp-edge);
+      display: flex;
+      flex-direction: column;
+    }
+    /* Sections carrying a "view all" (01–03) put the head and the link on one
+       row, content spanning below — so the link rides top-right beside the title
+       on desktop. (The master grid, 04, has no link and stays a plain column.) */
+    .dp-section:has(> .dp-viewall) {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      column-gap: 16px;
+      row-gap: 16px; /* head → content gap (the head's own margin is zeroed below) */
+      align-items: center;
+    }
+    .dp-section:has(> .dp-viewall) > .dp-head {
+      grid-column: 1;
+      grid-row: 1;
+      margin-bottom: 0; /* gap handled by the grid's row-gap so "view all" centres */
+    }
+    .dp-section:has(> .dp-viewall) > .dp-viewall {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+      /* Bottom-align the button with the title text instead of centring it in
+         the head row. The head aligns its children on the baseline, so its
+         box bottom sits just under the title's descender — matching the
+         button's bottom edge to it reads as "sitting on the same line". */
+      align-self: end;
+    }
+    /* Place the content row full-width. It MUST use :global() on the content
+       classes: .row-viewport (MarqueeRow) and .masonry (PhotoMasonry) are child-component
+       roots, so they carry THEIR OWN astro scope id — not design.astro's. The old
+       `> :not(.dp-head):not(.dp-viewall)` (and the mobile `order`) got design's
+       scope id appended and thus never matched, so the row lost `grid-column: 1/-1`
+       and auto-placed into column 1 only — its right edge stopped short of the
+       view-all / hero edge (very visible at in-between widths). */
+    .dp-section:has(> .dp-viewall) > :global(.row-viewport),
+    .dp-section:has(> .dp-viewall) > :global(.masonry) {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      min-width: 0; /* let the row/masonry shrink inside the grid track */
+    }
+    /* Master grid — bold navy block. Left-aligned (not centred) so filtering,
+       which changes content height, doesn't re-shift the title. */
+    .dp-section--grid {
+      justify-content: flex-start;
+      background: #0e1a30;
+      color: #e9e2d2;
+      --navy-line: rgba(233, 226, 210, 0.16);
+    }
+    .dp-section--grid .dp-idx {
+      color: var(--dp-accent);
+    }
+    .dp-section--grid .dp-note {
+      color: rgba(233, 226, 210, 0.55);
+    }
+    .dp-head {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      /* Fixed (not vh) so the gap below every section title reads the same
+         regardless of viewport height. */
+      margin-bottom: 16px;
+    }
+    .dp-idx {
+      font-family: var(--dp-font-body);
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: 0.08em;
+      color: var(--dp-accent-deep);
+    }
+    .dp-head h2 {
+      margin: 0;
+      font-family: var(--dp-font-title);
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      line-height: 1;
+      /* Gentler slope + lower cap than the old (4.4vw, 58px): that flattened at
+         the cap by ~1319px, so 1080p AND a high-DPI laptop both rendered ~58px
+         but the laptop's scaled (narrower) CSS viewport left the longest title
+         (then "2D Illustration and Graphics") no room and it wrapped. 2.7vw shrinks
+         the title on narrow/high-res viewports where vw is proportionally large,
+         while 1080p only eases 58 → ~52px. */
+      font-size: clamp(24px, 2.7vw, 54px);
+    }
+    .dp-note {
+      font-family: var(--dp-font-body);
+      font-size: 13px;
+      color: var(--dp-muted);
+    }
+    /* Master-grid title reads on the navy block — force cream (it must not
+       inherit the page's navy ink, which would vanish against the block). */
+    .dp-section--grid .dp-head h2 {
+      color: #e9e2d2;
+    }
+
+    /* "view all" — rides top-right beside the zone title (desktop, via the grid
+       above); scrolls to the master grid and applies that zone's filter (wired in
+       FilterGrid). Border-based hover, matching the chips / nav islands. */
+    /* "view all" follows the shared button model (translucent-cream face, fill
+       rising from the bottom on hover) but deliberately KEEPS the deep-brass
+       accent rather than the bright amber — it reads as a quiet index control
+       beside the section title, not a primary action. Brass is dark, so the
+       label flips to cream once the fill is behind it (3-colour contrast rule). */
+    .dp-viewall {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      justify-self: end;
+      font-family: var(--dp-font-body);
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--dp-accent-deep);
+      text-decoration: none;
+      padding: 6px 14px;
+      background: var(--theme-glass);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--dp-line);
+      border-radius: 5px;
+      transition: border-color 0.3s var(--dp-ease), color 0.3s var(--dp-ease);
+    }
+    .dp-viewall::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: var(--dp-accent-deep);
+      transform: translateY(100%);
+      transition: transform 0.4s var(--dp-ease);
+    }
+    .dp-viewall:hover {
+      border-color: var(--dp-accent-deep);
+      color: var(--dp-paper);
+    }
+    .dp-viewall:hover::before {
+      transform: translateY(0);
+    }
+
+    /* On narrower / high-DPI (OS-scaled) desktop viewports the section head has
+       less horizontal room, and the longest titles would wrap. Drop the supplementary caption here so the title
+       keeps its own line; the caption returns on wide screens (≥1500px) that
+       have room for both. Same intent as the mobile rule below. */
+    @media (max-width: 1500px) {
+      .dp-note {
+        display: none;
+      }
+    }
+
+    /* ===== Mobile ===== */
+    @media (max-width: 768px) {
+      /* Section heads: smaller title, drop the little caption — the long ones
+         were wrapping messily. */
+      .dp-head h2 {
+        font-size: clamp(20px, 6vw, 30px);
+      }
+      .dp-note {
+        display: none;
+      }
+      /* Stack head → content → "view all". The DOM is already authored in that
+         order, so DO NOT use flex `order` here: the content match
+         (`> :not(.dp-head):not(.dp-viewall)`) proved unreliable — the card fell to
+         the default order 0 and jumped ABOVE the title. Plain source order is
+         bulletproof, and `align-items: stretch` (also the flex default) undoes the
+         desktop grid's `align-items: center`, which otherwise shrank the card to a
+         tiny centred box. */
+      .dp-section:has(> .dp-viewall) {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px; /* head → card → view-all (grid row-gap doesn't apply to flex) */
+      }
+      .dp-section:has(> .dp-viewall) > .dp-viewall {
+        justify-self: unset;
+        align-self: flex-start; /* the link hugs the left instead of stretching */
+      }
+    }
+  </style>
+
+  <script>
+    import { mountCarousels } from '../lib/motion/carousel';
+    import { mountDesignReveal } from '../lib/motion/design-reveal';
+    import { mountDesignModelViewer } from '../lib/motion/design-model-viewer';
+    import { onPageReady } from '../lib/motion/lifecycle';
+
+    let destroyDrift: (() => void) | null = null;
+    let destroyReveal: (() => void) | null = null;
+    let destroyModel: (() => void) | null = null;
+
+    // The photo masonry columns are VERTICAL infinite drifters. Their loop period is
+    // measured from card heights, so those heights must be stable + correct BEFORE
+    // (and not change during) the drift — otherwise lazy images loading mid-cycle
+    // make it jump. Photos measured at build time ship their final aspect class
+    // (data-aspect) and are skipped; only an unmeasured tile is probed here, its real
+    // aspect applied in ONE batch, then the caller re-measures the drift.
+    function classifyMasonry(done: () => void) {
+      const medias = Array.from(
+        document.querySelectorAll<HTMLElement>('.masonry .m-media:not([data-aspect])')
+      ).filter((m) => m.querySelector('img'));
+      if (!medias.length) return void done();
+      let pending = medias.length;
+      const pin: Array<[HTMLElement, string]> = [];
+      const finish = () => {
+        if (--pending > 0) return;
+        for (const [m, cls] of pin) {
+          m.classList.remove('is-landscape', 'is-square', 'is-portrait');
+          m.classList.add(cls);
+        }
+        done();
+      };
+      for (const m of medias) {
+        const img = m.querySelector('img')!;
+        const decide = (w: number, h: number) => {
+          const r = w && h ? w / h : 0.75;
+          pin.push([m, r >= 1.2 ? 'is-landscape' : r <= 0.83 ? 'is-portrait' : 'is-square']);
+          finish();
+        };
+        if (img.complete && img.naturalWidth) decide(img.naturalWidth, img.naturalHeight);
+        else {
+          const probe = new Image();
+          probe.onload = () => decide(probe.naturalWidth, probe.naturalHeight);
+          probe.onerror = () => decide(0, 0);
+          probe.src = img.currentSrc || img.getAttribute('src') || '';
+        }
+      }
+    }
+
+    // onPageReady mounts on every page-load AND as a first-SPA-entry catch-up, so
+    // the CSS-hidden hero (.pre-anim / .crop-*) is always revealed — never left
+    // blank when navigated into. See src/lib/motion/lifecycle.ts.
+    const behavior = onPageReady('.design-page', () => {
+      // Mobile is reduced-motion (SettingsToggles enforces this site-wide and
+      // hides the toggle). Set the flag BEFORE the reveal/drift read it, so it
+      // holds even if SettingsToggles' page-load handler runs after this one.
+      if (window.matchMedia('(max-width: 768px)').matches) {
+        document.documentElement.dataset.simReduced = '1';
+      }
+      // Isolate each mount so one throwing (a bad dep load, a DOM assumption)
+      // can't abort the rest. The 3D model viewer goes FIRST and on its own so the
+      // modal always wires up even if the drift/reveal fail on some environment —
+      // that was the "clicking a 3D card does nothing" class of bug.
+      const safe = <T,>(label: string, fn: () => T): T | null => {
+        try {
+          return fn();
+        } catch (err) {
+          console.error(`[design] ${label} mount failed`, err);
+          return null;
+        }
+      };
+      destroyModel = safe('model-viewer', mountDesignModelViewer);
+      destroyReveal = safe('reveal', mountDesignReveal);
+      destroyDrift = safe('carousels', mountCarousels);
+      // Set each masonry tile's real aspect, then re-measure the vertical drift so
+      // the infinite cycling stays seamless with the corrected heights.
+      safe('masonry-classify', () =>
+        classifyMasonry(() => {
+          if (!document.querySelector('.masonry')) return;
+          try {
+            destroyDrift?.();
+            destroyDrift = mountCarousels();
+          } catch (err) {
+            console.error('[design] drift re-measure failed', err);
+          }
+        })
+      );
+      return () => {
+        destroyDrift?.();
+        destroyDrift = null;
+        destroyReveal?.();
+        destroyReveal = null;
+        destroyModel?.();
+        destroyModel = null;
+      };
+    });
+
+    // Rebuild ONLY the drift rows (the reveal is one-shot) when reduced-motion or
+    // the mobile breakpoint flips — hence a targeted rebuild rather than a full
+    // behavior.remount(), which would replay the one-shot hero reveal.
+    const remountDrift = () => {
+      if (!behavior.active) return;
+      destroyDrift?.();
+      destroyDrift = mountCarousels();
+    };
+
+    // The corner toggle flips reduced-motion at runtime — rebuild the rows so the
+    // drift actually stops/starts (mountCarousels now honors the manual flag).
+    window.addEventListener('motionpreferencechange', remountDrift);
+    // Crossing the mobile breakpoint swaps drift ↔ chevron pager — rebuild so the
+    // right mode (and its DOM: clones vs. pager buttons) is in place.
+    window.matchMedia('(max-width: 768px)').addEventListener('change', remountDrift);
+  </script>
+</Base>

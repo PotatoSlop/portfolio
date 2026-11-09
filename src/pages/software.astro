@@ -1,0 +1,445 @@
+---
+/*
+  Software discipline page. The hero keeps its discipline-specific terminal
+  treatment (prompt + blinking caret). Projects use a traditional 2×2 card grid
+  (MVP) rather than the shared feature+accordion gallery.
+*/
+import Base from '../layouts/Base.astro';
+import PullTabs from '../components/PullTabs.astro';
+import { getCollection } from 'astro:content';
+import { Icon } from 'astro-icon/components'; 
+
+const CURRENT = 'software' as const;
+
+const tagged = await getCollection('projects', ({ data }) => data.disciplines.includes(CURRENT));
+const projects = tagged.sort((a, b) => a.data.order - b.data.order);
+
+// Traditional grid: pad the real roster out to a 2×2 grid with coming-soon slots,
+// and past that round up to a full row so an odd count never leaves one card
+// stranded on the last row.
+const MIN = 4;
+const COLS = 2;
+const total = Math.max(MIN, Math.ceil(projects.length / COLS) * COLS);
+const slots = Array.from({ length: total }, (_, i) => projects[i] ?? null);
+
+const GITHUB_PROFILE = 'https://github.com/PotatoSlop';
+const timelineOf = (d: { started: string; ended?: string }) => `${d.started} – ${d.ended ?? 'Present'}`;
+---
+
+<Base title="Software — Dylan Chen" theme="software">
+  <main class="sw">
+    <section class="sw-hero">
+      <nav class="sw-hero__crumbs" aria-label="Breadcrumb">
+        <a href="/">SKETCHBOOK</a>
+        <span aria-hidden="true">/</span>
+        <a href="/software" aria-current="page">SOFTWARE</a>
+      </nav>
+
+      <h1 class="sw-hero__title">
+        <span class="sw-hero__prompt" aria-hidden="true">&gt;</span>
+        <span class="sw-hero__word">software</span>
+        <span class="sw-hero__caret" aria-hidden="true"></span>
+      </h1>
+
+      <a class="sw-hero__cta" href="#sw-gallery">SEE PROJECTS</a>
+
+      <a class="sw-chevron" href="#sw-gallery" aria-label="Scroll to projects">
+        <span class="sw-chevron__crop">
+          <Icon name="mdi:chevron-down" />
+        </span>
+      </a>
+    </section>
+
+    <section id="sw-gallery" class="sw-gallery" aria-label="Software projects">
+      <ul class="swgrid">
+        {
+          slots.map((p, i) =>
+            p ? (
+              <li>
+                <a
+                  class="swcard"
+                  href={p.data.links?.repo ?? GITHUB_PROFILE}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={p.data.links?.repo ? `Open ${p.data.title} repository` : `View projects on GitHub`}
+                  data-hover-gif={p.data.cover ? p.data.hoverGif : undefined}
+                >
+                  <div class="swcard__media" data-hover-gif-host>
+                    {p.data.cover ? (
+                      <img src={p.data.cover} alt="" loading="lazy" decoding="async" />
+                    ) : (
+                      <span class="swcard__ph" aria-hidden="true">
+                        {p.data.title.charAt(0)}
+                      </span>
+                    )}
+                  </div>
+                  <div class="swcard__body">
+                    <p class="swcard__eyebrow">{timelineOf(p.data)}</p>
+                    <h3 class="swcard__title">{p.data.title}</h3>
+                    {p.data.overview && <p class="swcard__blurb">{p.data.overview}</p>}
+                    <span class="swcard__link">
+                      {p.data.links?.repo ? 'View Repo' : 'View GitHub'} <Icon name="mdi:github" />
+                    </span>
+                  </div>
+                </a>
+              </li>
+            ) : (
+              <li>
+                <div class="swcard swcard--soon">
+                  <div class="swcard__media">
+                    <span class="swcard__ph" aria-hidden="true">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <div class="swcard__body">
+                    <p class="swcard__eyebrow">Coming soon</p>
+                    <h3 class="swcard__title">Project {String(i + 1).padStart(2, '0')}</h3>
+                    <p class="swcard__blurb">More coming soon.</p>
+                  </div>
+                </div>
+              </li>
+            )
+          )
+        }
+      </ul>
+    </section>
+  </main>
+
+  <PullTabs discipline="software" />
+
+  <script>
+    import { onPageReady } from '../lib/motion/lifecycle';
+    import { mountHoverGifs } from '../lib/motion/hover-gif';
+
+    onPageReady('.swgrid', () => {
+      const grid = document.querySelector<HTMLElement>('.swgrid');
+      return grid ? mountHoverGifs(grid) : undefined;
+    });
+  </script>
+
+  <style>
+    .sw {
+      position: relative;
+    }
+
+    /* ----- Hero: terminal prompt + blinking caret (the `caret` idiom) ----- */
+    .sw-hero {
+      position: relative;
+      min-height: calc(100dvh - clamp(60px, 10vh, 80px));
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 8vh clamp(1rem, 4vw, 3rem) 0;
+    }
+
+    .sw-hero__crumbs {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      width: fit-content;
+      font-family: var(--theme-font-body);
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      color: var(--theme-ink-muted);
+    }
+    .sw-hero__crumbs a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .sw-hero__crumbs a:hover {
+      color: var(--theme-accent);
+    }
+    .sw-hero__crumbs [aria-current='page'] {
+      color: var(--theme-ink);
+    }
+
+    .sw-hero__title {
+      display: flex;
+      align-items: baseline;
+      gap: 0.18em;
+      margin: 0;
+      font-family: var(--theme-font-display);
+      font-size: clamp(3rem, 12vw, 9rem);
+      font-weight: 700;
+      line-height: 1;
+      color: var(--theme-ink);
+    }
+    .sw-hero__prompt {
+      color: var(--theme-accent);
+    }
+    .sw-hero__caret {
+      display: inline-block;
+      width: 0.52ch;
+      height: 0.82em;
+      translate: 0 0.04em;
+      background: var(--theme-accent);
+      animation: sw-blink 1.05s steps(1, end) infinite;
+    }
+    @keyframes sw-blink {
+      0%, 50% { opacity: 1; }
+      50.01%, 100% { opacity: 0; }
+    }
+
+    .sw-hero__cta {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      align-self: flex-start;
+      display: inline-block;
+      padding: 0.6rem 1.1rem;
+      border: var(--border-width-medium) solid var(--theme-border);
+      border-radius: var(--theme-radius);
+      background: var(--theme-surface);
+      color: var(--theme-ink);
+      font-family: var(--theme-font-body);
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      text-decoration: none;
+      transition: color var(--duration-fast) var(--theme-motion-ease),
+        border-color var(--duration-fast) var(--theme-motion-ease);
+    }
+    .sw-hero__cta::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: var(--theme-accent);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.5s var(--theme-motion-ease);
+    }
+    .sw-hero__cta:hover,
+    .sw-hero__cta:focus-visible {
+      color: var(--theme-accent-contrast);
+      border-color: var(--theme-accent);
+      outline: none;
+    }
+    .sw-hero__cta:hover::before,
+    .sw-hero__cta:focus-visible::before {
+      transform: scaleX(1);
+    }
+
+    .sw-chevron {
+      position: absolute;
+      bottom: clamp(1rem, 3vh, 2rem);
+      left: 0;
+      right: 0;
+      width: fit-content;
+      margin-inline: auto;
+      display: grid;
+      place-items: center;
+      padding: 0.5rem;
+      color: var(--theme-ink-muted);
+      transition: transform var(--duration-fast) var(--theme-motion-ease),
+        color var(--duration-fast) var(--theme-motion-ease);
+    }
+    .sw-chevron:hover,
+    .sw-chevron:focus-visible {
+      transform: translateY(2px);
+      color: var(--theme-accent);
+      outline: none;
+    }
+    .sw-chevron__crop {
+      display: block;
+      overflow: hidden;
+      line-height: 0;
+    }
+    .sw-chevron svg {
+      width: clamp(28px, 4vw, 40px);
+      height: auto;
+      display: block;
+    }
+
+    /* ----- Projects grid (traditional 2×2 cards, sized to fill the viewport) ----- */
+    .sw-gallery {
+      display: flex;
+      align-items: center;
+      min-height: calc(100dvh - clamp(60px, 10vh, 80px));
+      padding: clamp(2rem, 6vh, 4rem) clamp(1rem, 4vw, 3rem);
+    }
+    .swgrid {
+      list-style: none;
+      margin: 0 auto;
+      padding: 0;
+      width: 100%;
+      max-width: 1200px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: clamp(1.25rem, 2.5vw, 2rem);
+    }
+    .swgrid > li {
+      display: flex;
+    }
+
+    .swcard {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      overflow: hidden;
+      border: 1px solid var(--theme-border);
+      border-radius: var(--theme-radius);
+      background: var(--theme-surface);
+      color: var(--theme-ink);
+      text-decoration: none;
+      box-shadow: 0 4px 14px -6px rgba(20, 24, 32, 0.28);
+      transition: transform var(--duration-fast) var(--theme-motion-ease),
+        border-color var(--duration-fast) var(--theme-motion-ease),
+        box-shadow var(--duration-fast) var(--theme-motion-ease);
+    }
+    a.swcard:hover,
+    a.swcard:focus-visible {
+      transform: translateY(-8px);
+      border-color: var(--theme-accent);
+      box-shadow: 0 22px 40px -18px rgba(20, 24, 32, 0.45);
+      outline: none;
+    }
+
+    .swcard__media {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background: var(--theme-bg);
+    }
+    .swcard__media img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1);
+      transition: transform var(--duration-smooth) var(--theme-motion-ease);
+    }
+    a.swcard:hover .swcard__media img,
+    a.swcard:focus-visible .swcard__media img {
+      transform: scale(1.06);
+    }
+    /* Hover-to-play GIF layer (src/lib/motion/hover-gif.ts). Injected at runtime,
+       so it carries no scope attribute — hence :global. It sits exactly over the
+       cover in the same 16:9 box and fades in only once its first frame has
+       decoded; the cover beneath is never hidden. It deliberately does NOT take
+       the 1.06 hover zoom: gameplay captures pin HUD to the frame edges (HP,
+       order ticket, fight counter), which that ~3%-per-side crop would slice.
+       The clip itself is the hover motion, so it shows the full frame. */
+    .swcard__media :global(img.hover-gif) {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--duration-fast) var(--theme-motion-ease);
+    }
+    .swcard__media :global(img.hover-gif.is-playing) {
+      opacity: 1;
+    }
+    /* A hover-GIF card's cover is the clip's first frame, so it must hold still
+       too: zooming it under the unzoomed GIF would ghost the same picture at two
+       scales during the fade. Held at 1, the still hands off to the clip with no
+       visible seam. The card's lift + accent border still mark the hover. */
+    a.swcard[data-hover-gif]:hover .swcard__media img,
+    a.swcard[data-hover-gif]:focus-visible .swcard__media img {
+      transform: none;
+    }
+    .swcard__ph {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      height: 100%;
+      font-family: var(--theme-font-display);
+      font-weight: 700;
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      color: var(--theme-ink-muted);
+      opacity: 0.4;
+    }
+
+    .swcard__body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      flex: 1;
+      padding: clamp(1.1rem, 1.8vw, 1.6rem);
+    }
+    .swcard__eyebrow {
+      margin: 0;
+      font-family: var(--theme-font-body);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--theme-accent);
+    }
+    .swcard__title {
+      margin: 0;
+      font-family: var(--theme-font-display);
+      font-weight: 700;
+      font-size: clamp(1.35rem, 2vw, 1.75rem);
+      line-height: 1.12;
+      color: var(--theme-ink);
+    }
+    .swcard__blurb {
+      margin: 0;
+      font-family: var(--theme-font-body);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: var(--theme-ink-muted);
+    }
+    .swcard__link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: auto;
+      padding-top: 0.5rem;
+      font-family: var(--theme-font-body);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--theme-ink);
+      transition: color var(--duration-fast) var(--theme-motion-ease);
+    }
+    .swcard__link svg {
+      width: 1.1rem;
+      height: 1.1rem;
+    }
+    a.swcard:hover .swcard__link,
+    a.swcard:focus-visible .swcard__link {
+      color: var(--theme-accent);
+    }
+
+    .swcard--soon {
+      opacity: 0.7;
+    }
+
+    /* Single column on narrow screens. */
+    @media (max-width: 760px) {
+      .sw-gallery {
+        min-height: 0;
+      }
+      .swgrid {
+        grid-template-columns: 1fr;
+        max-width: 480px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .sw-hero {
+        padding-inline: 1.25rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .sw-hero__caret {
+        animation: none;
+      }
+      .swcard,
+      .swcard__media img {
+        transition: none;
+      }
+    }
+    html[data-sim-reduced] .swcard,
+    html[data-sim-reduced] .swcard__media img {
+      transition: none;
+    }
+  </style>
+</Base>

@@ -1,0 +1,85 @@
+/* ===== Base / reset =====
+   Universal box-sizing, body defaults, scrollbar styling. */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* The mobile nav drawer (.sidebar) lives off-canvas via translateX(100%), so
+     its box extends one viewport-width past the right edge. That phantom width
+     doubles the document's scrollWidth — at ≤400px (where the drawer is
+     width:100%) the page reports a 2×-wide scroll area, the mobile viewport
+     shrink-fits it, and the whole layout looks scaled down with a gap on the
+     right. `overflow-x: clip` (NOT hidden) trims that overflow WITHOUT creating
+     a scroll container, so the sticky nav keeps working. Needs to be on both
+     html and body to fully contain the fixed descendant's overflow. */
+  overflow-x: clip;
+}
+
+body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: clip;
+  /* Themed surfaces — sketchbook defaults resolve to white/charcoal via
+     the contract in themes/_contract.css. The grid layer paints over the
+     background-color (it's `none` for sketchbook). */
+  background-color: var(--theme-bg);
+  background-image: var(--theme-grid);
+  background-size: var(--theme-grid-size) var(--theme-grid-size);
+  min-height: 100dvh;
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  color: var(--theme-ink);
+  transition: background-color var(--duration-slow) var(--ease-in-out),
+    color var(--duration-slow) var(--ease-in-out);
+}
+
+body.no-scroll {
+  overflow: hidden;
+  height: 100vh;
+  min-height: 100dvh;
+}
+
+body.fade-out {
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-in-out);
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--gap-xl);
+}
+
+/* Scrollbar — the native scrollbar is fully hidden site-wide; a custom
+   draggable thumb (components/Scrollbar.astro) is the scroll indicator. Hiding
+   it also frees the viewport edge so edge-anchored UI (pull-tabs) sits flush. */
+html {
+  scrollbar-width: none; /* Firefox */
+}
+
+body {
+  -ms-overflow-style: none; /* legacy Edge/IE */
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* ===== Dark-scheme asset recolour =====
+   Raster GIFs/PNGs (line-art logos, doodles) can't inherit currentColor like an
+   inline SVG. Opt a raster asset into dark-mode recolouring with .asset-recolor:
+   brightness(0) flattens every pixel to black, invert(1) flips that to pure
+   white — rendering line-art white on the dark field. NOTE: this flattens any
+   colour in the asset to a white silhouette, so only apply it where that reads
+   right (the boiling-name logo + the doodle are line art, so it does). */
+[data-scheme='dark'] .asset-recolor {
+  filter: brightness(0) invert(1);
+}

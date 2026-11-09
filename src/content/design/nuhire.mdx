@@ -1,0 +1,226 @@
+---
+title: NUHire
+category: 'uiux'
+tags: []
+year: 2026
+tools: [Figma, FigJam]
+cover: /Assets/design/uiux/nuhire/mockup.webp
+order: 5
+href: '#'
+
+# ---- Case study (draft: built in `astro dev` only, see docs/case-study-template.md) ----
+caseStudy: true
+draft: true
+summary: A redesign of the hiring simulation Khoury co-op students play in class, where they review resumes, interview, and make an offer as the employer.
+role: UI / UX design
+timeline: Placeholder
+team: Oasis Accelerator @ Northeastern
+links:
+  - label: View repo
+    href: https://github.com/Oasis-NEU/NUHire
+    primary: true
+coverCaption: NUHire landing page
+glance:
+  - label: Problem
+    text: How can we create an intuitive activity-driven experience for students to simulate the hiring process?
+  - label: Approach
+    text: Refactor the entire flow of the site from scratch - map every role's path through the activity first, then redesign the landing page and both dashboards around it.
+  - label: Outcome
+    text: Currently building out the entire front-end design from scratch; A full design system, component set, and primary UI page Lo-fis have been designed and are being dev-readied.
+---
+
+{/*
+  Figures: the user's FigJam site map / user flows and Figma exports, cropped
+  per screen from the boards. Timeline and Reflection are still placeholders.
+*/}
+
+## Context
+
+NUHire is a hiring simulation run live in Khoury CS1210, Intro to Co-op. It replaces a pen-and-paper activity called "employer for a day". Students play the employer in groups of three to five: they read a job description, review resumes on a timer, agree on candidates to interview, watch recorded interviews, and extend one offer. A professor runs the room in real time, assigning groups, sending curveballs mid-interview, and accepting or rejecting each offer.
+
+The learning goal is simple: understand what a hiring manager actually looks for in a resume.
+
+<Callout>How can we scale this activity cleanly via software?</Callout>
+
+## The starting point
+
+The existing build worked, but every role landed on sparse pages with little guidance about where they were in the activity.
+
+<Figure src="/Assets/design/uiux/nuhire/landing-page.webp" alt="Original NUHire landing page: Welcome to Employer For a Day 2.0" ratio="1600 / 875" caption="The original landing page." />
+
+<Row
+  items={[
+    { src: '/Assets/design/uiux/nuhire/student-dashboard.webp', alt: 'Original student dashboard', chip: 'Student', caption: 'Student dashboard, before.' },
+    { src: '/Assets/design/uiux/nuhire/advisor-dashboard.webp', alt: 'Original advisor dashboard', chip: 'Professor', caption: 'Professor dashboard, before.' },
+  ]}
+  ratio="1600 / 875"
+/>
+
+A unreleased dev build had similarly restrictive front-end design decisions and the live activity flow was run through with poor experiences reported by all users during tests.
+
+## Mapping the activity
+
+Before any screens, I mapped who owns what. The professor creates and manages classes and groups and starts every session; students are invited into a class, sorted into a group, and brought into the activity together. Each session produces a summary for everyone.
+
+<Figure src="/Assets/design/uiux/nuhire/relationships.webp" alt="Relationship map: the professor invites students, creates classes and groups, and starts sessions, which produce summaries" ratio="1880 / 1620" caption="User relationships: who creates, joins and starts what." />
+
+From there, each role got its own flow. Students move from their class into a group or a session, wait until the professor lets them in, then work through the job description, résumés and notes before approving or rejecting candidates and landing on a personal, group and class summary. The professor's side runs from the classes hub through inviting and grouping students, a live overview where steps are opened and locked, and a debrief where they decide what students get to see.
+
+<Row
+  mat
+  items={[
+    { src: '/Assets/design/uiux/nuhire/flow-student.webp', alt: 'Student user flow from login to class summary', chip: 'Student', caption: 'Student flow: join, wait for approval, review, decide.' },
+    { src: '/Assets/design/uiux/nuhire/flow-instructor.webp', alt: 'Instructor user flow from login to debrief and released results', chip: 'Instructor', caption: 'Instructor flow: set up, run live, debrief, release.' },
+  ]}
+  ratio="3 / 5"
+/>
+
+<Cards
+  kickerPrefix="Rule"
+  items={[
+    { title: 'Groups move together', text: 'Students wait in a waiting room until the professor admits them, and each step only opens when the professor unlocks it.' },
+    { title: 'Results are released, not shown', text: 'Personal, group and class summaries stay hidden until the professor releases them after the debrief.' },
+    { title: 'Notes stay private', text: "A student's notes are theirs. The professor sees each student's decisions and marked qualifications, never the notes." },
+    { title: 'Grouping is a choice', text: 'Professors can randomize groups or curate them by hand before starting a session.' },
+  ]}
+/>
+
+## Design system
+
+NUHire follows Northeastern's own identity. Lato is the official typeface of Northeastern's websites, so it's used for every text element, logos included. Graphics that carry text in another font get framed in a selection chip instead.
+
+<Palette
+  colors={[
+    { name: 'NEU Red', hex: '#da192c' },
+    { name: 'Red 300', hex: '#ee6d79' },
+    { name: 'Red 100', hex: '#f9c8cd' },
+    { name: 'Red 900', hex: '#800f1a' },
+    { name: 'Steel Blue', hex: '#3f61a1' },
+    { name: 'Blue 300', hex: '#7b97cb' },
+    { name: 'Blue 100', hex: '#c4d1e8' },
+    { name: 'Navy', hex: '#223558' },
+    { name: 'Black', hex: '#000000' },
+    { name: 'Gray 700', hex: '#484848' },
+    { name: 'Gray 400', hex: '#ababab' },
+    { name: 'Gray 50', hex: '#f7f7f7' },
+  ]}
+  font={{
+    family: "'Lato', sans-serif",
+    note: 'Lato, for every text element',
+    href: 'https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap',
+    weights: [
+      { label: 'Regular', weight: 400 },
+      { label: 'Bold', weight: 700 },
+    ],
+  }}
+/>
+
+<Specs
+  items={[
+    { label: 'Headers', value: '48px · Bold · Title case' },
+    { label: 'Sub-headers', value: '32px · Medium · Title case' },
+    { label: 'Buttons', value: '24px · Medium · Title case' },
+    { label: 'Body', value: '16px · Regular · Sentence case' },
+  ]}
+/>
+
+Line weights stay consistent within a type level. The one exception is emphasis: coloured or bolded text inside a sub-header or body bumps up to bold.
+
+<Row
+  mat
+  items={[
+    { src: '/Assets/design/uiux/nuhire/branding.webp', alt: 'NUHire logo lockups with the bow-tie husky', label: false, caption: 'Branding: the bow-tie husky and wordmark lockups.' },
+    { src: '/Assets/design/uiux/nuhire/components.webp', alt: 'Button, pressed, hover, radio and checkbox states', label: false, caption: 'Components: button states, radios and checkboxes.' },
+  ]}
+  ratio="1 / 1"
+/>
+
+<Figure mat src="/Assets/design/uiux/nuhire/loading.gif" still="/Assets/design/uiux/nuhire/loading-still.png" alt="Animated loading states in red, white and black" caption="Loading states, in each surface colour." />
+
+## Design
+
+### Landing page
+
+The landing page went through several rounds, from a full-bleed campus photo with a bare sign-in to the final split: what students actually do on the left, and one sign-in card with Student and Instructor tabs on the right.
+
+<Figure src="/Assets/design/uiux/nuhire/explorations.webp" alt="Grid of landing page explorations leading to the final layout" ratio="1624 / 1368" caption="Landing explorations, leading to the final layout." />
+
+<Figure src="/Assets/design/uiux/nuhire/landing-redesign.webp" alt="Redesigned NUHire landing page: Step into the hiring manager's chair, with a Student and Instructor sign-in card" ratio="1440 / 1001" caption="The redesigned landing page." />
+
+<Feature src="/Assets/design/uiux/nuhire/landing-full.webp" alt="The full landing page, top to bottom" kicker="Full page" title="Top to bottom">
+  Below the sign-in, the page explains what NUHire is, flips the framing to "when a student becomes the interviewer", and ends with a feedback section: quick answers to common questions, plus a bug-report form for when something breaks mid-class.
+</Feature>
+
+### Student: in a session
+
+Every step shares one frame: a progress bar across the top, a timer, and a notebook on the right that keeps notes, the job and the résumés one tab away.
+
+<Row
+  cols={2}
+  items={[
+    { src: '/Assets/design/uiux/nuhire/student-job.webp', alt: 'Step 1: read the job description and mark qualifications', chip: 'Step 1', caption: 'Read the job and mark each qualification as must-have or nice-to-have.' },
+    { src: '/Assets/design/uiux/nuhire/student-resumes.webp', alt: 'Step 2: screen résumés against the qualifications', chip: 'Step 2', caption: 'Screen each résumé against those qualifications, then advance or reject.' },
+    { src: '/Assets/design/uiux/nuhire/student-interviews.webp', alt: 'Step 3: watch recorded interviews and rate answers', chip: 'Step 3', caption: 'Watch the interviews and rate how each candidate did.' },
+    { src: '/Assets/design/uiux/nuhire/student-final.webp', alt: 'Step 4: choose one offer and a backup', chip: 'Step 4', caption: 'Make one offer, pick a backup, and submit.' },
+  ]}
+  ratio="868 / 616"
+/>
+
+### Student: dashboard and results
+
+<Row
+  items={[
+    { src: '/Assets/design/uiux/nuhire/student-dash-invite.webp', alt: 'Student dashboard with a waiting-room invite', chip: 'Invited', caption: 'An invite appears when an instructor starts a session.' },
+    { src: '/Assets/design/uiux/nuhire/student-dash.webp', alt: 'Student dashboard with classes and résumé', chip: 'Dashboard', caption: 'Classes, a join-by-code box and your résumé.' },
+  ]}
+  ratio="540 / 384"
+  fit="contain"
+/>
+
+<Row
+  mat
+  items={[
+    { src: '/Assets/design/uiux/nuhire/student-results-class.webp', alt: 'Results: your offer compared with the class', chip: 'Results', caption: 'Your offer, your funnel and how the class split.' },
+    { src: '/Assets/design/uiux/nuhire/student-results.webp', alt: 'Results across classes: time, top pick and candidate calls', chip: 'All classes', caption: 'Results across classes, with your calls against the class.' },
+  ]}
+  ratio="1 / 1"
+/>
+
+### Professor: dashboard
+
+The professor's home is built around one question: is anything running right now? A live session takes over the top of the page; otherwise, each class card leads to its students and groups, sessions, jobs and résumés, and settings.
+
+<Row
+  cols={2}
+  items={[
+    { src: '/Assets/design/uiux/nuhire/prof-dash-live.webp', alt: 'Professor dashboard with a live session', chip: 'Live', caption: 'A live session, with who is in and time left.' },
+    { src: '/Assets/design/uiux/nuhire/prof-dash-idle.webp', alt: 'Professor dashboard with no session running', chip: 'Idle', caption: 'Nothing running: start a session from any class.' },
+    { src: '/Assets/design/uiux/nuhire/prof-dash-sessions.webp', alt: 'Sessions tab with modes, times and summaries', chip: 'Sessions', caption: 'Sessions set up ahead of class, each with a mode and length.' },
+    { src: '/Assets/design/uiux/nuhire/prof-dash-jobs.webp', alt: 'Jobs and résumés tab', chip: 'Jobs', caption: 'Jobs, with résumés drawn from a shared library.' },
+    { src: '/Assets/design/uiux/nuhire/prof-dash-empty.webp', alt: 'First-time empty state in three steps', chip: 'First run', caption: 'A first-time state: create a class, share the code, set up a session.' },
+    { src: '/Assets/design/uiux/nuhire/prof-dash-settings.webp', alt: 'Class settings: rename, reset code, co-instructors, archive', chip: 'Settings', caption: 'Class settings, including co-instructors and archiving.' },
+  ]}
+  ratio="692 / 564"
+  fit="contain"
+/>
+
+### Professor: live session and debrief
+
+<Row
+  cols={2}
+  items={[
+    { src: '/Assets/design/uiux/nuhire/prof-overview.webp', alt: 'Live overview: attendance, steps, progress by group, needs attention', chip: 'Overview', caption: 'Open and lock steps, watch progress by group, nudge anyone stuck.' },
+    { src: '/Assets/design/uiux/nuhire/prof-students.webp', alt: 'Student roster with a detail panel', chip: 'Students', caption: "A student's decisions and qualifications; their notes stay private." },
+    { src: '/Assets/design/uiux/nuhire/prof-debrief.webp', alt: 'Debrief: who got the offer, where groups landed, release toggles', chip: 'Debrief', caption: 'Choose what students see, then release results.' },
+    { src: '/Assets/design/uiux/nuhire/prof-present.webp', alt: 'Present mode: who got the offer, for the projector', chip: 'Present', caption: 'Present mode, for walking the class through the results.' },
+  ]}
+  ratio="868 / 616"
+/>
+
+## Outcome
+
+The front end is being rebuilt from scratch. The design system, the component set and the primary pages for both roles are designed and being prepared for development.
+
+## Next Steps
+
+Run through a user research flow test and continue building out/refining user pages to transform lo-fis into polished pages for dev-ready implementation

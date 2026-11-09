@@ -1,0 +1,399 @@
+---
+/*
+  PhotoLightbox — full-screen viewer for the Photography section.
+
+  A native <dialog> (showModal): focus is trapped, Esc closes, and focus returns
+  to the tile that opened it. Shows the 2000px derivative, steps with ← / →, the
+  buttons, or a horizontal swipe, and preloads the neighbouring photos. The
+  title + location sit in a TOP BAR beside the close button, so the photo keeps
+  the whole stage (picked from the caption prototype).
+
+  Opening: masonry tiles ([data-photo]) open on a pointer TAP (down→up with ≤10px
+  travel), NOT native click. The columns are drifting, so a press and its
+  release land on different elements and the browser never fires `click`. This is
+  the same bug and fix as the 3D viewer (design-model-viewer.ts). Keyboard
+  activation still arrives as a click with detail 0. Any [data-photo-open="<i>"]
+  button (the section's "view all") opens at that index.
+*/
+import { Icon } from 'astro-icon/components';
+import type { Photo } from '../../lib/photos';
+
+interface Props {
+  photos: Photo[];
+}
+const { photos } = Astro.props;
+const data = photos.map((p) => ({
+  src: p.full,
+  alt: p.alt,
+  w: p.width,
+  h: p.height,
+  title: p.title ?? '',
+  location: p.location ?? '',
+}));
+---
+
+<dialog class="plb" id="photoLightbox" aria-label="Photograph viewer" data-photos={JSON.stringify(data)}>
+  <header class="plb__bar" aria-live="polite" aria-atomic="true">
+    <p class="plb__t" data-plb-t></p>
+    <span class="plb__l" data-plb-l-wrap>
+      <Icon name="mdi:map-marker" />
+      <span data-plb-l></span>
+    </span>
+    <span class="plb__count" data-plb-n></span>
+  </header>
+  <figure class="plb__frame" data-plb-frame>
+    <img class="plb__img" alt="" decoding="async" />
+  </figure>
+  <button class="plb__btn plb__close" type="button" data-plb-close aria-label="Close viewer">
+    <Icon name="mdi:close" />
+  </button>
+  <button class="plb__btn plb__prev" type="button" data-plb-step="-1" aria-label="Previous photograph">
+    <Icon name="mdi:chevron-left" />
+  </button>
+  <button class="plb__btn plb__next" type="button" data-plb-step="1" aria-label="Next photograph">
+    <Icon name="mdi:chevron-right" />
+  </button>
+</dialog>
+
+<style>
+  .plb {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #e9e2d2;
+    overflow: hidden;
+  }
+  .plb[open] {
+    display: grid;
+    place-items: center;
+    animation: plbIn 0.3s ease;
+  }
+  .plb::backdrop {
+    background: rgba(8, 14, 26, 0.92);
+  }
+  /* Top bar: title · location on the left, counter on the right, clear of the
+     close button (44px + 16px inset). */
+  .plb__bar {
+    position: fixed;
+    z-index: 2;
+    top: 16px;
+    left: 24px;
+    right: 76px;
+    min-height: 44px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 14px;
+    row-gap: 4px;
+  }
+  .plb__t {
+    margin: 0;
+    font: 600 18px/1.2 var(--dp-font-body, 'Archivo', sans-serif);
+    color: #f3efe6;
+  }
+  .plb__l {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font: 600 12px/1.2 var(--dp-font-body, 'Archivo', sans-serif);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(233, 226, 210, 0.75);
+  }
+  .plb__l[hidden] {
+    display: none;
+  }
+  .plb__l :global(svg) {
+    width: 13px;
+    height: 13px;
+  }
+  .plb__frame {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 84px 84px 28px;
+    max-width: 100%;
+  }
+  .plb__img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: min(92vw, 1600px);
+    max-height: calc(100dvh - 124px);
+    object-fit: contain;
+    border-radius: 3px;
+    box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.9);
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  .plb__count {
+    margin-left: auto;
+    font-family: var(--dp-font-body, 'Archivo', sans-serif);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    font-variant-numeric: tabular-nums;
+    color: rgba(233, 226, 210, 0.7);
+  }
+  /* Controls: dark islands with the shared button model (fill rises on hover). */
+  .plb__btn {
+    position: absolute;
+    isolation: isolate;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid rgba(233, 226, 210, 0.2);
+    border-radius: 5px;
+    background: rgba(22, 35, 58, 0.72);
+    color: #e9e2d2;
+    cursor: pointer;
+    transition: color 0.3s ease, border-color 0.3s ease;
+  }
+  .plb__btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: #f5a045;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.075, 0.82, 0.165, 1);
+  }
+  .plb__btn:hover,
+  .plb__btn:focus-visible {
+    color: #16233a;
+    border-color: #f5a045;
+    outline: none;
+  }
+  .plb__btn:hover::before,
+  .plb__btn:focus-visible::before {
+    transform: none;
+  }
+  .plb__btn :global(svg) {
+    width: 24px;
+    height: 24px;
+  }
+  .plb__close {
+    top: 16px;
+    right: 16px;
+  }
+  .plb__prev,
+  .plb__next {
+    top: 50%;
+    margin-top: -22px;
+  }
+  .plb__prev {
+    left: 16px;
+  }
+  .plb__next {
+    right: 16px;
+  }
+  @keyframes plbIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .plb[open] {
+      animation: none;
+    }
+  }
+  :global(html[data-sim-reduced]) .plb[open] {
+    animation: none;
+  }
+  /* Lock the page behind the open viewer. */
+  :global(html.plb-open) {
+    overflow: hidden;
+  }
+  @media (max-width: 768px) {
+    .plb__bar {
+      left: 16px;
+    }
+    .plb__t {
+      font-size: 16px;
+    }
+    /* Room for a bar that may wrap to two lines (title / location). */
+    .plb__frame {
+      padding: 96px 12px 72px;
+    }
+    .plb__img {
+      max-width: calc(100vw - 24px);
+      max-height: calc(100dvh - 168px);
+    }
+    /* Arrows move to the bottom corners, off the photo. */
+    .plb__prev,
+    .plb__next {
+      top: auto;
+      bottom: 16px;
+      margin-top: 0;
+    }
+  }
+</style>
+
+<script>
+  import { onPageReady } from '../../lib/motion/lifecycle';
+
+  interface Item {
+    src: string;
+    alt: string;
+    w: number;
+    h: number;
+    title: string;
+    location: string;
+  }
+
+  const TAP = 10; // px of travel that still counts as a tap, not a scroll/drag
+  const SWIPE = 50; // px of horizontal travel that steps the viewer
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  onPageReady('#photoLightbox', () => {
+    const dlg = document.getElementById('photoLightbox') as HTMLDialogElement | null;
+    if (!dlg) return;
+    let items: Item[] = [];
+    try {
+      items = JSON.parse(dlg.dataset.photos || '[]');
+    } catch {
+      return;
+    }
+    if (!items.length) return;
+
+    const img = dlg.querySelector<HTMLImageElement>('.plb__img')!;
+    const count = dlg.querySelector<HTMLElement>('[data-plb-n]')!;
+    const titleEl = dlg.querySelector<HTMLElement>('[data-plb-t]')!;
+    const locEl = dlg.querySelector<HTMLElement>('[data-plb-l]')!;
+    const locWrap = dlg.querySelector<HTMLElement>('[data-plb-l-wrap]')!;
+    const frame = dlg.querySelector<HTMLElement>('[data-plb-frame]')!;
+    const n = items.length;
+    let idx = 0;
+    let opener: HTMLElement | null = null;
+
+    const preload = (i: number) => {
+      const p = items[(i + n) % n];
+      if (p) new Image().src = p.src;
+    };
+    const show = (i: number) => {
+      idx = (i + n) % n;
+      const p = items[idx];
+      img.src = p.src;
+      img.alt = p.alt;
+      if (p.w && p.h) {
+        img.width = p.w;
+        img.height = p.h;
+      } else {
+        img.removeAttribute('width');
+        img.removeAttribute('height');
+      }
+      titleEl.textContent = p.title;
+      locEl.textContent = p.location;
+      locWrap.hidden = !p.location;
+      count.textContent = `${pad(idx + 1)} / ${pad(n)}`;
+      preload(idx + 1);
+      preload(idx - 1);
+    };
+    const open = (i: number, from?: HTMLElement | null) => {
+      if (dlg.open) return;
+      opener = from ?? (document.activeElement as HTMLElement | null);
+      show(i);
+      document.documentElement.classList.add('plb-open');
+      dlg.showModal();
+    };
+    const onClose = () => {
+      document.documentElement.classList.remove('plb-open');
+      opener?.focus?.({ preventScroll: true });
+      opener = null;
+    };
+    dlg.addEventListener('close', onClose);
+
+    // ---- Opening from the masonry (tap) + keyboard ----
+    let down: { x: number; y: number; i: number; el: HTMLElement } | null = null;
+    const onDown = (e: PointerEvent) => {
+      if (e.button !== 0 || dlg.open) return;
+      const t = (e.target as Element | null)?.closest<HTMLElement>('[data-photo]');
+      down = t ? { x: e.clientX, y: e.clientY, i: Number(t.dataset.photo), el: t } : null;
+    };
+    const onUp = (e: PointerEvent) => {
+      const d = down;
+      down = null;
+      if (d && Math.hypot(e.clientX - d.x, e.clientY - d.y) <= TAP) open(d.i, d.el);
+    };
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Element | null;
+      const tile = target?.closest<HTMLElement>('[data-photo]');
+      if (tile) {
+        e.preventDefault();
+        // Pointer taps were already handled on pointerup; detail 0 = keyboard.
+        if (e.detail === 0) open(Number(tile.dataset.photo), tile);
+        return;
+      }
+      const trigger = target?.closest<HTMLElement>('[data-photo-open]');
+      if (trigger) {
+        e.preventDefault();
+        open(Number(trigger.dataset.photoOpen) || 0, trigger);
+      }
+    };
+    document.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointerup', onUp);
+    document.addEventListener('click', onClick);
+
+    // ---- Inside the viewer ----
+    // A swipe that ends over the surround would otherwise land as a "click outside".
+    let swallowClick = false;
+    dlg.addEventListener('click', (e) => {
+      if (swallowClick) {
+        swallowClick = false;
+        return;
+      }
+      const t = e.target as Element;
+      const step = t.closest<HTMLElement>('[data-plb-step]');
+      if (step) return show(idx + Number(step.dataset.plbStep));
+      if (t.closest('[data-plb-close]')) return dlg.close();
+      // A click on the dark surround (not the photo or a control) closes.
+      if (t === dlg || t === frame) dlg.close();
+    });
+    dlg.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        show(idx + 1);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        show(idx - 1);
+      }
+    });
+    let swipe: { x: number; y: number } | null = null;
+    dlg.addEventListener('pointerdown', (e) => {
+      swipe = { x: e.clientX, y: e.clientY };
+      swallowClick = false; // a touch swipe may never produce a click to consume it
+    });
+    dlg.addEventListener('pointerup', (e) => {
+      if (!swipe) return;
+      const dx = e.clientX - swipe.x;
+      const dy = e.clientY - swipe.y;
+      swipe = null;
+      if (Math.abs(dx) > SWIPE && Math.abs(dx) > Math.abs(dy)) {
+        swallowClick = true;
+        show(idx + (dx < 0 ? 1 : -1));
+      }
+    });
+
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointerup', onUp);
+      document.removeEventListener('click', onClick);
+      if (dlg.open) dlg.close();
+      document.documentElement.classList.remove('plb-open');
+    };
+  });
+</script>

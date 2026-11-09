@@ -1,0 +1,176 @@
+---
+title: Northeastern Library Site
+category: 'uiux'
+tags: []
+year: 2026
+tools: [Figma]
+cover: /Assets/design/uiux/nu-library/mockup.webp
+order: 4
+href: 'https://www.figma.com/design/5ArWJDyGbbouyJloLDe1uE/F-26-Sandbox-Tadpole-Design-Challenge-Template--Copy-?node-id=3-2'
+
+# ---- Case study (draft: built in `astro dev` only, see docs/case-study-template.md) ----
+caseStudy: true
+draft: true
+summary: A redesign of Snell Library's room-booking calendar, built around the student who needs a room right now.
+role: Solo design challenge
+timeline: Fall 2026, about 5 hours
+team: Sandbox Tadpole design challenge
+links:
+  - label: View Figma file
+    href: https://www.figma.com/design/5ArWJDyGbbouyJloLDe1uE/F-26-Sandbox-Tadpole-Design-Challenge-Template--Copy-?node-id=3-2
+    primary: true
+coverCaption: The redesigned browse view, filtered to a 2:30 to 4:00 PM window.
+glance:
+  - label: Problem
+    text: The library calendar shows every room as one wall of time slots. Finding something open soon means scanning, scrolling, and three confirmation pages.
+  - label: Approach
+    text: A filter sidebar and a list sorted by what's open closest to now, with a quick-book path and editable bookings at every step.
+  - label: Outcome
+    text: A browse-to-confirmation flow in Figma with quick book, saved bookings, an empty state, and a small design system.
+---
+
+{/*
+  Content from the challenge's Figma file (Research, Ideation, Design pages).
+  Figures are cropped from 1600px page renders; swap in full-resolution frame
+  exports when you can (Figma MCP hit its plan limit mid-build).
+*/}
+
+## Context
+
+Sandbox's Tadpole design challenge asked for a redesign of Northeastern's Library Calendar, the tool students use to find and book rooms in Snell Library. The brief offered four directions: rethink the availability calendar, rethink the booking flow, fix accessibility pain points, or add features. I took on the first two together, since finding a room and booking it are one task for the person doing it.
+
+The challenge was scoped to about five hours and graded on reasoning more than polish: research, ideation, then wireframes, with notes explaining each decision.
+
+<Callout>How might we get a busy student from "I need a room" to a confirmed booking in as few steps as possible?</Callout>
+
+<Steps
+  steps={[
+    { label: 'Research', note: '1 hr' },
+    { label: 'Ideation', note: '1 hr' },
+    { label: 'Design', note: '2 hrs' },
+    { label: 'Reasoning', note: '1 hr' },
+  ]}
+/>
+
+## Research
+
+I started by booking a room on the live tool and annotating every point of friction.
+
+<Row
+  mat
+  items={[
+    { src: '/Assets/design/uiux/nu-library/ui-evaluation.webp', alt: 'Annotated screenshots of the current Library Calendar booking flow', label: 'Fig. 01', caption: 'UI evaluation of the current booking flow.' },
+    { src: '/Assets/design/uiux/nu-library/inspiration.webp', alt: 'Inspiration board: Northeastern homepage, Squire and Wanderu', label: 'Fig. 02', caption: 'Inspiration: Northeastern, Squire and Wanderu.' },
+  ]}
+/>
+
+A few problems stood out:
+
+- The calendar is a huge wall of time slots, and the colour key that explains it sits at the bottom of the page.
+- "Seat Style" is loosely defined, and the collapsing menu repeats the same filter.
+- A full month view doesn't fit how students book: most need a room today or tomorrow.
+- The booking details page adds friction, "Continue" leads to yet another menu, and a booking can't be edited once it's confirmed.
+- Confirmed bookings are hard to find, and the list is hard to scan.
+
+For inspiration I looked at three products. **Northeastern's own homepage** offered high contrast, bold type and a modified shape language to bring in. **Squire**, a booking tool for barbers, has a fast linear flow with a running receipt beside it. A barbershop client and a student booking a room share the same job: reserve a block of time at short notice, quickly. **Wanderu** filters out what isn't available and puts the best options on top, which is exactly what a room list needs.
+
+## Define
+
+Mapping who uses the calendar showed two branches: students studying, solo or in groups, and students booking for social or recreational use. Each needs a different kind of room.
+
+<Row
+  items={[
+    { src: '/Assets/design/uiux/nu-library/audience.webp', alt: 'Diagram of Northeastern students branching by goal and group size', label: 'Fig. 03', caption: 'Who books, and what they need the room for.' },
+    { src: '/Assets/design/uiux/nu-library/user-flow.webp', alt: 'User flow from opening the site to a confirmed booking', label: 'Fig. 04', caption: 'The target flow, with quick book as a shortcut.' },
+  ]}
+  ratio="16 / 10"
+/>
+
+<Cards
+  items={[
+    { title: 'Students are on the go', text: 'Booking has to be fast on mobile and desktop, with minimal UI, an easy checkout, and login shown up front instead of at the last step.' },
+    { title: 'Schedules are sporadic', text: 'The main case is "I need to study tomorrow, or now", not "in two months". Changing a time or cancelling has to be quick.' },
+    { title: 'Lists overwhelm', text: 'A wall of rooms needs visual guides: availability at a glance, and ideally a map or building view.' },
+    { title: 'Filters people use', text: 'Whiteboards, displays, capacity, recording gear, outlets and noise isolation, as quick tags rather than nested menus.' },
+  ]}
+/>
+
+## Design
+
+The guiding rule was to reduce how much a student has to think. The default view assumes the common case (solo, studying, any open room as soon as possible), so most people never touch a filter.
+
+<Figure src="/Assets/design/uiux/nu-library/cover.webp" alt="Redesigned browse view with filter sidebar and three matching rooms" ratio="1633 / 1162" caption="Browse: a filter sidebar, active-filter chips, and each room's day as one timeline." />
+
+### A sidebar for the student who needs a room now
+
+Most students are looking to book now and will take anything open, so filters live in a sidebar alongside the results instead of in a form you fill out first. Quick-search tags handle the big cuts, and each listing shows a summary with its open slots inside your window.
+
+Results sort by what matters most when you're in a hurry:
+
+1. Open time slots closest to the current time and date
+2. Duration, up to the maximum reservation length
+3. Larger capacity and accessible seating
+4. Whiteboards, TVs, outlets and other features
+5. Location
+
+<Row
+  items={[
+    { src: '/Assets/design/uiux/nu-library/browse.webp', alt: 'Browse results with three rooms', chip: 'Results', caption: '"Best match" goes to the room that fits your window.' },
+    { src: '/Assets/design/uiux/nu-library/no-results.webp', alt: 'No rooms available for the selected filters', chip: 'Empty state', caption: 'No match still suggests similar rooms.' },
+  ]}
+  ratio="7 / 5"
+/>
+
+### Booking without the detours
+
+Picking a room opens a detail card with photos, features and a draggable time range. **Quick book** goes straight to the library's single sign-on and confirms. **Add to list** doesn't require logging in, but a banner explains that saved bookings need an account to keep.
+
+<Row
+  items={[
+    { src: '/Assets/design/uiux/nu-library/quick-book.webp', alt: 'Room detail with photo, features and quick book button', chip: 'Quick book', caption: 'One card from room to booking.' },
+    { src: '/Assets/design/uiux/nu-library/confirmed.webp', alt: 'Booking confirmed page with edit and cancel actions', chip: 'Confirmed', caption: 'Edit or cancel right from the confirmation.' },
+  ]}
+  ratio="7 / 5"
+/>
+
+<Row
+  items={[
+    { src: '/Assets/design/uiux/nu-library/my-bookings.webp', alt: 'My Bookings with upcoming and saved bookings', chip: 'My bookings', caption: 'Coming up, plus saved rooms to book together.' },
+    { src: '/Assets/design/uiux/nu-library/multi-confirmed.webp', alt: 'Two bookings confirmed at once', chip: 'Multi-booking', caption: 'Several saved rooms confirmed in one go.' },
+  ]}
+  ratio="7 / 5"
+/>
+
+### Design system
+
+The shape language has three pieces: solid blocks for primary actions, bordered blocks for secondary ones, and rounded chips for filters and features.
+
+<Figure src="/Assets/design/uiux/nu-library/components.webp" alt="Component explorations: chips, time picker, calendar, date stepper and sketches" ratio="534 / 291" caption="Component explorations: feature chips, time picker, calendar and sketches." />
+
+<Palette
+  colors={[
+    { name: 'NU Red', hex: '#d41b2c' },
+    { name: 'Black', hex: '#000000' },
+    { name: 'Surface', hex: '#ececec' },
+    { name: 'White', hex: '#ffffff' },
+  ]}
+  font={{
+    family: "'Lato', sans-serif",
+    note: 'Lato: sentence case, with all caps for small labels',
+    href: 'https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap',
+    weights: [
+      { label: 'Regular', weight: 400 },
+      { label: 'Bold', weight: 700 },
+      { label: 'Black', weight: 900 },
+    ],
+  }}
+/>
+
+## Reflection
+
+<Columns
+  cols={[
+    { label: 'What worked', items: ['Designing the default sort around the most common case, so most students never need a filter', 'Keeping editing and cancelling available at every step instead of only after confirming'] },
+    { label: 'Next time', items: ['Test the flow with students booking a real room', 'Explore the map or building view the research pointed to', 'Run an accessibility pass on the timeline colours'] },
+  ]}
+/>

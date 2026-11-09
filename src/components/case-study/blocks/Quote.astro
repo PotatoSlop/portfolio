@@ -1,0 +1,13 @@
+---
+/* Pull quote with attribution. A bare Markdown `> quote` gets the same look,
+   minus the cite. Slot = the quote text. */
+interface Props {
+  cite?: string;
+}
+const { cite } = Astro.props;
+---
+
+<blockquote class="cs-quote">
+  <div class="cs-quote__text"><slot /></div>
+  {cite && <cite>{cite}</cite>}
+</blockquote>

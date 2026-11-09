@@ -1,0 +1,295 @@
+---
+import Base from '../layouts/Base.astro';
+import { Icon } from 'astro-icon/components';
+import { animate, scroll } from "motion"
+---
+
+<Base title="Dylan Chen - Engineering, Developer, and Design Portfolio">
+  <main>
+    <section class="landing">
+      <div class="job-role-container">
+        <h2 class="typewriter-animation"></h2>
+        <div id="category-drop-zone">
+          <span class="placeholder-text">[Drop Here]</span>
+        </div>
+      </div>
+
+      <h1 id="scroll-title">DYLAN</h1>
+    </section>
+
+    <aside class="bottom-gif" aria-hidden="true">
+      <img height="844" width="636" src="/Assets/motion/wavingDude.gif" data-freeze="/Assets/motion/wavingDude-static.png" alt="Waving Dude" />
+    </aside>
+  </main>
+
+  <div class="scroll-down-text wave-text">
+    <span class="arrow-icon" aria-hidden="true">
+      <Icon name="tabler:arrow-down" />
+    </span>
+
+    <span>S</span><span>c</span><span>r</span><span>o</span><span>l</span><span>l</span>
+    <span style="margin-left:0.5ch;"></span>
+    <span>D</span><span>o</span><span>w</span><span>n</span>
+  </div>
+
+  <div
+    class="category-select"
+    role="group"
+    aria-label="Drag and drop job roles"
+    id="role-instructions"
+  >
+    <span id="Engineer" class="draggable-item" draggable="true">
+      <span class="bracket" aria-hidden="true">[</span>Engineer<span class="bracket" aria-hidden="true">]</span>
+    </span>
+    <span id="Designer" class="draggable-item" draggable="true">
+      <span class="bracket" aria-hidden="true">[</span>Designer<span class="bracket" aria-hidden="true">]</span>
+    </span>
+    <span id="Developer" class="draggable-item" draggable="true">
+      <span class="bracket" aria-hidden="true">[</span>Developer<span class="bracket" aria-hidden="true">]</span>
+    </span>
+  </div>
+
+  <section class="temp-section"></section>
+
+  <script>
+    import { navigate } from 'astro:transitions/client';
+    import { onPageReady } from '../lib/motion/lifecycle';
+
+    // Step 4a: intro animation — ported from the intro portion of
+    // landing-page.js (typewriter types "Hi! I'm", then the DYLAN title + gif +
+    // scroll hint reveal; scroll is locked during the intro).
+    //
+    // Runs on astro:page-load so it also replays when navigating back to "/".
+    const initialText = "Hi! I'm";
+    const typingSpeed = 100; // ms per character
+
+    // Set true once the intro finishes; gates the scroll handler (4b) so it
+    // doesn't fire mid-intro. Module-scoped so both functions share it.
+    let introComplete = false;
+    let scrollFadeTimeout: ReturnType<typeof setTimeout> | undefined;
+
+    function sleep(ms: number) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function initLandingIntro() {
+      const typewriter = document.querySelector('.typewriter-animation') as HTMLElement | null;
+      const title = document.getElementById('scroll-title');
+      const gif = document.querySelector('.bottom-gif') as HTMLElement | null;
+      const scrollDown = document.querySelector('.scroll-down-text') as HTMLElement | null;
+      if (!typewriter) return;
+
+      introComplete = false; // replaying the intro (e.g. navigated back to "/")
+
+      const wordDelay = Math.random() * 50 + 150; // 150–200ms pause after a word
+
+      // Reset to the pre-intro hidden state.
+      if (title) {
+        title.style.transform = 'translateY(200px)';
+        title.style.opacity = '0';
+      }
+      if (gif) {
+        gif.style.transform = 'translateY(100px)';
+        gif.style.opacity = '0';
+      }
+      if (scrollDown) scrollDown.style.opacity = '0';
+
+      document.body.classList.add('no-scroll');
+      window.scrollTo(0, 0);
+
+      const revealPage = () => {
+        setTimeout(() => {
+          if (title) {
+            title.style.transition =
+              'transform 0.7s cubic-bezier(.2,1.2,.6,1), opacity 0.5s';
+            title.style.transform = 'translateY(0)';
+            title.style.opacity = '1';
+          }
+          if (gif) {
+            gif.style.transition =
+              'transform 1.2s cubic-bezier(.4,1.25,.6,1), opacity 0.5s';
+            gif.style.transform = 'translateY(0)';
+            gif.style.opacity = '1';
+          }
+          if (title) {
+            title.addEventListener('transitionend', function handler(e) {
+              if (e.propertyName === 'transform') {
+                document.body.classList.remove('no-scroll');
+                if (scrollDown) {
+                  scrollDown.style.transition = 'opacity 0.7s';
+                  scrollDown.style.opacity = '1';
+                }
+                introComplete = true; // scroll handler (4b) may now act
+                title.removeEventListener('transitionend', handler);
+              }
+            });
+          }
+        }, 250); // initial delay before the reveal kicks off
+      };
+
+      const typeIntro = async () => {
+        typewriter.textContent = '';
+        for (const char of initialText) {
+          typewriter.textContent += char;
+          await sleep(char === ' ' ? typingSpeed + wordDelay : typingSpeed);
+        }
+        revealPage();
+      };
+
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        typeIntro();
+      }, 250);
+    }
+
+    // Step 4b: scroll-reveal. Past ~300px the typewriter shifts to "Hi! I'm a"
+    // and the drop zone + role bank slide in (.scrolled); scrolling back to the
+    // top reverses it. The title fades on scroll and the scroll hint blinks out.
+    function onScroll() {
+      const typewriter = document.querySelector('.typewriter-animation') as HTMLElement | null;
+      if (!typewriter || !introComplete) return; // only on the landing, post-intro
+
+      const title = document.getElementById('scroll-title');
+      const scrollDown = document.querySelector('.scroll-down-text') as HTMLElement | null;
+      const reveals = [
+        document.querySelector('.category-select'),
+        document.getElementById('category-drop-zone'),
+      ];
+
+      const scrollY = window.scrollY;
+      const triggerPoint = 300;
+
+      if (scrollY > triggerPoint) {
+        typewriter.classList.add('scrolled', 'shift-left');
+        if (typewriter.textContent === initialText) typewriter.textContent += ' a';
+        reveals.forEach((el) => el?.classList.add('scrolled'));
+      } else {
+        typewriter.textContent = initialText;
+        typewriter.classList.remove('scrolled', 'shift-left');
+        reveals.forEach((el) => el?.classList.remove('scrolled'));
+      }
+
+      // Scroll hint fades out while scrolling, back in when near the top.
+      if (scrollDown) {
+        scrollDown.style.opacity = '0';
+        clearTimeout(scrollFadeTimeout);
+        scrollFadeTimeout = setTimeout(() => {
+          if (window.scrollY < 10 && introComplete) scrollDown.style.opacity = '1';
+        }, 900);
+      }
+
+      // Title fades out as you scroll down.
+      if (title) {
+        const fadeEnd = 200;
+        title.style.opacity = String(1 - Math.min(scrollY / fadeEnd, 1));
+      }
+    }
+
+    // Step 4c: drag-and-drop → navigate.
+    // Drag a role chip into the drop zone → the "a/an" article updates and the
+    // chip docks next to it → fade out + navigate to that discipline.
+    // Re-wired per astro:page-load because the chips/zone are recreated on nav.
+    function wireDrag() {
+      const typewriter = document.querySelector('.typewriter-animation') as HTMLElement | null;
+      const dropZone = document.getElementById('category-drop-zone');
+      const categorySelect = document.querySelector('.category-select');
+      const placeholder = document.querySelector('.placeholder-text') as HTMLElement | null;
+      const items = Array.from(document.querySelectorAll<HTMLElement>('.draggable-item'));
+      if (!typewriter || !dropZone || !categorySelect || !placeholder || items.length === 0) return;
+
+      const redirects: Record<string, string> = {
+        Engineer: '/engineering',
+        Designer: '/design',
+        Developer: '/software',
+      };
+
+      const initialOrder = items.map((it) => it.id);
+
+      const updateArticle = (text: string) => {
+        const article = /^[aeiou]/i.test(text) ? ' an' : ' a';
+        typewriter.textContent = initialText + article;
+      };
+
+      // Return a chip to its original slot in the bank (preserving order).
+      const returnToBank = (el: HTMLElement) => {
+        const idx = initialOrder.indexOf(el.id);
+        let nextSibling: Element | null = null;
+        for (let i = idx + 1; i < initialOrder.length; i++) {
+          const sib = categorySelect.querySelector('#' + initialOrder[i]);
+          if (sib) { nextSibling = sib; break; }
+        }
+        if (nextSibling) categorySelect.insertBefore(el, nextSibling);
+        else categorySelect.appendChild(el);
+      };
+
+      items.forEach((item) => {
+        item.addEventListener('dragstart', (e) => {
+          e.dataTransfer?.setData('text/plain', item.id);
+          if (!dropZone.querySelector('.draggable-item')) {
+            placeholder.textContent = item.id;
+            updateArticle(item.id);
+            item.style.opacity = '0';
+          }
+        });
+        item.addEventListener('dragend', () => {
+          placeholder.textContent = '';
+          item.style.opacity = '1';
+        });
+      });
+
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        updateArticle(placeholder.textContent || '');
+      });
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const id = e.dataTransfer?.getData('text/plain');
+        if (!id) return;
+        const dragged = document.getElementById(id);
+        if (!dragged) return;
+        const existing = dropZone.querySelector('.draggable-item') as HTMLElement | null;
+        if (existing) returnToBank(existing);
+        dropZone.appendChild(dragged);
+        updateArticle(id);
+        const url = redirects[id];
+        if (url) {
+          // SPA navigation (not window.location) so the home page uses the same
+          // ClientRouter lifecycle as the pull-tabs / navbar — one uniform routing
+          // model. The fade-out plays for the dwell, then the landing's teardown
+          // (below) clears it right before the swap so the destination is clean.
+          document.body.classList.add('fade-out');
+          setTimeout(() => { navigate(url); }, 500);
+        }
+      });
+
+      // Dropping back onto the bank returns the chip.
+      categorySelect.addEventListener('dragover', (e) => e.preventDefault());
+      categorySelect.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const id = (e as DragEvent).dataTransfer?.getData('text/plain');
+        const dragged = id ? document.getElementById(id) : null;
+        if (dragged) returnToBank(dragged);
+      });
+      categorySelect.addEventListener('dragenter', () => categorySelect.classList.add('drag-over'));
+      categorySelect.addEventListener('dragleave', () => categorySelect.classList.remove('drag-over'));
+    }
+
+    // onPageReady mounts on every page-load AND as a first-SPA-entry catch-up
+    // (see src/lib/motion/lifecycle.ts). The teardown clears the body flags the
+    // intro sets — they'd otherwise ride the persistent <body> onto the next page
+    // (no-scroll would lock it; fade-out would leave it invisible after the drag
+    // navigation) — and cancels the pending scroll-hint fade.
+    onPageReady('.landing', () => {
+      initLandingIntro();
+      wireDrag();
+      return () => {
+        document.body.classList.remove('no-scroll', 'fade-out');
+        clearTimeout(scrollFadeTimeout);
+        introComplete = false;
+      };
+    });
+    // Bound ONCE (window persists across View Transitions) to avoid listener
+    // leaks; it queries elements fresh and no-ops when off the landing.
+    window.addEventListener('scroll', onScroll);
+  </script>
+</Base>

@@ -1,0 +1,22 @@
+---
+/* Labelled list cards side by side — e.g. "What worked" / "Next time". */
+interface Props {
+  cols: { label: string; items: string[] }[];
+}
+const { cols } = Astro.props;
+---
+
+<div class="cs-cols cs-wide">
+  {
+    cols.map((c) => (
+      <article>
+        <span class="cs-k">{c.label}</span>
+        <ul>
+          {c.items.map((it) => (
+            <li>{it}</li>
+          ))}
+        </ul>
+      </article>
+    ))
+  }
+</div>

@@ -1,0 +1,125 @@
+---
+/*
+  Design case study — /design/<id>.
+
+  A design entry gets a page once it sets `caseStudy: true` (src/content.config.ts).
+  `draft: true` builds the page ONLY under `astro dev`, so a study can be laid out
+  and iterated on locally without shipping. hasLiveCaseStudy() gates both this
+  route and the gallery cards (src/lib/design-links.ts), so no card ever links to
+  a page that wasn't built.
+
+  `wip: true` locks a study instead: the page is built in every build, but it
+  renders only the hero plus the shared StubNotice. Its cover, glance, links,
+  body and gallery are withheld until the flag is removed.
+
+  The page itself is the shared, theme-agnostic CaseStudy template
+  (src/components/case-study/CaseStudy.astro). This route only maps the design
+  entry onto its props; the study's .mdx body is rendered with the template
+  blocks available by name. Authoring guide: docs/case-study-template.md.
+*/
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
+import Base from '../../layouts/Base.astro';
+import CaseStudy from '../../components/case-study/CaseStudy.astro';
+import { caseStudyBlocks } from '../../components/case-study/blocks';
+import StubNotice from '../../components/case-study/StubNotice.astro';
+import { hasLiveCaseStudy, isWipStudy, caseLayoutOf } from '../../lib/design-links';
+
+export const getStaticPaths = (async () => {
+  const all = (await getCollection('design')).sort((a, b) => a.data.order - b.data.order);
+  const studies = all.filter(hasLiveCaseStudy);
+  // `wip: true` studies get a page too, but it's the shared stub, and they
+  // never appear in the "next study" rotation.
+  const stubs = all.filter(isWipStudy);
+
+  return [
+    ...studies.map((entry, i) => ({
+      params: { slug: entry.id },
+      props: {
+        entry,
+        // The "next study" card wraps around; a lone study has none.
+        next: studies.length > 1 ? studies[(i + 1) % studies.length] : undefined,
+      },
+    })),
+    ...stubs.map((entry) => ({
+      params: { slug: entry.id },
+      props: { entry, next: studies[0] },
+    })),
+  ];
+}) satisfies GetStaticPaths;
+
+const { entry, next } = Astro.props as { entry: CollectionEntry<'design'>; next?: CollectionEntry<'design'> };
+const d = entry.data;
+const wip = d.wip;
+const layout = wip ? 'ux' : caseLayoutOf(entry);
+// A WIP study's body is never rendered, so nothing unfinished reaches the page.
+const { Content, headings } = wip ? { Content: null, headings: [] } : await render(entry);
+
+const CATEGORY = { uiux: 'UI / UX', '2d': '2D', '3d': '3D' } as const;
+// Breadcrumb step: the category, linked to its zone on /design. "UIUX" (no
+// slash) so it can't be misread as a breadcrumb delimiter. 2D has no zone
+// (it's off the site), so it falls back to the All-work grid.
+const CRUMB = {
+  uiux: { label: 'UIUX', href: '/design#s-uiux' },
+  '3d': { label: '3D', href: '/design#s-3d' },
+  '2d': { label: '2D', href: '/design#s-grid' },
+} as const;
+
+const eyebrow = wip
+  ? [`${CATEGORY[d.category]} case study`, 'In progress'].join(' · ')
+  : (d.eyebrow ?? [`${CATEGORY[d.category]} case study`, d.year].filter(Boolean).join(' · '));
+
+const meta = [
+  d.role && { label: 'Role', value: d.role },
+  d.timeline && { label: 'Timeline', value: d.timeline },
+  d.team && { label: 'Team', value: d.team },
+  d.tools.length > 0 && { label: 'Tools', value: d.tools.join(', ') },
+  ...d.facts,
+].filter((m): m is { label: string; value: string } => Boolean(m));
+
+const toc = headings.filter((h) => h.depth === 2).map((h) => ({ slug: h.slug, text: h.text }));
+
+const cover = d.cover && !wip ?{ src: d.cover, alt: `${d.title}, cover`, caption: d.coverCaption } : undefined;
+
+const allWork = { href: '/design#s-grid', label: 'All design work' };
+
+const nextStudy = next && {
+  href: `/design/${next.id}`,
+  title: next.data.title,
+  meta: [CATEGORY[next.data.category], next.data.tools[0], next.data.year].filter(Boolean).join(' · '),
+  cover: next.data.cover,
+  cta: caseLayoutOf(next) === 'ux' ? 'Read case study' : 'View study',
+};
+---
+
+<Base title={`${d.title} — ${wip ? 'Case study in progress' : 'Case study'} — Dylan Chen`} description={d.summary} theme="design">
+  <CaseStudy
+    layout={layout}
+    crumbs={[{ label: 'Design', href: '/design' }, CRUMB[d.category], { label: d.title }]}
+    eyebrow={eyebrow}
+    title={d.title}
+    lede={d.summary}
+    meta={meta}
+    links={wip ? [] : d.links}
+    cover={cover}
+    glance={wip ? [] : d.glance}
+    toc={toc}
+    next={nextStudy}
+    all={allWork}
+    draft={d.draft && !wip}
+  >
+    {wip ? <StubNotice title={d.title} all={allWork} /> : Content && <Content components={caseStudyBlocks} />}
+
+    {
+      !wip && d.gallery.length > 0 && (
+        <section slot="after" class="cs-gallery" aria-label="Gallery">
+          {d.gallery.map((src) => (
+            <figure>
+              <img src={src} alt="" loading="lazy" decoding="async" />
+            </figure>
+          ))}
+        </section>
+      )
+    }
+  </CaseStudy>
+</Base>

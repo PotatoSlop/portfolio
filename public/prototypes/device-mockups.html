@@ -1,0 +1,520 @@
+<!doctype html>
+<!--
+  PROTOTYPE: UI/UX thumbnails inside device mockups. Throwaway, not wired into
+  Astro. View on your dev server at /prototypes/device-mockups.html.
+
+  Every device is pure CSS, sized in em (1em = 1% of the device's width), and
+  its SCREEN takes the screenshot's own aspect ratio. So a 1.85:1 landing page
+  gets a wider laptop and a 1.4:1 design gets a squarer one: nothing crops.
+
+  Each card is a 1600×1000 stage (the thumbnail size) scaled to fit. The same
+  page renders a final thumbnail with ?export=<project>&device=<d>&bg=<b>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Device mockups</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Dela+Gothic+One&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --paper: #f3efe6;
+        --ink: #16233a;
+        --muted: #6c7183;
+        --line: rgba(20, 18, 12, 0.12);
+        --accent: #f5a045;
+        --accent-deep: #b5611b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: 'Archivo', system-ui, sans-serif;
+      }
+      .page {
+        width: min(1240px, 100% - 48px);
+        margin: 0 auto;
+        padding: 48px 0 120px;
+      }
+      h1 {
+        margin: 0;
+        font: 400 clamp(36px, 5vw, 64px) / 1 'Dela Gothic One', sans-serif;
+        text-transform: uppercase;
+      }
+      .lede {
+        max-width: 64ch;
+        margin: 14px 0 28px;
+        font-size: 16px;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+      .global {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 36px;
+        font: 600 12px/1 'Archivo', sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .seg {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .seg button {
+        padding: 7px 12px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.6);
+        color: var(--ink);
+        font: 600 12px/1 'Archivo', sans-serif;
+        cursor: pointer;
+      }
+      .seg button[aria-pressed='true'] {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--paper);
+      }
+      .seg button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      .card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        gap: 28px;
+        align-items: start;
+        padding: 28px 0;
+        border-top: 1px solid var(--line);
+      }
+      .card h2 {
+        margin: 0 0 6px;
+        font: 400 26px/1 'Dela Gothic One', sans-serif;
+        text-transform: uppercase;
+      }
+      .side .k {
+        display: block;
+        margin: 16px 0 6px;
+        font: 600 11px/1 'Archivo', sans-serif;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent-deep);
+      }
+      .side .meta {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .side .now {
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        object-fit: cover;
+        border-radius: 5px;
+        border: 1px solid var(--line);
+      }
+      .viewport {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        overflow: hidden;
+        border-radius: 5px;
+        border: 1px solid var(--line);
+      }
+      @media (max-width: 860px) {
+        .card {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      /* ===== The 1600×1000 thumbnail stage ===== */
+      .stage {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1600px;
+        height: 1000px;
+        transform-origin: 0 0;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+      }
+      .stage[data-bg='cream'] {
+        background: radial-gradient(120% 90% at 50% 30%, #f8f4ec 0%, #ece5d7 60%, #e2d9c7 100%);
+      }
+      .stage[data-bg='tint'] {
+        background: radial-gradient(120% 90% at 50% 30%, color-mix(in srgb, var(--tint) 10%, #fbf9f5) 0%, color-mix(in srgb, var(--tint) 24%, #f1ece2) 100%);
+      }
+      .stage[data-bg='navy'] {
+        background: radial-gradient(120% 90% at 50% 25%, #22355a 0%, #13213b 55%, #0b1528 100%);
+      }
+      /* The device group is laid out at a base size, then scaled to fit. */
+      .rig {
+        position: relative;
+        font-size: 10px; /* 1em = 1% of a 1000px device; JS rescales */
+        filter: drop-shadow(0 2.6em 3.2em rgba(15, 12, 8, 0.32)) drop-shadow(0 0.6em 0.8em rgba(15, 12, 8, 0.18));
+      }
+      .stage[data-bg='navy'] .rig {
+        filter: drop-shadow(0 2.6em 3.4em rgba(0, 0, 0, 0.55)) drop-shadow(0 0.6em 0.8em rgba(0, 0, 0, 0.35));
+      }
+      .screen {
+        position: relative;
+        overflow: hidden;
+        background: #000;
+        aspect-ratio: var(--ar);
+      }
+      .screen img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top center;
+      }
+
+      /* Laptop */
+      .laptop {
+        width: 100em;
+      }
+      .laptop .lid {
+        position: relative;
+        padding: 2.3em 2.3em 3em;
+        border-radius: 2.4em 2.4em 0.8em 0.8em;
+        background: #0c0c0e;
+        box-shadow: inset 0 0 0 0.28em #2c2c31;
+      }
+      .laptop .lid::before {
+        content: '';
+        position: absolute;
+        top: 0.85em;
+        left: 50%;
+        width: 0.6em;
+        height: 0.6em;
+        margin-left: -0.3em;
+        border-radius: 50%;
+        background: #26262b;
+      }
+      .laptop .screen {
+        border-radius: 0.5em;
+      }
+      .laptop .base {
+        position: relative;
+        width: 118em;
+        height: 3.3em;
+        margin-left: -9em;
+        border-radius: 0.3em 0.3em 4em 4em / 0.3em 0.3em 2.6em 2.6em;
+        background: linear-gradient(180deg, #f1f1f4 0%, #c9c9cf 55%, #9d9da5 100%);
+      }
+      .laptop .base::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 15em;
+        height: 1.05em;
+        margin-left: -7.5em;
+        border-radius: 0 0 1.2em 1.2em;
+        background: linear-gradient(180deg, #b9b9c0, #dcdce1);
+      }
+
+      /* Browser window */
+      .browser {
+        width: 100em;
+        overflow: hidden;
+        border-radius: 1.4em;
+        background: #fff;
+        box-shadow: 0 0 0 0.12em rgba(0, 0, 0, 0.1);
+      }
+      .browser .bar {
+        display: flex;
+        align-items: center;
+        gap: 1.6em;
+        height: 5em;
+        padding: 0 2em;
+        background: #f2f2f4;
+        border-bottom: 0.12em solid #dedee3;
+      }
+      .browser .dots {
+        display: flex;
+        gap: 0.8em;
+      }
+      .browser .dots i {
+        width: 1.25em;
+        height: 1.25em;
+        border-radius: 50%;
+      }
+      .browser .dots i:nth-child(1) {
+        background: #ff5f57;
+      }
+      .browser .dots i:nth-child(2) {
+        background: #febc2e;
+      }
+      .browser .dots i:nth-child(3) {
+        background: #28c840;
+      }
+      .browser .url {
+        flex: 1;
+        max-width: 46em;
+        height: 3em;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.8em;
+        border-radius: 1.5em;
+        background: #fff;
+        box-shadow: inset 0 0 0 0.1em #e3e3e8;
+        font: 500 1.5em/1 system-ui, sans-serif;
+        color: #5b5f69;
+      }
+      .browser .url svg {
+        width: 0.9em;
+        height: 0.9em;
+        fill: #8a8e98;
+      }
+      .browser .spacer {
+        width: 5.4em;
+      }
+
+      /* Monitor */
+      .monitor {
+        width: 100em;
+      }
+      .monitor .panel {
+        padding: 1.3em;
+        border-radius: 1.2em;
+        background: #0d0d10;
+        box-shadow: inset 0 0 0 0.24em #2c2c31;
+      }
+      .monitor .screen {
+        border-radius: 0.3em;
+      }
+      .monitor .neck {
+        width: 13em;
+        height: 9em;
+        margin: 0 auto;
+        background: linear-gradient(90deg, #a9a9b1, #e9e9ed 50%, #a9a9b1);
+        clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%);
+      }
+      .monitor .foot {
+        width: 32em;
+        height: 1.7em;
+        margin: 0 auto;
+        border-radius: 0.9em 0.9em 0.4em 0.4em;
+        background: linear-gradient(180deg, #ededf0, #a7a7ae);
+      }
+
+      /* Tablet (landscape) */
+      .tablet {
+        width: 100em;
+        padding: 3.4em;
+        border-radius: 4.6em;
+        background: #0e0e11;
+        box-shadow: inset 0 0 0 0.32em #2d2d32;
+      }
+      .tablet .screen {
+        border-radius: 1.6em;
+      }
+
+      /* Phone */
+      .phone {
+        width: 100em;
+        padding: 4.4em;
+        border-radius: 16em;
+        background: #0e0e11;
+        box-shadow: inset 0 0 0 0.9em #2c2c31;
+      }
+      .phone .screen {
+        aspect-ratio: 390 / 844;
+        border-radius: 12em;
+      }
+      .phone .island {
+        position: absolute;
+        z-index: 2;
+        top: 3.2em;
+        left: 50%;
+        width: 30em;
+        height: 8.6em;
+        margin-left: -15em;
+        border-radius: 5em;
+        background: #000;
+      }
+
+      /* Laptop + phone: the phone leans in at the laptop's front-right corner. */
+      .combo .phone {
+        position: absolute;
+        right: -7em;
+        bottom: -1.2em;
+        font-size: 0.21em; /* phone is 21% of the laptop's width */
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <h1>Device mockups</h1>
+      <p class="lede">
+        Each thumbnail sits in a CSS device whose screen takes the screenshot's own aspect ratio, so nothing gets cropped. Pick a device and a background per project. The previews are the real 1600 × 1000 thumbnail, scaled.
+      </p>
+      <div class="global">
+        All backgrounds
+        <span class="seg" data-all-bg>
+          <button type="button" data-val="cream">Cream</button>
+          <button type="button" data-val="tint">Project tint</button>
+          <button type="button" data-val="navy">Navy</button>
+        </span>
+      </div>
+      <div data-cards></div>
+    </main>
+
+    <script>
+      const LOCK = '<svg viewBox="0 0 24 24"><path d="M12 1a5 5 0 0 0-5 5v4H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5Zm-3 9V6a3 3 0 1 1 6 0v4H9Z"/></svg>';
+      const A = '../Assets/';
+      const PROJECTS = [
+        { id: 'm8s', title: 'm8s', screen: A + 'software/landingM8S.png', w: 1620, h: 911, phone: A + 'design/uiux/m8s/m-landing.webp', url: 'm8s', tint: '#ff3b3b', device: 'combo', current: A + 'software/landingM8S.png' },
+        { id: 'portfolio-site', title: 'Portfolio Site', screen: A + 'design/uiux/portfolio/home.webp', w: 1600, h: 1000, phone: 'device-src/portfolio-design-phone.webp', url: 'dylanchen.me', tint: '#f5a045', device: 'combo', current: A + 'design/uiux/portfolio/cover.webp' },
+        { id: 'library-study', title: 'Northeastern Library Site', screen: A + 'design/uiux/nu-library/cover.webp', w: 1633, h: 1162, phone: null, url: 'northeastern.libcal.com', tint: '#d41b2c', device: 'tablet', current: A + 'design/uiux/nu-library/cover.webp' },
+        { id: 'nuhire', title: 'NUHire', screen: A + 'design/uiux/nuhire/landing-redesign.webp', w: 1440, h: 1001, phone: null, url: 'NUHire', tint: '#c8102e', device: 'monitor', current: A + 'design/uiux/nuhire/cover.webp' },
+        { id: 'searchneu', title: 'SearchNEU', screen: A + 'design/uiux/searchneu/cover.webp', w: 1600, h: 1000, phone: 'device-src/searchneu-phone.webp', url: 'searchneu.com', tint: '#e63946', device: 'combo', current: A + 'design/uiux/searchneu/cover.webp' },
+      ];
+      const DEVICES = [
+        ['laptop', 'Laptop'],
+        ['browser', 'Browser'],
+        ['monitor', 'Monitor'],
+        ['tablet', 'Tablet'],
+        ['combo', 'Laptop + phone'],
+      ];
+      const BGS = [
+        ['cream', 'Cream'],
+        ['tint', 'Tint'],
+        ['navy', 'Navy'],
+      ];
+      const screen = (src, ar) => `<div class="screen" style="--ar:${ar}"><img src="${src}" alt=""></div>`;
+      const device = (p, kind) => {
+        const ar = `${p.w} / ${p.h}`;
+        switch (kind) {
+          case 'browser':
+            return `<div class="browser"><div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">${LOCK}${p.url}</span><span class="spacer"></span></div>${screen(p.screen, ar)}</div>`;
+          case 'monitor':
+            return `<div class="monitor"><div class="panel">${screen(p.screen, ar)}</div><div class="neck"></div><div class="foot"></div></div>`;
+          case 'tablet':
+            return `<div class="tablet">${screen(p.screen, ar)}</div>`;
+          case 'combo':
+            return `<div class="combo">${device(p, 'laptop')}<div class="phone"><span class="island"></span>${screen(p.phone, '390 / 844')}</div></div>`;
+          default:
+            return `<div class="laptop"><div class="lid">${screen(p.screen, ar)}</div><div class="base"></div></div>`;
+        }
+      };
+
+      // Fit the device rig inside the stage with breathing room. The rig is laid
+      // out at 10px/em (a 1000px device), measured INCLUDING overhanging parts
+      // (the phone, the laptop base), then rescaled by changing its font-size.
+      const PAD_X = 150;
+      const PAD_Y = 110;
+      function fit(stage) {
+        const rig = stage.querySelector('.rig');
+        rig.style.fontSize = '10px';
+        rig.style.transform = '';
+        const box = () => {
+          const els = [rig, ...rig.querySelectorAll('*')];
+          let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+          const s = stage.getBoundingClientRect();
+          const k = s.width / 1600; // stage may be CSS-scaled
+          els.forEach((el) => {
+            const q = el.getBoundingClientRect();
+            if (!q.width && !q.height) return;
+            l = Math.min(l, q.left); t = Math.min(t, q.top); r = Math.max(r, q.right); b = Math.max(b, q.bottom);
+          });
+          return { w: (r - l) / k, h: (b - t) / k, cx: ((l + r) / 2 - s.left) / k, cy: ((t + b) / 2 - s.top) / k };
+        };
+        const m = box();
+        const scale = Math.min((1600 - 2 * PAD_X) / m.w, (1000 - 2 * PAD_Y) / m.h);
+        rig.style.fontSize = `${10 * scale}px`;
+        // Re-centre on the visual bounds (the phone overhang pulls it off-centre).
+        const n = box();
+        rig.style.transform = `translate(${800 - n.cx}px, ${500 - n.cy}px)`;
+      }
+
+      function renderStage(stage, p, kind, bg) {
+        stage.dataset.bg = bg;
+        stage.style.setProperty('--tint', p.tint);
+        stage.innerHTML = `<div class="rig">${device(p, kind)}</div>`;
+        const imgs = [...stage.querySelectorAll('img')];
+        return Promise.all(imgs.map((i) => (i.complete ? 0 : new Promise((r) => (i.onload = i.onerror = r))))).then(() => fit(stage));
+      }
+
+      const params = new URLSearchParams(location.search);
+      if (params.has('export')) {
+        // Export mode: just the stage, at full size, for headless capture.
+        document.body.innerHTML = '<div class="stage" id="stage"></div>';
+        document.body.style.margin = '0';
+        const p = PROJECTS.find((x) => x.id === params.get('export'));
+        const st = document.getElementById('stage');
+        window.__ready = document.fonts.ready.then(() => renderStage(st, p, params.get('device') || p.device, params.get('bg') || 'cream'));
+      } else {
+        const host = document.querySelector('[data-cards]');
+        const state = {};
+        host.innerHTML = PROJECTS.map(
+          (p) => `<section class="card" data-id="${p.id}">
+              <div class="viewport"><div class="stage"></div></div>
+              <div class="side">
+                <h2>${p.title}</h2>
+                <div class="meta">Screen ${p.w} × ${p.h} · ${(p.w / p.h).toFixed(2)} : 1${p.phone ? ' · has phone view' : ''}</div>
+                <span class="k">Device</span>
+                <span class="seg" data-axis="device">${DEVICES.map(([v, l]) => `<button type="button" data-val="${v}" ${v === 'combo' && !p.phone ? 'disabled title="No phone capture for this project"' : ''}>${l}</button>`).join('')}</span>
+                <span class="k">Background</span>
+                <span class="seg" data-axis="bg">${BGS.map(([v, l]) => `<button type="button" data-val="${v}">${l}</button>`).join('')}</span>
+                <span class="k">Current thumbnail</span>
+                <img class="now" src="${p.current}" alt="">
+              </div>
+            </section>`
+        ).join('');
+
+        const scaleStages = () =>
+          document.querySelectorAll('.viewport').forEach((vp) => {
+            const st = vp.querySelector('.stage');
+            st.style.transform = `scale(${vp.clientWidth / 1600})`;
+          });
+        const paint = (id) => {
+          const p = PROJECTS.find((x) => x.id === id);
+          const card = host.querySelector(`[data-id="${id}"]`);
+          card.querySelectorAll('[data-axis] button').forEach((b) => b.setAttribute('aria-pressed', String(state[id][b.closest('[data-axis]').dataset.axis] === b.dataset.val)));
+          renderStage(card.querySelector('.stage'), p, state[id].device, state[id].bg);
+          history.replaceState(null, '', '#' + PROJECTS.map((x) => `${x.id}:${state[x.id].device}:${state[x.id].bg}`).join(','));
+        };
+        // Restore from the hash (shareable picks), else defaults.
+        const saved = Object.fromEntries(
+          location.hash
+            .slice(1)
+            .split(',')
+            .filter(Boolean)
+            .map((s) => s.split(':'))
+            .map(([id, d, b]) => [id, { device: d, bg: b }])
+        );
+        PROJECTS.forEach((p) => (state[p.id] = { device: saved[p.id]?.device || p.device, bg: saved[p.id]?.bg || 'cream' }));
+        host.addEventListener('click', (e) => {
+          const b = e.target.closest('[data-axis] button');
+          if (!b || b.disabled) return;
+          const id = b.closest('[data-id]').dataset.id;
+          state[id][b.closest('[data-axis]').dataset.axis] = b.dataset.val;
+          paint(id);
+        });
+        document.querySelector('[data-all-bg]').addEventListener('click', (e) => {
+          const b = e.target.closest('button');
+          if (!b) return;
+          PROJECTS.forEach((p) => (state[p.id].bg = b.dataset.val));
+          PROJECTS.forEach((p) => paint(p.id));
+        });
+        scaleStages();
+        addEventListener('resize', () => {
+          scaleStages();
+          document.querySelectorAll('.stage').forEach((st) => st.querySelector('.rig') && fit(st));
+        });
+        document.fonts.ready.then(() => PROJECTS.forEach((p) => paint(p.id)));
+      }
+    </script>
+  </body>
+</html>

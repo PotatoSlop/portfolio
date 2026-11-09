@@ -1,0 +1,461 @@
+---
+// Custom site-wide scrollbar. The native scrollbar is hidden in base.css; this
+// renders a compact rounded "slot" centred on the right edge — a scaled-down
+// track (~25% of the viewport height) whose thumb maps the full document
+// scroll into that short slot. Draggable, hides when the page doesn't overflow,
+// and re-syncs on View Transitions + content-size changes.
+---
+
+<div class="scrollbar" aria-hidden="true">
+  <div class="scrollbar__thumb"></div>
+</div>
+
+{/* Design-only scroll rail: numbers-only section index (01–0N) at true section
+    positions, with a progress fill and click-to-scroll. Stands in for the
+    default thumb slot (hidden on the design theme) on EVERY design-theme page:
+    /design tags its zones with [data-rail], a case study's `##` sections carry
+    it too (case-study/blocks/SectionHeading.astro), and a page with none still
+    gets the progress line. Hidden on every other theme. */}
+<nav class="scroll-rail" aria-label="Section navigation" hidden>
+  <div class="scroll-rail__inner">
+    <div class="scroll-rail__line"><div class="scroll-rail__fill"></div></div>
+  </div>
+</nav>
+
+<style>
+  .scrollbar {
+    /* Short, centred slot — the track itself, not just an invisible rail. */
+    position: fixed;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 18vh;
+    z-index: 1000;
+    border-radius: var(--radius-pill, 999px);
+    background: color-mix(in srgb, var(--theme-ink, #1e1e14) 14%, transparent);
+    pointer-events: none; /* only the thumb is interactive */
+    opacity: 0;
+    transition: opacity var(--duration-medium) var(--ease-default),
+      width var(--duration-fast) var(--ease-default);
+  }
+  .scrollbar.is-visible {
+    opacity: 1;
+  }
+  /* Dark scheme: the track is a % of --theme-ink (soft-white here) over
+     transparent, so 14% reads too faint on the dark field. Lift it a little so
+     the slot stays legible. :global() on the ancestor because data-scheme lives
+     on <html>, which a scoped selector would never match. */
+  :global([data-scheme='dark']) .scrollbar {
+    background: color-mix(in srgb, var(--theme-ink, #e9e8ec) 24%, transparent);
+  }
+  /* Widen the whole slot when the thumb is grabbed/hovered. */
+  .scrollbar:has(.scrollbar__thumb:hover),
+  .scrollbar:has(.scrollbar__thumb.is-dragging) {
+    width: 12px;
+  }
+
+  .scrollbar__thumb {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    min-height: 26px;
+    border-radius: var(--radius-pill, 999px);
+    background: linear-gradient(var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    transform: translateY(var(--sb-y, 0px));
+    pointer-events: auto;
+    cursor: grab;
+    transition: background-color var(--duration-fast) var(--ease-default);
+  }
+  .scrollbar__thumb:hover,
+  .scrollbar__thumb.is-dragging {
+    background: var(--color-primary-dark);
+    cursor: grabbing;
+  }
+
+  /* ===== Design scroll rail (floating island) =====
+     On the design theme the thumb slot is replaced by a numbers-only section
+     rail: a translucent-cream island (matching the nav islands + cards) holding
+     a thin progress line and clickable 01–0N ticks positioned at each section. */
+  .scroll-rail {
+    display: none;
+  }
+  :global([data-theme='design']) .scrollbar {
+    display: none; /* the rail stands in for the thumb slot on design */
+  }
+  :global([data-theme='design']) .scroll-rail {
+    display: block;
+    position: fixed;
+    /* Vertically centred + compact. Inset from the right edge enough to sit clear
+       of the top-anchored pull-tab grips (which render above it), so the rail is
+       never covered by the lower "software" tab in the centre band. */
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    z-index: 1000;
+    padding: 10px 9px;
+    border-radius: var(--theme-radius, 5px);
+    background: var(--theme-glass);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--theme-border);
+    box-shadow: 0 14px 34px -18px rgba(30, 24, 14, 0.5);
+  }
+  .scroll-rail__inner {
+    position: relative;
+    height: 16vh;
+    width: 22px;
+  }
+  .scroll-rail__line {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--theme-border);
+  }
+  .scroll-rail__fill {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 2px;
+    height: 0;
+    background: var(--theme-accent-deep);
+  }
+  /* Ticks are created in JS (document.createElement), so they never carry
+     Astro's scoped-style attribute — target them with :global() or the rules
+     silently fail to match (black text, un-positioned buttons). */
+  :global(.scroll-rail__tick) {
+    position: absolute;
+    left: 0;
+    right: 8px;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--theme-ink-muted);
+    font-family: var(--theme-font-body);
+    font-weight: 600;
+  }
+  :global(.scroll-rail__tick .n) {
+    text-align: right;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    transition: color var(--duration-medium, 0.3s) var(--ease-default);
+  }
+  :global(.scroll-rail__tick[aria-current='true'] .n) {
+    color: var(--theme-accent-deep);
+  }
+  :global(.scroll-rail__tick:hover .n) {
+    color: var(--theme-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scrollbar {
+      transition: none;
+    }
+  }
+
+  /* Mobile: the section rail overlaps the cards and clutters the small viewport,
+     so hide it entirely (the page scrolls normally; the row chevrons page 01/02).
+     Placed after the base design rule so it wins the cascade when matched. */
+  @media (max-width: 768px) {
+    :global([data-theme='design']) .scroll-rail {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  // Bound ONCE (window/document persist across View Transitions); everything
+  // queries the thumb fresh so it survives Base.astro re-rendering per page.
+  const TRACK_FRACTION = 0.18; // slot height as a fraction of the viewport
+
+  let dragging = false;
+  let dragStartY = 0;
+  let dragStartScroll = 0;
+  let raf = 0;
+
+  const isFlipLocked = () => document.documentElement.dataset.flipLocked === '1';
+
+  // The About flip locks the body (position:fixed; top:-scrollY) and drives
+  // scroll itself. Rather than hide the bar for that stretch, we keep it live:
+  //  - effectiveScrollY() reads the parked offset from body.style.top (window
+  //    .scrollY reports 0 while the body is fixed), so the thumb stays put at
+  //    the right place instead of snapping to the top.
+  //  - metrics() reuses a scrollHeight cached from before the lock (a fixed
+  //    body makes the document's own scrollHeight collapse to one viewport).
+  // Dragging the thumb dispatches scrollbar:dragstart/dragend, which the About
+  // page listens for to RELEASE the lock — so a drag scrolls straight through
+  // the flip instead of fighting it.
+  const effectiveScrollY = () =>
+    isFlipLocked() ? -parseFloat(document.body.style.top || '0') || 0 : window.scrollY;
+  let cachedScrollH = 0;
+
+  const metrics = () => {
+    const locked = isFlipLocked();
+    const scrollH =
+      locked && cachedScrollH ? cachedScrollH : document.documentElement.scrollHeight;
+    if (!locked) cachedScrollH = scrollH;
+    const clientH = window.innerHeight;
+    return {
+      scrollH,
+      clientH,
+      trackH: clientH * TRACK_FRACTION,
+      maxScroll: Math.max(scrollH - clientH, 0),
+    };
+  };
+
+  function update() {
+    const bar = document.querySelector('.scrollbar') as HTMLElement | null;
+    const thumb = document.querySelector('.scrollbar__thumb') as HTMLElement | null;
+    if (!bar || !thumb) return;
+    const { scrollH, clientH, trackH, maxScroll } = metrics();
+    if (maxScroll <= 1) {
+      bar.classList.remove('is-visible');
+      return;
+    }
+    bar.classList.add('is-visible');
+    // Thumb size proportional to the visible fraction, mapped into the short
+    // slot instead of the full viewport height.
+    const thumbH = Math.max((clientH / scrollH) * trackH, 26);
+    const travel = trackH - thumbH;
+    const y = maxScroll > 0 ? (effectiveScrollY() / maxScroll) * travel : 0;
+    thumb.style.height = `${thumbH}px`;
+    thumb.style.setProperty('--sb-y', `${y}px`);
+  }
+
+  function scheduleUpdate() {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => {
+      update();
+      updateRail();
+    });
+  }
+
+  window.addEventListener('scroll', scheduleUpdate, { passive: true });
+  window.addEventListener('resize', () => {
+    scheduleUpdate();
+    layoutRail();
+  });
+
+  // Drag the thumb to scroll. Bypass smooth-scroll during the drag so the page
+  // tracks the pointer 1:1. Motion is amplified by the slot ratio so a short
+  // drag still spans the whole document.
+  document.addEventListener('pointerdown', (e) => {
+    const t = e.target as Element;
+    if (!t.closest('.scrollbar__thumb')) return;
+    // Release the About flip lock (if any) BEFORE reading the start offset, so
+    // window.scrollY reflects the restored real position rather than the fixed 0.
+    window.dispatchEvent(new CustomEvent('scrollbar:dragstart'));
+    const thumb = document.querySelector('.scrollbar__thumb') as HTMLElement;
+    dragging = true;
+    dragStartY = e.clientY;
+    dragStartScroll = window.scrollY;
+    thumb.classList.add('is-dragging');
+    document.documentElement.style.scrollBehavior = 'auto';
+    try {
+      thumb.setPointerCapture(e.pointerId);
+    } catch {}
+    e.preventDefault();
+  });
+
+  document.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const thumb = document.querySelector('.scrollbar__thumb') as HTMLElement | null;
+    if (!thumb) return;
+    const { trackH, maxScroll } = metrics();
+    const thumbH = thumb.getBoundingClientRect().height;
+    const travel = trackH - thumbH;
+    const dy = e.clientY - dragStartY;
+    const next = dragStartScroll + (travel > 0 ? (dy / travel) * maxScroll : 0);
+    window.scrollTo(0, next);
+  });
+
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    document.querySelector('.scrollbar__thumb')?.classList.remove('is-dragging');
+    document.documentElement.style.scrollBehavior = '';
+    window.dispatchEvent(new CustomEvent('scrollbar:dragend'));
+  }
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
+
+  // ----- Design scroll rail: drag (or press) anywhere on the rail to scrub the
+  // page. Maps the pointer's y within the rail inner to the document scroll.
+  // Ticks keep their click-to-section behavior (skipped here). -----
+  let railScrubbing = false;
+  const railScrubTo = (clientY: number) => {
+    const inner = document.querySelector('.scroll-rail__inner') as HTMLElement | null;
+    if (!inner) return;
+    const r = inner.getBoundingClientRect();
+    const frac = Math.min(Math.max((clientY - r.top) / r.height, 0), 1);
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    window.scrollTo(0, frac * maxScroll);
+  };
+  document.addEventListener('pointerdown', (e) => {
+    const t = e.target as Element | null;
+    if (!(t instanceof Element)) return;
+    if (!t.closest('.scroll-rail__inner') || t.closest('.scroll-rail__tick')) return;
+    railScrubbing = true;
+    document.documentElement.style.scrollBehavior = 'auto';
+    railScrubTo(e.clientY);
+    e.preventDefault();
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (railScrubbing) railScrubTo(e.clientY);
+  });
+  const endRailScrub = () => {
+    if (!railScrubbing) return;
+    railScrubbing = false;
+    document.documentElement.style.scrollBehavior = '';
+  };
+  document.addEventListener('pointerup', endRailScrub);
+  document.addEventListener('pointercancel', endRailScrub);
+
+  // Recompute when content height changes (images, footer reveal, etc.).
+  const ro = new ResizeObserver(() => {
+    scheduleUpdate();
+    layoutRail();
+  });
+  if (document.body) ro.observe(document.body);
+
+  // The flip lock toggles a <html data-flip-locked> attribute (no scroll event
+  // fires while the body is frozen), so watch it directly to hide/show in sync.
+  new MutationObserver(scheduleUpdate).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-flip-locked'],
+  });
+
+  // eslint-disable-next-line no-restricted-syntax -- bound-once global; update()/buildRail() below are the catch-up (docs/routing-and-lifecycle.md §6 exceptions)
+  document.addEventListener('astro:page-load', () => {
+    if (document.body) ro.observe(document.body);
+    update();
+    buildRail();
+  });
+
+  update();
+
+  // ===== Design scroll rail (section numerics) =====
+  // Design-only. Builds numbers-only ticks (01–0N) from the page's [data-rail]
+  // sections, positions them at true section offsets, and tracks a progress
+  // fill + the active section as you scroll. On the design theme it replaces the
+  // thumb slot on every page (ticks or not); on every other theme it stays
+  // hidden, so this never touches the default thumb behaviour.
+  interface RailTick {
+    b: HTMLButtonElement;
+    sec: HTMLElement;
+  }
+  let railTicks: RailTick[] = [];
+  let railSecs: HTMLElement[] = [];
+
+  const isDesign = () => document.documentElement.dataset.theme === 'design';
+
+  // Layout offset from the top of the DOCUMENT. offsetTop alone is relative to
+  // the offsetParent, which is the document only for top-level sections (the
+  // /design zones); a case study's headings sit inside positioned wrappers.
+  // Summed offsets (not getBoundingClientRect) so reveal transforms don't skew it.
+  const docTop = (el: HTMLElement) => {
+    let y = 0;
+    for (let n: HTMLElement | null = el; n; n = n.offsetParent as HTMLElement | null) y += n.offsetTop;
+    return y;
+  };
+
+  function buildRail() {
+    const rail = document.querySelector('.scroll-rail') as HTMLElement | null;
+    const inner = document.querySelector('.scroll-rail__inner') as HTMLElement | null;
+    if (!rail || !inner) return;
+
+    // Clear ticks from a previous page (Base persists this component across
+    // View Transitions, so the DOM survives but the sections change).
+    inner.querySelectorAll('.scroll-rail__tick').forEach((t) => t.remove());
+    railTicks = [];
+    railSecs = [];
+
+    if (!isDesign()) {
+      rail.hidden = true;
+      return;
+    }
+    railSecs = [...document.querySelectorAll<HTMLElement>('[data-rail]')];
+
+    railSecs.forEach((sec, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'scroll-rail__tick';
+      // Numbers-only: an explicit data-rail value wins, else the 2-digit index.
+      const label = sec.dataset.rail || String(i + 1).padStart(2, '0');
+      b.innerHTML = `<span class="n">${label}</span>`;
+      // Tooltip: a zone's aria-label, else a heading's own text.
+      b.title = sec.getAttribute('aria-label') || sec.textContent?.trim() || label;
+      b.setAttribute('aria-label', `Jump to ${b.title}`);
+      b.addEventListener('click', () => sec.scrollIntoView({ behavior: 'smooth' }));
+      inner.appendChild(b);
+      railTicks.push({ b, sec });
+    });
+
+    layoutRail();
+    updateRail();
+  }
+
+  // Min px between tick centres so the 12px numerals never stack.
+  const RAIL_TICK_GAP = 15;
+
+  // Keep each tick at its true position where it can be, but nudge neighbours
+  // apart to the minimum gap: a case study's short sections (an intro pair, a
+  // closing pair) would otherwise pile their numbers on top of each other.
+  // More ticks than fit → even spacing. Only the LABELS move; the fill and the
+  // active highlight still follow the real section offsets.
+  function spreadTicks(tops: number[], h: number, gap: number) {
+    const n = tops.length;
+    if (n < 2) return;
+    if ((n - 1) * gap > h) {
+      tops.forEach((_, i) => (tops[i] = (i * h) / (n - 1)));
+      return;
+    }
+    for (let i = 1; i < n; i++) tops[i] = Math.max(tops[i], tops[i - 1] + gap);
+    tops[n - 1] = Math.min(tops[n - 1], h);
+    for (let i = n - 2; i >= 0; i--) tops[i] = Math.min(tops[i], tops[i + 1] - gap);
+  }
+
+  function layoutRail() {
+    if (railTicks.length === 0) return;
+    const inner = document.querySelector('.scroll-rail__inner') as HTMLElement | null;
+    if (!inner) return;
+    const docH = document.documentElement.scrollHeight - window.innerHeight;
+    const h = inner.clientHeight;
+    const tops = railTicks.map(({ sec }) => (docH > 0 ? Math.min(docTop(sec) / docH, 1) : 0) * h);
+    spreadTicks(tops, h, RAIL_TICK_GAP);
+    railTicks.forEach(({ b }, i) => (b.style.top = `${tops[i]}px`));
+  }
+
+  function updateRail() {
+    const rail = document.querySelector('.scroll-rail') as HTMLElement | null;
+    const fill = document.querySelector('.scroll-rail__fill') as HTMLElement | null;
+    if (!rail || !fill || !isDesign()) return;
+    const docH = document.documentElement.scrollHeight - window.innerHeight;
+    // Like the thumb slot: nothing to scroll → no rail.
+    rail.hidden = docH <= 1;
+    const frac = docH > 0 ? Math.min(Math.max(window.scrollY / docH, 0), 1) : 0;
+    fill.style.height = `${frac * 100}%`;
+    if (railSecs.length === 0) return;
+    // Active = the last section whose top has passed the viewport midline;
+    // -1 (nothing lit) while still in the hero.
+    const mid = window.scrollY + window.innerHeight / 2;
+    let active = -1;
+    railSecs.forEach((sec, i) => {
+      if (mid >= docTop(sec)) active = i;
+    });
+    railTicks.forEach(({ b }, i) =>
+      b.setAttribute('aria-current', i === active ? 'true' : 'false')
+    );
+  }
+
+  buildRail();
+</script>

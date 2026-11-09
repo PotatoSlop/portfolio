@@ -1,0 +1,151 @@
+---
+title: m8s
+category: 'uiux'
+tags: []
+year: 2025
+tools: [Figma, React, TypeScript]
+cover: /Assets/design/uiux/m8s/mockup.webp
+recent: true
+order: 1
+href: '#'
+
+# ---- Case study (draft: built in `astro dev` only, see docs/case-study-template.md) ----
+caseStudy: true
+draft: true
+summary: A roommate chore tracker that turns "whose turn is it?" into a fair rotation the whole apartment can see.
+role: Product design, front-end
+timeline: Sep – Nov 2025
+team: Oasis @ Northeastern, group 19
+links:
+  - label: View repo
+    href: https://github.com/Oasis-NEU/f25-group-19
+    primary: true
+coverCaption: Landing page, final build.
+glance:
+  - label: Problem
+    text: Shared apartments run on memory and group chats. Chores slip and its the same people that always pick up the slack.
+  - label: Approach
+    text: Rotate recurring chores automatically and make the week visible at a glance, so reminders come from the app, not a roommate.
+  - label: Outcome
+    text: A full-stack web app with households, rotations and swaps, designed in Figma and built in React over one semester.
+---
+
+{/*
+  PLACEHOLDER COPY. The structure is real; the research details, numbers and
+  quote below are stand-ins carried over from the template prototype. Replace
+  them with the real story, then drop `draft: true` to publish.
+*/}
+
+## Context
+
+m8s (may-ts) was a group project for the Oasis project series at Northeastern. The brief was open: build something full-stack that solves a real problem. Every one of us lived with roommates, and we all had the same complaint.
+
+Chore charts on the fridge become redundant in a week. Group chats bury the reminder under everything else. The result is a quiet ledger of resentment that nobody wants to bring up.
+
+<Callout>How can we make sharing chores feel fair?</Callout>
+
+<Steps
+  steps={[
+    { label: 'Discover', note: 'Weeks 1–2' },
+    { label: 'Define', note: 'Week 3' },
+    { label: 'Design', note: 'Weeks 4–6' },
+    { label: 'Build', note: 'Weeks 7–10' },
+    { label: 'Ship', note: 'Week 11' },
+  ]}
+/>
+
+## Research
+
+We talked to roommates across a handful of households and asked them to walk us through the last chore argument they had. Combined with our own personal experiences living with roommates and the pattern revealed itself:
+
+<Quote cite="Anonymous Student">I think taking out the trash or doing dishes isn't that bad. It's just annoying if someone keeps forgetting to do it and I have to do it for them.</Quote>
+
+Fairness turned out to be about visibility: people were fine with uneven weeks as long as everyone could see the balance evening out over time.
+
+## Define
+
+Four insights shaped every screen that followed.
+
+<Cards
+  items={[
+    { title: 'Fairness is perceived', text: 'People judged fairness by effort and visibility, not by raw task count.' },
+    { title: 'Nudges feel personal', text: 'A reminder from a roommate reads as nagging. The same reminder from the app reads as neutral.' },
+    { title: 'Schedules drift', text: 'Rotations broke the first week someone travelled, so swapping had to be a first-class action.' },
+    { title: 'Quick notifications', text: 'The site has to answer "what\'s my task today?" instantly.' },
+  ]}
+/>
+
+## Design
+
+The wireframes and in-progress Figma files from this phase weren't kept, so this section covers the direction rather than the artifacts. The insights above set the priorities: a shared, glanceable view of the household's week, reminders that come from the app instead of a roommate, and swapping as a normal action rather than a workaround.
+
+The visual language was kept deliberately small, so a group of developers could apply it consistently without a designer reviewing every screen.
+
+### The built screens
+
+These are captured from the current build. The landing page leads straight into a short explainer, and account creation stays to a single card.
+
+<Figure src="/Assets/design/uiux/m8s/how-it-works.webp" alt="m8s How it Works section: Create your Space and Configure Tasks" ratio="16 / 10" caption="How it works: rooms you create or join with a code, and tasks with scheduling and templates." />
+
+<Row
+  items={[
+    { src: '/Assets/design/uiux/m8s/login.webp', alt: 'm8s login screen', chip: 'Log in', caption: 'Returning roommates sign in with a username.' },
+    { src: '/Assets/design/uiux/m8s/signup.webp', alt: 'm8s create account screen', chip: 'Sign up', caption: 'One card to create an account.' },
+  ]}
+  ratio="16 / 10"
+/>
+
+### Design system
+
+<Palette
+  colors={[
+    { name: 'Signal', hex: '#ff2a2a' },
+    { name: 'Coral', hex: '#ff5f5f' },
+    { name: 'Paper', hex: '#f2f2f2' },
+    { name: 'Ink', hex: '#1c1c1c' },
+  ]}
+  font={{
+    family: "'Poppins', sans-serif",
+    note: 'Poppins, one family for everything',
+    href: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap',
+    weights: [
+      { label: 'Regular', weight: 400 },
+      { label: 'Semi', weight: 600 },
+      { label: 'Extra', weight: 800 },
+    ],
+  }}
+/>
+
+## Outcome
+
+While the app was not fully functional by the end of the series, accounts, households, rotating chores and swaps were all built out along with the backend database and primary dashboard UIs.
+
+<Checklist>
+
+- Full-stack app with auth, households and automatic rotations
+- Built out login page and dashboard
+- Comprehensive design system and React implementation
+
+</Checklist>
+
+## Reflection
+
+m8s works as a semester project, but the parts that would make it last are research, documentation and a platform people actually carry around. The web build already scales down to a phone width, but a responsive site isn't the same as a mobile interface. If I took it further, I'd start here.
+
+<Screens
+  items={[
+    { label: 'Landing', src: '/Assets/design/uiux/m8s/m-landing.webp', alt: 'm8s landing page at phone width' },
+    { label: 'Log in', src: '/Assets/design/uiux/m8s/m-login.webp', alt: 'm8s login at phone width' },
+    { label: 'Sign up', src: '/Assets/design/uiux/m8s/m-signup.webp', alt: 'm8s sign up at phone width' },
+  ]}
+/>
+
+<Cards
+  kickerPrefix="Next"
+  items={[
+    { title: 'Research the user flow', text: 'Map how a household really moves through the app, from setting up chores to checking what\'s mine and swapping a task, and test each step with roommates to cut the friction.' },
+    { title: 'Document the process', text: 'Keep wireframes, design decisions and the reasoning behind each iteration alongside the code, so the next contributor has a record to work from.' },
+    { title: 'Test for the long term', text: 'Run the app with real households over time to test user pain points and effectiveness.' },
+    { title: 'Go mobile', text: 'Scale the interface down to phones first and move toward a mobile app, where notifications can do the reminding.' },
+  ]}
+/>

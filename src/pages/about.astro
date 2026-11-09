@@ -1,0 +1,379 @@
+---
+import Base from '../layouts/Base.astro';
+import { Icon } from 'astro-icon/components';
+import { getResumes } from '../lib/resumes';
+
+// Discovered at build time from public/Assets/documents — see src/lib/resumes.ts.
+const resumes = getResumes();
+---
+
+<Base title="About — Dylan Chen">
+  <main class="container about-page-main">
+    <section class="about-stage" aria-label="About Dylan — draw to reveal the photo">
+      <div class="about-image-stack">
+        <div class="headshot">
+          <div class="about-layer about-layer-sketch">
+            <img
+              class="doodle-image asset-recolor"
+              src="/Assets/motion/wavingDude-static.png"
+              alt="Hand-drawn doodle of Dylan Chen"
+              draggable="false"
+            />
+          </div>
+          <div class="about-layer about-layer-real masked" data-mask aria-hidden="true">
+            <img
+              class="real-photo"
+              src="/Assets/images/irlHeadshot.jpg"
+              alt="Dylan Chen"
+              draggable={false}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="about-text-stack">
+        <div class="text-block is-active" id="about-cap-sketch">
+          <h1>It Starts with a Sketch</h1>
+          <p class="block-text">
+            Napkins, printer paper, sketchbooks or just my mind, my projects start from a simple
+            idea that is brought to reality. If you need a creative developer, a technical
+            designer, or anything in between, I can bring a new perspective to your vision.
+          </p>
+        </div>
+
+        <div class="text-block" id="about-cap-real">
+          <h1>About Me</h1>
+          <p class="block-text">
+            I'm Dylan, a 3rd-year computer science and engineering student at Northeastern
+            University. You can usually find me hopping between Boston and New York City, wandering
+            around capturing urban experiences on my camera or absorbing inspiration for my new
+            development or engineering project. If there's too much coffee in your office, I'm
+            always willing to help out!
+          </p>
+        </div>
+
+        {
+          /* Persistent CTA — sits BELOW both cross-fading captions (not inside
+             either), so it stays visible whichever caption is active. */
+          resumes.length > 0 && (
+            <div class="resume-menu" data-resume-menu>
+              <button
+                type="button"
+                class="resume-btn resume-menu__trigger"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-controls="resume-menu-list"
+              >
+                <span>Download Resume</span>
+                <Icon class="resume-menu__chevron" name="mdi:chevron-down" width="18" height="18" />
+              </button>
+              <ul class="resume-menu__list" id="resume-menu-list" role="menu">
+                {resumes.map((r) => (
+                  <li role="none">
+                    <a
+                      role="menuitem"
+                      class="resume-menu__item"
+                      href={r.href}
+                      download={`Dylan Chen Resume - ${r.variant}`}
+                    >
+                      <span class="resume-menu__label">{r.variant}</span>
+                      {r.dateLabel && <span class="resume-menu__meta">{r.dateLabel}</span>}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+      </div>
+
+      <div class="about-hint" aria-hidden="true">
+        <span class="about-hint__row">
+          <span class="about-hint__key">[LMB]</span>
+          <span id="about-hint-action">Draw</span>
+        </span>
+        <span class="about-hint__row">
+          <span class="about-hint__key">[RMB]</span>
+          Drop
+        </span>
+      </div>
+
+      <!-- Decorative interaction chrome (brush ring + 3D tool). aria-hidden. -->
+      <div class="brush-ring" aria-hidden="true"></div>
+      <div id="about-tool-layer" aria-hidden="true"></div>
+      <div class="about-css-tool" id="about-css-tool" aria-hidden="true">✏️</div>
+
+      <div class="about-toolbar" role="toolbar" aria-label="Drawing tools">
+        <button
+          class="tool-btn about-tool-draw"
+          id="about-tool-pen"
+          aria-label="Draw tool"
+          aria-pressed="false"
+          data-tooltip="Draw"
+        >
+          <Icon class="glyph" name="tabler:pencil" width="22" height="22" />
+        </button>
+        <button
+          class="tool-btn about-tool-draw"
+          id="about-tool-eraser"
+          aria-label="Erase tool"
+          aria-pressed="false"
+          data-tooltip="Erase"
+        >
+          <Icon class="glyph" name="tabler:eraser" width="22" height="22" />
+        </button>
+        <div class="brush-size about-tool-draw" data-tooltip="Brush size">
+          <input type="range" id="about-size" aria-label="Brush size" />
+          <span id="about-size-pct">50%</span>
+        </div>
+        <button
+          class="tool-btn about-tool-draw"
+          id="about-reset"
+          aria-label="Reset drawing"
+          data-tooltip="Reset to sketch"
+        >
+          <Icon class="glyph" name="tabler:refresh" width="20" height="20" />
+        </button>
+        <button class="state-toggle" id="about-toggle" aria-label="Show real photo" data-tooltip="Change view">
+          <Icon class="glyph" name="tabler:chevron-right" width="24" height="24" />
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <section class="timeline-section">
+    <h2 class="timeline-heading">Experience</h2>
+    <div class="timeline" id="js-timeline">
+      <svg class="timeline-svg" id="js-timeline-svg" aria-hidden="true">
+        <path id="js-timeline-path" class="timeline-path"></path>
+      </svg>
+
+      <div class="timeline-item">
+        <div class="timeline-dot" id="js-dot-0"></div>
+        <div class="timeline-content">
+          <span class="timeline-date">Incoming</span>
+          <h3 class="timeline-title">Embedded Engineer</h3>
+          <p class="timeline-company">Bevi</p>
+          <p class="timeline-desc">
+            Spicy water
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot" id="js-dot-1"></div>
+        <div class="timeline-content">
+          <span class="timeline-date">Sep 2026 - Present</span>
+          <h3 class="timeline-title">UX Designer</h3>
+          <p class="timeline-company">Sandbox</p>
+          <p class="timeline-desc">
+            UX design at Sandbox, a student-led software consultancy at Northeastern. Working on Searchneu (searchneu.com), a course registration platform and one of the longest running Software projects in Sandbox.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot" id="js-dot-2"></div>
+        <div class="timeline-content">
+          <span class="timeline-date">Sep 2026 - Present</span>
+          <h3 class="timeline-title">Developer and Design Lead</h3>
+          <p class="timeline-company">Oasis Accelerator Series</p>
+          <p class="timeline-desc">
+            Developer and member of Oasis, a Northeastern web-development club. Oasis accelerator is a branch program which takes on more advanced client-based projects. Current design and UX lead for NUHire, a hiring simulation platform for Northeastern's CS1210 course.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot" id="js-dot-3"></div>
+        <div class="timeline-content">
+          <span class="timeline-date">Jan 2026 — Jun 2026</span>
+          <h3 class="timeline-title">Quality Test Engineering Co-op</h3>
+          <p class="timeline-company">SharkNinja</p>
+          <p class="timeline-desc">
+            Working across product development cycles on consumer electronics and home appliance
+            platforms. Performed quality assurance testing using rapid prototyping and constructed
+            automated testing frameworks.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot" id="js-dot-4"></div>
+        <div class="timeline-content">
+          <span class="timeline-date">Jul 2023 — Oct 2023</span>
+          <h3 class="timeline-title">Technical Support Engineer</h3>
+          <p class="timeline-company">Insights Gaming</p>
+          <p class="timeline-desc">
+            Provided technical support and troubleshooting for Insight Gaming's screen capture
+            software, using various diagnostic tools and techniques.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot" id="js-dot-5"></div>
+        <div class="timeline-content">
+          <span class="timeline-date">Jun 2020 — Jul 2024</span>
+          <h3 class="timeline-title">STEM Tutor</h3>
+          <p class="timeline-company">Sylvan Learning</p>
+          <p class="timeline-desc">
+            Led interactive STEM based sessions for elementary school students, creating lesson
+            plans for chemistry experiments and guiding through math concepts. Introduced
+            programming concepts through Scratch.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    import { mountAboutReveal } from '../lib/motion/about-reveal';
+    import { mountResumeMenu } from '../lib/motion/resume-menu';
+    import { onPageReady } from '../lib/motion/lifecycle';
+
+    //  Experience timeline
+    function mountTimeline(): () => void {
+      const timelineEl = document.getElementById('js-timeline');
+      const svgEl = document.getElementById('js-timeline-svg') as unknown as SVGSVGElement | null;
+      const pathEl = document.getElementById('js-timeline-path') as unknown as SVGPathElement | null;
+      const timelineItems = Array.from(document.querySelectorAll<HTMLElement>('.timeline-item'));
+      const dots = Array.from(document.querySelectorAll<HTMLElement>('.timeline-dot'));
+      if (!timelineEl || !svgEl || !pathEl || timelineItems.length === 0) return () => {};
+
+      const prefersReducedMotion =
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+        document.documentElement.dataset.simReduced === '1';
+
+      if (prefersReducedMotion) {
+        timelineItems.forEach((item) => item.classList.add('reveal'));
+        dots.forEach((dot) => dot.classList.add('dot-visible'));
+        svgEl.style.display = 'none';
+        return () => {};
+      }
+
+      const WOBBLE_RANGE = 7;
+      const randomVals = Array.from({ length: 40 }, () => Math.random() * 2 - 1);
+      let totalLength = 0;
+      let revealFracs: number[] = [];
+      let currentOffset = 0;
+      let rafId: number | null = null;
+
+      const fracAtY = (targetY: number) => {
+        let lo = 0,
+          hi = 1;
+        for (let i = 0; i < 24; i++) {
+          const mid = (lo + hi) / 2;
+          if (pathEl.getPointAtLength(mid * totalLength).y < targetY) lo = mid;
+          else hi = mid;
+        }
+        return (lo + hi) / 2;
+      };
+
+      const buildPath = () => {
+        const svgX = 28;
+        const timelineTopAbs = timelineEl.getBoundingClientRect().top + window.scrollY;
+        const dotYs: number[] = [];
+        timelineItems.forEach((item, i) => {
+          const title = item.querySelector('.timeline-title');
+          if (!title) return;
+          const titleRect = title.getBoundingClientRect();
+          const itemRect = item.getBoundingClientRect();
+          const titleCenterY = titleRect.top + window.scrollY + titleRect.height / 2;
+          const dotTopInItem = titleCenterY - (itemRect.top + window.scrollY) - 6;
+          dots[i].style.top = `${dotTopInItem}px`;
+          dotYs.push(titleCenterY - timelineTopAbs);
+        });
+        if (dotYs.length === 0) return;
+        const startY = dotYs[0] - 32;
+        const endY = dotYs[dotYs.length - 1] + 44;
+        const totalH = endY + 10;
+        svgEl.setAttribute('viewBox', `0 0 56 ${totalH}`);
+        svgEl.style.height = `${totalH}px`;
+        const points = [startY, ...dotYs, endY];
+        let d = `M ${svgX} ${startY}`;
+        for (let i = 1; i < points.length; i++) {
+          const mid = (points[i - 1] + points[i]) / 2;
+          const cp1x = svgX + randomVals[(i * 2) % 40] * WOBBLE_RANGE;
+          const cp2x = svgX + randomVals[(i * 2 + 1) % 40] * WOBBLE_RANGE;
+          d += ` C ${cp1x} ${mid}, ${cp2x} ${mid}, ${svgX} ${points[i]}`;
+        }
+        pathEl.setAttribute('d', d);
+        totalLength = pathEl.getTotalLength();
+        revealFracs = dotYs.map((dotY) => fracAtY(dotY));
+        pathEl.style.strokeDasharray = String(totalLength);
+        pathEl.style.strokeDashoffset = String(totalLength);
+        currentOffset = totalLength;
+      };
+
+      const getScrollFraction = () => {
+        const viewH = window.innerHeight;
+        const rect = timelineEl.getBoundingClientRect();
+        const topAbs = rect.top + window.scrollY;
+        const bottomAbs = rect.bottom + window.scrollY;
+        const drawStart = topAbs - viewH * 0.7;
+        const drawEnd = bottomAbs - viewH * 0.9;
+        const sy = window.scrollY;
+        if (sy < drawStart) return 0;
+        if (sy > drawEnd) return 1;
+        return (sy - drawStart) / (drawEnd - drawStart);
+      };
+
+      const tick = () => {
+        const targetOffset = totalLength * (1 - getScrollFraction());
+        currentOffset += (targetOffset - currentOffset) * 0.08;
+        const settled = Math.abs(currentOffset - targetOffset) < 0.5;
+        if (settled) currentOffset = targetOffset;
+        pathEl.style.strokeDashoffset = String(currentOffset);
+        const drawnFraction = 1 - currentOffset / totalLength;
+        revealFracs.forEach((frac, i) => {
+          const visible = drawnFraction >= frac;
+          dots[i].classList.toggle('dot-visible', visible);
+          timelineItems[i].classList.toggle('reveal', visible);
+        });
+        rafId = settled ? null : requestAnimationFrame(tick);
+      };
+      const kickTick = () => {
+        if (rafId === null) rafId = requestAnimationFrame(tick);
+      };
+
+      const onScroll = () => kickTick();
+      let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+      const onResize = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          buildPath();
+          kickTick();
+        }, 120);
+      };
+
+      const bootRaf = requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          buildPath();
+          kickTick();
+        })
+      );
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onResize);
+
+      return () => {
+        cancelAnimationFrame(bootRaf);
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        clearTimeout(resizeTimer);
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('resize', onResize);
+      };
+    }
+
+    onPageReady('.about-stage', () => {
+      const destroyReveal = mountAboutReveal();
+      const destroyTimeline = mountTimeline();
+      const destroyResumeMenu = mountResumeMenu();
+      return () => {
+        destroyReveal();
+        destroyTimeline();
+        destroyResumeMenu();
+      };
+    });
+  </script>
+</Base>

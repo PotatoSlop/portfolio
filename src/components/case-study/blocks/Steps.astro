@@ -1,0 +1,19 @@
+---
+/* Horizontal process timeline (stacks vertically on mobile). The last step
+   renders filled, as the "where it landed" marker. */
+interface Props {
+  steps: { label: string; note?: string }[];
+}
+const { steps } = Astro.props;
+---
+
+<ol class="cs-steps cs-wide" style={`--n:${steps.length}`} aria-label="Timeline">
+  {
+    steps.map((s) => (
+      <li>
+        {s.label}
+        {s.note && <small>{s.note}</small>}
+      </li>
+    ))
+  }
+</ol>

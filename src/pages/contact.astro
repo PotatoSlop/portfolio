@@ -1,0 +1,389 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Contact — Dylan Chen" showFooter={false}>
+  <header class="page-header container">
+    <h1>Let's Connect!</h1>
+  </header>
+
+  <main class="container">
+    <div
+      id="form-messages"
+      class="form-messages"
+      role="alert"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+    </div>
+
+    <form id="contact-form" novalidate>
+      <div class="form-group">
+        <label for="name">
+          Full Name <span class="required" aria-label="required">*</span>
+        </label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          required
+          minlength="2"
+          aria-describedby="name-hint name-error"
+          autocomplete="name"
+        />
+        <div id="name-hint" class="field-hint">Enter your first and last name</div>
+        <div id="name-error" class="error-message" role="alert" aria-live="polite"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">
+          Email Address <span class="required" aria-label="required">*</span>
+        </label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          required
+          aria-describedby="email-hint email-error"
+          autocomplete="email"
+        />
+        <div id="email-hint" class="field-hint">I'll use this to respond to your message</div>
+        <div id="email-error" class="error-message" role="alert" aria-live="polite"></div>
+      </div>
+
+      <input type="hidden" id="from_field" name="from_field" />
+
+      <div class="form-group">
+        <label for="phone">
+          Phone Number <span class="optional">(optional)</span>
+        </label>
+        <input
+          type="tel"
+          id="phone"
+          name="phone"
+          pattern={String.raw`\(\d{3}\) \d{3}-\d{4}`}
+          aria-describedby="phone-hint phone-error"
+          autocomplete="tel"
+        />
+        <div id="phone-hint" class="field-hint">(123) 456-7890</div>
+        <div id="phone-error" class="error-message" role="alert" aria-live="polite"></div>
+      </div>
+
+      <div class="form-group message-group">
+        <label for="message">
+          Message <span class="required" aria-label="required">*</span>
+        </label>
+        <textarea
+          id="message"
+          name="message"
+          required
+          minlength="50"
+          maxlength="2000"
+          aria-describedby="message-hint message-error message-counter"
+          placeholder="Give me your best project ideas!"></textarea>
+        <div class="message-footer">
+          <div id="message-hint" class="field-hint">Drop your message here</div>
+          <div id="message-counter" class="character-counter" aria-live="polite">0/50</div>
+        </div>
+        <div id="message-error" class="error-message" role="alert" aria-live="polite"></div>
+      </div>
+
+      <button type="submit" class="submit-button">
+        <span class="button-text">Send Message</span>
+        <span class="button-spinner" aria-hidden="true"></span>
+      </button>
+    </form>
+  </main>
+
+  <script>
+    // ---- EmailJS (publishable client ids; kept as-is per CLAUDE.md) ----
+    const EMAILJS_PUBLIC_KEY = 'zLTdEhCQ3xZ0quJlx';
+    const EMAILJS_SERVICE = 'service_48b6ao1';
+    const EMAILJS_TEMPLATE = 'template_rn6shkd';
+    const EMAILJS_SDK = 'https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js';
+
+    // Load the SDK once (and init); resolves to the global emailjs object.
+    let emailjsReady: Promise<any> | null = null;
+    function loadEmailJS(): Promise<any> {
+      if (emailjsReady) return emailjsReady;
+      emailjsReady = new Promise((resolve, reject) => {
+        const existing = (window as any).emailjs;
+        if (existing) {
+          existing.init(EMAILJS_PUBLIC_KEY);
+          resolve(existing);
+          return;
+        }
+        const s = document.createElement('script');
+        s.src = EMAILJS_SDK;
+        s.onload = () => {
+          (window as any).emailjs.init(EMAILJS_PUBLIC_KEY);
+          resolve((window as any).emailjs);
+        };
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      return emailjsReady;
+    }
+
+    // ---- Validation + UI helpers ----
+    const val = (id: string) =>
+      (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | null)?.value ?? '';
+
+    // Native Constraint Validation is the source of truth (see the required /
+    // minlength / maxlength / type / pattern attributes on the fields). This maps
+    // a field's ValidityState to our custom copy so we keep the inline error UI.
+    function fieldError(field: HTMLInputElement | HTMLTextAreaElement): string {
+      const v = field.validity;
+      if (v.valid) return '';
+      if (v.valueMissing) {
+        if (field.id === 'email') return 'Email address is required';
+        if (field.id === 'message') return 'Message is required';
+        return 'Full name is required';
+      }
+      if (v.typeMismatch) return 'Please enter a valid email address';
+      if (v.patternMismatch)
+        return 'Please enter a valid phone number in format: (555) 123-4567';
+      if (v.tooShort) {
+        if (field.id === 'message') {
+          const remaining = field.minLength - field.value.length;
+          return `Message must be at least 50 characters long. ${remaining} characters remaining.`;
+        }
+        return 'Name must be at least 2 characters long';
+      }
+      if (v.tooLong) return 'Message is too long.';
+      return field.validationMessage;
+    }
+
+    function showError(fieldId: string, message: string) {
+      const field = document.getElementById(fieldId);
+      const errorDiv = document.getElementById(fieldId + '-error');
+      if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+      }
+      field?.classList.add('error-field');
+      field?.classList.remove('success-field');
+      field?.setAttribute('aria-invalid', 'true');
+    }
+    function clearError(fieldId: string) {
+      const errorDiv = document.getElementById(fieldId + '-error');
+      if (errorDiv) {
+        errorDiv.textContent = '';
+        errorDiv.style.display = 'none';
+      }
+      const field = document.getElementById(fieldId);
+      field?.classList.remove('error-field');
+      field?.setAttribute('aria-invalid', 'false');
+    }
+    function showSuccess(fieldId: string) {
+      const field = document.getElementById(fieldId);
+      field?.classList.add('success-field');
+      field?.classList.remove('error-field');
+      field?.setAttribute('aria-invalid', 'false');
+    }
+    function clearErrorMessages() {
+      document.querySelectorAll('.error-message').forEach((m) => {
+        m.textContent = '';
+        (m as HTMLElement).style.display = 'none';
+      });
+      document.querySelectorAll('.error-field').forEach((field) => {
+        field.classList.remove('error-field');
+        field.setAttribute('aria-invalid', 'false');
+      });
+    }
+    function resetFieldStates() {
+      document.querySelectorAll('input, textarea').forEach((field) => {
+        field.classList.remove('error-field', 'success-field');
+        field.setAttribute('aria-invalid', 'false');
+      });
+    }
+    function focusFirstErrorField() {
+      (document.querySelector('.error-field') as HTMLElement | null)?.focus();
+    }
+    function showFormMessage(message: string, type: 'success' | 'error') {
+      const messageDiv = document.getElementById('form-messages');
+      if (!messageDiv) return;
+      messageDiv.textContent = message;
+      messageDiv.className = 'form-messages ' + type;
+      messageDiv.style.display = 'block';
+      messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    function clearFormMessages() {
+      const messageDiv = document.getElementById('form-messages');
+      if (!messageDiv) return;
+      messageDiv.style.display = 'none';
+      messageDiv.className = 'form-messages';
+    }
+    function setButtonLoading(button: HTMLButtonElement, isLoading: boolean) {
+      const text = button.querySelector('.button-text');
+      if (isLoading) {
+        button.disabled = true;
+        button.classList.add('loading');
+        if (text) text.textContent = 'Sending...';
+      } else {
+        button.disabled = false;
+        button.classList.remove('loading');
+        if (text) text.textContent = 'Send Message';
+      }
+    }
+    function updateMessageCounter() {
+      const messageField = document.getElementById('message') as HTMLTextAreaElement | null;
+      const counter = document.getElementById('message-counter');
+      if (!messageField || !counter) return;
+      const currentLength = messageField.value.length;
+      const minLength = 50;
+      const maxLength = 2000;
+      counter.textContent = currentLength + '/' + minLength;
+      counter.classList.remove('warning', 'valid');
+      if (currentLength >= minLength) {
+        counter.classList.add('valid');
+        counter.textContent = currentLength + '/' + maxLength;
+      } else if (currentLength > minLength * 0.8) {
+        counter.classList.add('warning');
+      }
+    }
+
+    async function sendEmail(event: Event) {
+      event.preventDefault();
+      const form = event.target as HTMLFormElement;
+
+      const name = val('name').trim();
+      const email = val('email').trim();
+
+      clearErrorMessages();
+      clearFormMessages();
+
+      // Let the browser check every constraint at once, then paint our own copy
+      // onto whichever fields it flagged.
+      if (!form.checkValidity()) {
+        form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea').forEach(
+          (field) => {
+            if (!field.validity.valid) showError(field.id, fieldError(field));
+          }
+        );
+        focusFirstErrorField();
+        showFormMessage('Please correct the errors below and try again.', 'error');
+        return;
+      }
+
+      const fromField = document.getElementById('from_field') as HTMLInputElement | null;
+      if (fromField) fromField.value = name + ' <' + email + '>';
+
+      const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+      setButtonLoading(submitButton, true);
+
+      try {
+        const emailjs = await loadEmailJS();
+        await emailjs.sendForm(EMAILJS_SERVICE, EMAILJS_TEMPLATE, form);
+        showFormMessage(
+          "Thank you! Your message has been sent successfully. I'll get back to you soon.",
+          'success'
+        );
+        form.reset();
+        clearErrorMessages();
+        updateMessageCounter();
+        resetFieldStates();
+      } catch (error: any) {
+        // EmailJS rejections are { status, text }; the bare object minifies to
+        // "t". Log both so the real reason is visible in the console.
+        console.error('EmailJS Error:', error?.status, '-', error?.text ?? error);
+        showFormMessage(
+          'Sorry, there was a problem sending your message. Please try again or contact me directly.',
+          'error'
+        );
+      } finally {
+        setButtonLoading(submitButton, false);
+      }
+    }
+
+    // On blur: an empty field just clears (we don't nag "required" until submit);
+    // a filled field is marked success or shown its native validation error.
+    function validateFieldOnBlur(field: HTMLInputElement | HTMLTextAreaElement) {
+      clearError(field.id);
+      if (field.value.trim() === '') return;
+      if (field.validity.valid) showSuccess(field.id);
+      else showError(field.id, fieldError(field));
+    }
+
+    function setupRealTimeValidation() {
+      const fields = ['name', 'email', 'phone', 'message']
+        .map((id) => document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | null)
+        .filter((f): f is HTMLInputElement | HTMLTextAreaElement => f !== null);
+
+      fields.forEach((field) => {
+        field.addEventListener('blur', () => validateFieldOnBlur(field));
+        field.addEventListener('input', () => {
+          if (field.id === 'message') updateMessageCounter();
+          if (field.classList.contains('error-field')) clearError(field.id);
+        });
+      });
+    }
+
+    function setupPhoneFormatting() {
+      const phoneInput = document.getElementById('phone') as HTMLInputElement | null;
+      phoneInput?.addEventListener('input', () => {
+        const x = phoneInput.value.replace(/\D/g, '').substring(0, 10);
+        let formatted = '';
+        if (x.length > 0) formatted = '(' + x.substring(0, 3);
+        if (x.length >= 4) formatted += ') ' + x.substring(3, 6);
+        if (x.length >= 7) formatted += '-' + x.substring(6, 10);
+        phoneInput.value = formatted;
+      });
+    }
+
+    function adjustTextareaHeight() {
+      const textarea = document.getElementById('message') as HTMLTextAreaElement | null;
+      if (!textarea) return;
+      const viewportHeight = window.innerHeight;
+      let minHeight: number, maxHeight: number, height: number;
+      if (window.innerWidth <= 768) {
+        minHeight = Math.max(120, Math.floor(viewportHeight * 0.25) - 80);
+        maxHeight = Math.max(180, Math.floor(viewportHeight * 0.35) - 80);
+        height = Math.max(150, Math.floor(viewportHeight * 0.3) - 80);
+      } else if (viewportHeight <= 600) {
+        minHeight = 120;
+        maxHeight = 180;
+        height = 150;
+      } else {
+        minHeight = Math.floor(viewportHeight * 0.3) - 100;
+        maxHeight = Math.floor(viewportHeight * 0.4) - 100;
+        height = Math.floor(viewportHeight * 0.35) - 100;
+      }
+      textarea.style.minHeight = minHeight + 'px';
+      textarea.style.maxHeight = maxHeight + 'px';
+      textarea.style.height = height + 'px';
+    }
+
+    // ---- Wire up through onPageReady ----
+    // Routed through the shared lifecycle primitive (NOT a hand-rolled
+    // astro:page-load listener) so it gets the mandatory first-SPA-entry
+    // catch-up: without it, arriving at /contact via an in-app navigation could
+    // evaluate this module after page-load had already fired, leaving the form
+    // completely un-wired until a hard refresh. See docs/routing-and-lifecycle.md §3.1.
+    import { onPageReady } from '../lib/motion/lifecycle';
+
+    // Root '#contact-form' means this only mounts on /contact and no-ops
+    // everywhere else. The returned closure is the teardown run on before-swap —
+    // it removes the one window listener that would otherwise leak across nav.
+    onPageReady('#contact-form', () => {
+      const form = document.getElementById('contact-form') as HTMLFormElement | null;
+      if (!form) return;
+      loadEmailJS(); // preload the SDK so submit is instant
+
+      form.addEventListener('submit', sendEmail);
+      setupRealTimeValidation();
+      setupPhoneFormatting();
+      adjustTextareaHeight();
+      updateMessageCounter();
+
+      document
+        .querySelectorAll('input, textarea')
+        .forEach((input) => input.addEventListener('input', clearFormMessages));
+
+      const resizeHandler = adjustTextareaHeight;
+      window.addEventListener('resize', resizeHandler);
+
+      return () => window.removeEventListener('resize', resizeHandler);
+    });
+  </script>
+</Base>

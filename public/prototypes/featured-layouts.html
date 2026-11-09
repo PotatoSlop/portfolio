@@ -1,0 +1,588 @@
+<!doctype html>
+<!--
+  PROTOTYPE: featured-card layouts that adapt to ANY image aspect ratio without
+  significant cropping. Throwaway, not wired into Astro. View on your dev
+  server at /prototypes/featured-layouts.html.
+
+  Why the current card breaks: it is a fixed 21:9 frame painting the image with
+  background-size: cover, so a 16:10 mockup loses ~30% top + bottom, and the
+  cream scrim + overlaid label then sit on what's left.
+
+  Four directions below, each fed the same pair (Featured + Most recent) so you
+  can flip between them and watch how the layout copes when the aspect ratio
+  changes. Use the pair picker to stress-test: today's mockups, a mixed pair,
+  and an extreme portrait-vs-wide pair.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Featured layouts</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Dela+Gothic+One&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --paper: #f3efe6;
+        --card: #ffffff;
+        --ink: #16233a;
+        --muted: #6c7183;
+        --line: rgba(20, 18, 12, 0.12);
+        --line-2: rgba(20, 18, 12, 0.24);
+        --accent: #f5a045;
+        --accent-deep: #b5611b;
+        --glass: rgba(247, 244, 238, 0.78);
+        --shadow: 28px 40px 60px -28px rgba(30, 24, 14, 0.45);
+        --ease: cubic-bezier(0.075, 0.82, 0.165, 1);
+        --edge: 74px;
+        --f-title: 'Dela Gothic One', sans-serif;
+        --f-body: 'Archivo', system-ui, sans-serif;
+        /* The featured block's fixed height in the stage/blur/split variants:
+           tall enough to matter, short enough that a cross-fade never jumps. */
+        --feat-h: clamp(380px, 58vh, 620px);
+      }
+      @media (max-width: 768px) {
+        :root {
+          --edge: 16px;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--f-body);
+      }
+      .page {
+        padding: 48px var(--edge) 140px;
+      }
+      h1 {
+        margin: 0;
+        font: 400 clamp(36px, 5vw, 64px) / 1 var(--f-title);
+        text-transform: uppercase;
+      }
+      .lede {
+        max-width: 70ch;
+        margin: 14px 0 24px;
+        font-size: 16px;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+      .controls {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 18px;
+        margin: 0 calc(-1 * var(--edge)) 12px;
+        padding: 12px var(--edge);
+        background: var(--glass);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+        font: 600 11px/1 var(--f-body);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .seg {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .seg button {
+        padding: 7px 12px;
+        border: 1px solid var(--line-2);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.6);
+        color: var(--ink);
+        font: 600 12px/1 var(--f-body);
+        letter-spacing: 0.02em;
+        text-transform: none;
+        cursor: pointer;
+      }
+      .seg button[aria-pressed='true'] {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--paper);
+      }
+      .variant {
+        padding: 56px 0 24px;
+        border-top: 1px solid var(--line);
+      }
+      .variant + .variant {
+        margin-top: 24px;
+      }
+      .vhead {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        margin-bottom: 6px;
+      }
+      .vhead .n {
+        font: 600 15px/1 var(--f-body);
+        letter-spacing: 0.08em;
+        color: var(--accent-deep);
+      }
+      .vhead h2 {
+        margin: 0;
+        font: 400 clamp(24px, 2.6vw, 40px) / 1 var(--f-title);
+        text-transform: uppercase;
+      }
+      .vnote {
+        max-width: 80ch;
+        margin: 0 0 18px;
+        font-size: 14px;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+      .vnote b {
+        color: var(--ink);
+      }
+
+      /* Shared: the cycler bar + label pieces */
+      .cyc {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      .cyc button {
+        padding: 0;
+        border: 0;
+        background: none;
+        font: 600 12px/1 var(--f-body);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .cyc button[aria-pressed='true'] {
+        color: var(--accent-deep);
+      }
+      .cyc .bar {
+        flex: 1;
+        display: flex;
+        gap: 6px;
+        height: 3px;
+      }
+      .cyc .bar i {
+        flex: 1;
+        border-radius: 2px;
+        background: var(--line);
+      }
+      .cyc .bar i.on {
+        background: var(--accent);
+      }
+      .k {
+        font: 600 11px/1 var(--f-body);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent-deep);
+      }
+      .t {
+        font: 400 clamp(26px, 3vw, 44px) / 0.98 var(--f-title);
+        text-transform: uppercase;
+      }
+      .m {
+        font: 500 14px/1.3 var(--f-body);
+        color: var(--muted);
+      }
+      .s {
+        max-width: 38ch;
+        font: 400 16px/1.55 var(--f-body);
+      }
+      .btn {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        display: inline-flex;
+        align-self: flex-start;
+        padding: 10px 18px;
+        border: 1px solid var(--line-2);
+        border-radius: 5px;
+        background: var(--glass);
+        color: var(--ink);
+        font: 600 12px/1 var(--f-body);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .btn::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: var(--accent);
+        transform: translateY(100%);
+        transition: transform 0.4s var(--ease);
+      }
+      .btn:hover::before {
+        transform: none;
+      }
+      .btn--solid {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--paper);
+      }
+      .btn--solid:hover {
+        color: var(--ink);
+      }
+      /* The clickable slots are <a>s: block them so height applies, no link styling. */
+      a.stage,
+      a.blur,
+      a.media,
+      a.frame {
+        display: block;
+        color: inherit;
+        text-decoration: none;
+      }
+      .fade {
+        transition: opacity 0.35s ease;
+      }
+      .fade.is-out {
+        opacity: 0;
+      }
+
+      /* =====================================================================
+         A · STAGE — fixed height, image CONTAINED, letterbox painted in the
+         image's own edge colour so the bars disappear. Label sits in a frosted
+         chip, never a full scrim.
+         ===================================================================== */
+      .stage {
+        position: relative;
+        height: var(--feat-h);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        overflow: hidden;
+        background: var(--edgec, #ebe5d7);
+        transition: background-color 0.5s ease, box-shadow 0.5s var(--ease);
+      }
+      .stage:hover {
+        box-shadow: var(--shadow);
+      }
+      .stage img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: var(--matpad, 0);
+        transition: transform 0.6s var(--ease);
+      }
+      .stage:hover img {
+        transform: scale(1.02);
+      }
+      .chip {
+        position: absolute;
+        z-index: 2;
+        left: 18px;
+        bottom: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-width: min(420px, calc(100% - 36px));
+        padding: 14px 16px 16px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: var(--glass);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+      }
+      .chip .t {
+        font-size: clamp(22px, 2.2vw, 32px);
+      }
+
+      /* =====================================================================
+         B · BLUR BACKDROP — fixed height, image CONTAINED over a blurred,
+         enlarged copy of itself, so any ratio fills the frame edge to edge.
+         ===================================================================== */
+      .blur {
+        position: relative;
+        height: var(--feat-h);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        overflow: hidden;
+        background: #1a1a1a;
+      }
+      .blur .bg {
+        position: absolute;
+        inset: -60px;
+        background: center / cover no-repeat;
+        filter: blur(42px) saturate(1.15) brightness(0.92);
+        transform: scale(1.1);
+      }
+      .blur img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 28px;
+        filter: drop-shadow(0 24px 40px rgba(0, 0, 0, 0.35));
+      }
+
+      /* =====================================================================
+         C · EDITORIAL SPLIT — text column + media column at a FIXED HEIGHT.
+         The media box takes the image's own ratio (width = height × ratio),
+         capped by the space available, so nothing crops; the text column
+         absorbs the difference.
+         ===================================================================== */
+      .split {
+        display: grid;
+        grid-template-columns: minmax(260px, 1fr) auto;
+        gap: clamp(24px, 4vw, 64px);
+        align-items: center;
+        height: var(--feat-h);
+      }
+      .split .text {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-self: center;
+      }
+      .split .media {
+        height: var(--feat-h);
+        max-width: min(72vw, calc(100vw - 2 * var(--edge) - 300px));
+        aspect-ratio: var(--ar);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        overflow: hidden;
+        background: var(--edgec, #ebe5d7);
+        transition: aspect-ratio 0.5s var(--ease);
+        justify-self: end;
+      }
+      .split .media img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+      @media (max-width: 900px) {
+        .split {
+          grid-template-columns: minmax(0, 1fr);
+          height: auto;
+        }
+        .split .media {
+          height: auto;
+          width: 100%;
+          max-width: none;
+          max-height: 70vh;
+          justify-self: stretch;
+        }
+      }
+
+      /* =====================================================================
+         D · JUSTIFIED PAIR — no cycler: Featured and Most recent side by side
+         in ONE row. Widths are proportional to each image's ratio and the row
+         height is solved so the pair exactly fills the width. Zero cropping,
+         every ratio, captions below the images.
+         ===================================================================== */
+      .pair {
+        display: flex;
+        gap: 20px;
+      }
+      /* flex-grow ∝ aspect ratio: with equal heights, widths ∝ ratio fill the row exactly. */
+      .pair figure {
+        flex: var(--r) 1 0;
+        min-width: 0;
+        margin: 0;
+      }
+      .pair .frame {
+        aspect-ratio: var(--ar);
+        max-height: 70vh;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        overflow: hidden;
+        background: var(--edgec, #ebe5d7);
+        transition: box-shadow 0.5s var(--ease);
+      }
+      .pair .frame:hover {
+        box-shadow: var(--shadow);
+      }
+      .pair .frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+      .pair figcaption {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 14px;
+      }
+      .pair figcaption div {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+      }
+      .pair .t {
+        font-size: clamp(20px, 2vw, 30px);
+      }
+      @media (max-width: 768px) {
+        .pair {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <h1>Featured layouts</h1>
+      <p class="lede">
+        Four ways to show the Featured / Most recent pick without cropping, whatever the image's shape. Flip Featured ↔ Most recent in each to see how it handles a change of aspect ratio, and use the pair picker to stress-test.
+      </p>
+
+      <div class="controls">
+        Test pair
+        <span class="seg" data-pairs>
+          <button type="button" data-val="now">Today: two 16:10 mockups</button>
+          <button type="button" data-val="mixed">Mixed: 1.44 wide + 0.84 tall</button>
+          <button type="button" data-val="extreme">Extreme: 1.78 wide + 0.67 portrait</button>
+          <button type="button" data-val="square">1.33 + 1.00 square</button>
+        </span>
+      </div>
+
+      <section class="variant" data-v="a">
+        <div class="vhead"><span class="n">A</span><h2>Stage</h2></div>
+        <p class="vnote"><b>Fixed height, image contained, letterbox in the image's own edge colour</b> (sampled at build time). Mockups on cream melt into the frame; a dark render gets a dark stage. Label in a frosted chip instead of a scrim. Height never changes, so the cross-fade stays still.</p>
+        <div class="cyc"></div>
+        <a class="stage fade" href="#" data-slot><img alt="" /><div class="chip"><span class="k"></span><span class="t"></span><span class="m"></span><span class="btn">Read case study</span></div></a>
+      </section>
+
+      <section class="variant" data-v="b">
+        <div class="vhead"><span class="n">B</span><h2>Blur backdrop</h2></div>
+        <p class="vnote"><b>Fixed height, image contained over a blurred, enlarged copy of itself.</b> Works for anything, including busy photos, and always fills the frame. Louder than A; reads more "media player" than "editorial".</p>
+        <div class="cyc"></div>
+        <a class="blur fade" href="#" data-slot><span class="bg"></span><img alt="" /><div class="chip"><span class="k"></span><span class="t"></span><span class="m"></span><span class="btn">Read case study</span></div></a>
+      </section>
+
+      <section class="variant" data-v="c">
+        <div class="vhead"><span class="n">C</span><h2>Editorial split</h2></div>
+        <p class="vnote"><b>Text column + media at a fixed height; the media box takes the image's own ratio.</b> Room for a one-line summary and a clear CTA, and the photo is never covered by text. A tall image gives the text more room; a wide one squeezes it to its minimum. Stacks on mobile.</p>
+        <div class="cyc"></div>
+        <div class="split fade" data-slot>
+          <div class="text"><span class="k"></span><span class="t"></span><span class="m"></span><p class="s"></p><a class="btn btn--solid" href="#">Read case study</a></div>
+          <a class="media" href="#"><img alt="" /></a>
+        </div>
+      </section>
+
+      <section class="variant" data-v="d">
+        <div class="vhead"><span class="n">D</span><h2>Justified pair</h2></div>
+        <p class="vnote"><b>No cycler: both picks in one row, widths proportional to their ratios, height solved to fill the row.</b> Zero cropping, zero letterbox, both visible at once, captions underneath. Height varies with the pair (it's a different shape per pair, not per click).</p>
+        <div class="pair" data-pair></div>
+      </section>
+    </main>
+
+    <script>
+      const A = '../Assets/';
+      // edge = average colour of each image's outer ring (sharp, at build time).
+      const IMG = {
+        pm: { src: A + 'design/uiux/portfolio/mockup.webp', w: 1600, h: 1000, edge: '#ebe5d7' },
+        mm: { src: A + 'design/uiux/m8s/mockup.webp', w: 1600, h: 1000, edge: '#eae4d6' },
+        nh: { src: A + 'design/uiux/nuhire/landing-redesign.webp', w: 1440, h: 1001, edge: '#faeaec' },
+        kn: { src: A + 'design/3d/knight.png', w: 648, h: 767, edge: '#545331' },
+        lp: { src: A + 'software/landingPortfolio.png', w: 1618, h: 910, edge: '#fcfcfc' },
+        ph: { src: A + 'Photography/web/large/sample-vert-1.webp', w: 1333, h: 2000, edge: '#070606' },
+        boat: { src: A + 'design/3d/boat.png', w: 1600, h: 1200, edge: '#8abcbf' },
+        pea: { src: A + 'design/3d/peacemaker.jpg', w: 715, h: 715, edge: '#717170' },
+      };
+      const PAIRS = {
+        now: [
+          { img: 'pm', title: 'Portfolio Site', meta: 'UI / UX · Astro · 2025', sum: 'One sketchbook that branches into three disciplines, each with its own visual language.' },
+          { img: 'mm', title: 'm8s', meta: 'UI / UX · Figma · 2025', sum: 'A roommate chore tracker that turns "whose turn is it?" into a fair rotation.' },
+        ],
+        mixed: [
+          { img: 'nh', title: 'NUHire', meta: 'UI / UX · Figma · 2026', sum: 'A redesign of the hiring simulation students play in Intro to Co-op.' },
+          { img: 'kn', title: 'Clumsy Knight', meta: '3D · Blender · 2026', sum: 'A low-poly armoured character study.' },
+        ],
+        extreme: [
+          { img: 'lp', title: 'Portfolio Site', meta: 'UI / UX · Astro · 2025', sum: 'One sketchbook that branches into three disciplines.' },
+          { img: 'ph', title: 'Heat Lamp', meta: 'Photography · Manhattan, New York', sum: 'A portrait-orientation photograph, the hardest case for a wide frame.' },
+        ],
+        square: [
+          { img: 'boat', title: 'Lowpoly Boat', meta: '3D · Blender · 2024', sum: 'A stylised low-poly tugboat diorama.' },
+          { img: 'pea', title: 'Peacemaker', meta: '3D · Blender', sum: 'A square render.' },
+        ],
+      };
+      const TAGS = ['Featured', 'Most recent'];
+      let pair = 'now';
+      const idx = { a: 0, b: 0, c: 0 };
+
+      function fill(v, i, animate) {
+        const sec = document.querySelector(`[data-v="${v}"]`);
+        const slot = sec.querySelector('[data-slot]');
+        const item = PAIRS[pair][i];
+        const im = IMG[item.img];
+        const apply = () => {
+          slot.style.setProperty('--edgec', im.edge);
+          slot.style.setProperty('--ar', `${im.w} / ${im.h}`);
+          const media = slot.querySelector('.media');
+          if (media) media.style.setProperty('--ar', `${im.w} / ${im.h}`), media.style.setProperty('--edgec', im.edge);
+          slot.querySelectorAll('img').forEach((el) => (el.src = im.src));
+          const bg = slot.querySelector('.bg');
+          if (bg) bg.style.backgroundImage = `url('${im.src}')`;
+          slot.querySelector('.k').textContent = TAGS[i];
+          slot.querySelector('.t').textContent = item.title;
+          slot.querySelector('.m').textContent = item.meta;
+          const s = slot.querySelector('.s');
+          if (s) s.textContent = item.sum;
+        };
+        if (!animate) return apply();
+        slot.classList.add('is-out');
+        setTimeout(() => {
+          apply();
+          slot.classList.remove('is-out');
+        }, 300);
+      }
+      function cycler(v) {
+        const host = document.querySelector(`[data-v="${v}"] .cyc`);
+        host.innerHTML = TAGS.map((t, i) => `<button type="button" data-i="${i}" aria-pressed="${i === idx[v]}">${t}</button>`).join('') + `<span class="bar">${TAGS.map((_, i) => `<i class="${i <= idx[v] ? 'on' : ''}"></i>`).join('')}</span>`;
+        host.onclick = (e) => {
+          const b = e.target.closest('button');
+          if (!b) return;
+          idx[v] = Number(b.dataset.i);
+          cycler(v);
+          fill(v, idx[v], true);
+        };
+      }
+      function renderPair() {
+        document.querySelector('[data-pair]').innerHTML = PAIRS[pair]
+          .map((item, i) => {
+            const im = IMG[item.img];
+            return `<figure style="--ar:${im.w} / ${im.h}; --r:${(im.w / im.h).toFixed(4)}; --edgec:${im.edge}"><a class="frame" href="#" style="display:block"><img src="${im.src}" alt=""></a><figcaption><div><span class="k">${TAGS[i]}</span><span class="t">${item.title}</span><span class="m">${item.meta}</span></div><span class="btn">Open</span></figcaption></figure>`;
+          })
+          .join('');
+      }
+      function renderAll() {
+        document.querySelectorAll('[data-pairs] button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.val === pair)));
+        ['a', 'b', 'c'].forEach((v) => {
+          cycler(v);
+          fill(v, idx[v], false);
+        });
+        renderPair();
+        history.replaceState(null, '', '#' + pair);
+      }
+      document.querySelector('[data-pairs]').addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        pair = b.dataset.val;
+        renderAll();
+      });
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('a[href="#"]')) e.preventDefault();
+      });
+      const want = new URLSearchParams(location.search).get('pair') || location.hash.slice(1);
+      pair = PAIRS[want] ? want : 'now';
+      renderAll();
+    </script>
+  </body>
+</html>

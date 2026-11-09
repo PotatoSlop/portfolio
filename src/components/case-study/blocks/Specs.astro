@@ -1,0 +1,18 @@
+---
+/* A ruled facts table — medium, size, tools, where it was shown… */
+interface Props {
+  items: { label: string; value: string }[];
+}
+const { items } = Astro.props;
+---
+
+<dl class="cs-specs cs-wide">
+  {
+    items.map((s) => (
+      <div>
+        <dt>{s.label}</dt>
+        <dd>{s.value}</dd>
+      </div>
+    ))
+  }
+</dl>

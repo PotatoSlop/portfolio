@@ -1,0 +1,90 @@
+/* ===== Photo tile captions =====
+   Shared by the Photography masonry (PhotoMasonry, section 03) and the photo
+   tiles in All work (FilterGrid, section 04). Chosen from the caption prototype:
+   HOVER-ONLY reveal, a short GRADIENT scrim for contrast, SANS (Archivo) title.
+
+   Hooks (all global — the masonry's drift clones copy these nodes, and clones
+   carry no Astro scope id):
+     .ph-tile   the hoverable/focusable tile
+     .ph-media  the photo frame; its ::after is the scrim (host must be positioned)
+     .ph-cap    the caption (title + location), absolutely placed in the tile
+
+   Touch screens have no hover, so captions simply show there. */
+
+.ph-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  /* Short and soft: only the band under the text darkens. */
+  background: linear-gradient(0deg, rgba(8, 14, 26, 0.74) 0%, rgba(8, 14, 26, 0.38) 22%, rgba(8, 14, 26, 0) 44%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.ph-cap {
+  position: absolute;
+  z-index: 2;
+  left: 12px;
+  right: 12px;
+  bottom: 11px;
+  display: flex;
+  flex-direction: column;
+  /* Tiles are <button>s, which centre their content by default. */
+  align-items: flex-start;
+  text-align: left;
+  gap: 4px;
+  color: #f3efe6;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.35s ease,
+    transform 0.45s var(--dp-ease, cubic-bezier(0.075, 0.82, 0.165, 1));
+}
+.ph-cap__t {
+  font: 600 15px/1.2 var(--dp-font-body, 'Archivo', system-ui, sans-serif);
+}
+.ph-cap__l {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 600 10.5px/1.2 var(--dp-font-body, 'Archivo', system-ui, sans-serif);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.ph-cap__l svg {
+  flex: none;
+  width: 11px;
+  height: 11px;
+}
+
+.ph-tile:is(:hover, :focus-visible) .ph-cap {
+  opacity: 1;
+  transform: none;
+}
+.ph-tile:is(:hover, :focus-visible) .ph-media::after {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .ph-cap,
+  .ph-media::after {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Reduced motion (OS pref OR the site toggle): fade only, no rise. */
+@media (prefers-reduced-motion: reduce) {
+  .ph-cap {
+    transform: none;
+    transition: opacity 0.2s ease;
+  }
+}
+[data-sim-reduced] .ph-cap {
+  transform: none;
+  transition: opacity 0.2s ease;
+}

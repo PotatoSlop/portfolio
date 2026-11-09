@@ -1,0 +1,401 @@
+---
+// Engineering Page background styling
+---
+
+<canvas class="dot-lines" aria-hidden="true"></canvas>
+<div class="dot-vignette" aria-hidden="true"></div>
+
+<style>
+  .dot-lines {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* Slight vignette over the dot field: transparent through the centre, easing to
+     a faint ink darkening at the rim. Same z-index as the canvas but later in the
+     DOM, so it paints on top of the dots (and under the page content). Tune the
+     inner stop (spread) and the ink percentage (strength) to taste. */
+  .dot-vignette {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at 50% 45%,
+      transparent 52%,
+      color-mix(in srgb, var(--theme-ink) 10%, transparent) 100%
+    );
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dot-lines {
+      display: none;
+    }
+  }
+
+  :global(html[data-sim-reduced]) .dot-lines {
+    display: none;
+  }
+</style>
+
+<script>
+  import { prefersReducedMotion } from '../lib/motion/reduced-motion';
+  import { createBarrelLens, distort, undistort, screenGridPitch } from '../lib/motion/barrel';
+  import { onPageReady } from '../lib/motion/lifecycle';
+
+  const DOT_BASE_RADIUS = 1.5;
+  const DOT_ALPHA_CENTER = 0.27; // opacity at the lens centre (darker)
+  const DOT_ALPHA_EDGE = 0.07; // opacity at the rim (lighter)
+  const LENS_STRENGTH = 0.2; // peak barrel magnification
+  const PARALLAX_DEPTH = -0.025; // negative pushes the field opposite the cursor for depth
+  const PARALLAX_SMOOTHING = 0.07; // easing factor toward the target parallax
+  const GRID_MARGIN = 72; // extra ring of dots drawn beyond the viewport edge
+
+  const REVEAL_DURATION_MS = 1800; 
+  const REVEAL_FEATHER = 80; // px width of the soft leading edge (bigger = softer)
+  const revealEase = (t: number) => 1 - Math.pow(1 - t, 2); // easeOutCubic: quick, then settle
+
+  const MAX_TRAILS = 30;
+  const TRAIL_LIFETIME_MS = 2000; // a segment starts fading this long after it's drawn
+  const TRAIL_FADE_PER_FRAME = 0.01; // alpha removed each frame once fading
+
+  type TrailSegment = {
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+    alpha: number;
+    fading: boolean;
+    bornAt: number;
+  };
+
+  const lens = createBarrelLens(LENS_STRENGTH);
+
+  let canvas: HTMLCanvasElement | null = null;
+  let ctx: CanvasRenderingContext2D | null = null;
+  let pixelRatio = 1;
+  let viewportWidth = 0;
+  let viewportHeight = 0;
+  let gridSize = 22;
+  let gridOffset = 11;
+  let dotColor = '#1e1e14';
+  let accentColor = '#F5A045';
+
+  // The parallax eases from its current value (on the lens) toward this target.
+  let targetParallaxX = 0;
+  let targetParallaxY = 0;
+
+  let trails: TrailSegment[] = [];
+  let lastNode: { x: number; y: number; key: string } | null = null;
+  let animationFrameId = 0;
+  let running = false;
+
+  // Intro wave state. revealRadius is the wave front in screen px; Infinity means
+  // the field is fully built and no dot gating is applied.
+  let revealStart = 0; // performance.now() when the wave began; 0 once finished
+  let revealRadius = Infinity;
+
+  function readThemeTokens() {
+    const styles = getComputedStyle(document.documentElement);
+    const themeGrid = parseFloat(styles.getPropertyValue('--theme-grid-size'));
+    if (!Number.isNaN(themeGrid) && themeGrid > 0) {
+      gridSize = themeGrid;
+      gridOffset = themeGrid / 2;
+    }
+    const ink = styles.getPropertyValue('--theme-ink').trim();
+    if (ink) dotColor = ink;
+    const accent = styles.getPropertyValue('--theme-accent').trim();
+    if (accent) accentColor = accent;
+  }
+
+  function resizeCanvas() {
+    if (!canvas || !ctx) return;
+    pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    viewportWidth = window.innerWidth;
+    viewportHeight = window.innerHeight;
+    canvas.width = Math.round(viewportWidth * pixelRatio);
+    canvas.height = Math.round(viewportHeight * pixelRatio);
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+    lens.centerX = viewportWidth / 2;
+    lens.centerY = viewportHeight / 2;
+    // Reach to the far corner so the bulge spans the whole field — strongest at
+    // the centre, tapering to zero at the corners — rather than a local hotspot.
+    lens.radius = Math.hypot(viewportWidth, viewportHeight) / 2;
+  }
+
+  function drawDotField() {
+    if (!ctx) return;
+    ctx.fillStyle = dotColor;
+
+    const firstCol = Math.floor((-GRID_MARGIN - gridOffset) / gridSize);
+    const lastCol = Math.ceil((viewportWidth + GRID_MARGIN - gridOffset) / gridSize);
+    const firstRow = Math.floor((-GRID_MARGIN - gridOffset) / gridSize);
+    const lastRow = Math.ceil((viewportHeight + GRID_MARGIN - gridOffset) / gridSize);
+
+    for (let col = firstCol; col <= lastCol; col++) {
+      for (let row = firstRow; row <= lastRow; row++) {
+        const [screenX, screenY, radiusScale] = distort(lens, col * gridSize + gridOffset, row * gridSize + gridOffset);
+        const dist = Math.hypot(screenX - lens.centerX, screenY - lens.centerY);
+
+        // Intro wave: draw only dots the expanding radius has reached, each fading
+        // (and growing) in across a soft leading band, so the field builds ring by
+        // ring instead of a curtain wiping off a pre-drawn grid.
+        let revealAlpha = 1;
+        if (revealRadius < Infinity) {
+          revealAlpha = (revealRadius - dist) / REVEAL_FEATHER;
+          if (revealAlpha <= 0) continue; // wave hasn't reached this dot yet
+          if (revealAlpha > 1) revealAlpha = 1;
+        }
+
+        // Fade from centre to rim to match the fisheye: centre dots spread apart
+        // and read bolder, so we dim them; rim dots compress, so we lift them.
+        const rimFraction = Math.min(dist / lens.radius, 1);
+        ctx.globalAlpha = (DOT_ALPHA_CENTER + (DOT_ALPHA_EDGE - DOT_ALPHA_CENTER) * rimFraction) * revealAlpha;
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, DOT_BASE_RADIUS * radiusScale * (0.6 + 0.4 * revealAlpha), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawTrails(now: number) {
+    if (!ctx) return;
+    ctx.strokeStyle = accentColor;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    for (let i = trails.length - 1; i >= 0; i--) {
+      const trail = trails[i];
+      if (!trail.fading && now - trail.bornAt >= TRAIL_LIFETIME_MS) trail.fading = true;
+      if (trail.fading) {
+        trail.alpha -= TRAIL_FADE_PER_FRAME;
+        if (trail.alpha <= 0) {
+          trails.splice(i, 1);
+          continue;
+        }
+      }
+      // Sample along the segment so a line spanning the lens bows with the dots
+      // instead of cutting straight across them.
+      const sampleCount = Math.max(1, Math.round(Math.hypot(trail.endX - trail.startX, trail.endY - trail.startY) / 8));
+      ctx.globalAlpha = trail.alpha;
+      ctx.beginPath();
+      for (let sample = 0; sample <= sampleCount; sample++) {
+        const along = sample / sampleCount;
+        const [x, y] = distort(lens, trail.startX + (trail.endX - trail.startX) * along, trail.startY + (trail.endY - trail.startY) * along);
+        if (sample === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // A letter stays lit while a live trail overlaps its ink; brightness follows
+  // the strongest overlapping segment's alpha. Sampled at the distorted screen
+  // positions so lighting matches what's actually drawn.
+  let litLetters = new Set<Element>();
+  function lightLettersAlongTrails() {
+    const inkAt = (window as unknown as { __engInkAt?: (x: number, y: number) => Element | null }).__engInkAt;
+    if (!inkAt) return;
+
+    const brightness = new Map<Element, number>();
+    for (const trail of trails) {
+      const sampleCount = Math.max(1, Math.round(Math.hypot(trail.endX - trail.startX, trail.endY - trail.startY) / 6));
+      for (let sample = 0; sample <= sampleCount; sample++) {
+        const along = sample / sampleCount;
+        const [x, y] = distort(lens, trail.startX + (trail.endX - trail.startX) * along, trail.startY + (trail.endY - trail.startY) * along);
+        // The trail snaps to grid dots, and the barrel stretches the vertical row
+        // gap wider toward the lens centre — so near the middle of the wordmark the
+        // closest dot to a glyph's baseline can sit up to a full row below the ink.
+        // Probe half a *local* grid row upward too, so a dot just under a letter
+        // still lights it, by the same visual amount across the whole wordmark.
+        const lift = screenGridPitch(lens, x, y, gridSize) * 0.5;
+        for (const probeY of [y, y - lift]) {
+          const letter = inkAt(x, probeY);
+          if (letter) brightness.set(letter, Math.max(brightness.get(letter) ?? 0, trail.alpha));
+        }
+      }
+    }
+
+    for (const [letter, alpha] of brightness) {
+      (letter as HTMLElement).style.color =
+        `color-mix(in srgb, var(--theme-accent) ${Math.round(alpha * 100)}%, var(--theme-ink))`;
+    }
+    for (const letter of litLetters) if (!brightness.has(letter)) (letter as HTMLElement).style.color = '';
+    litLetters = new Set(brightness.keys());
+  }
+
+  function parallaxAtRest() {
+    return Math.abs(lens.parallaxX - targetParallaxX) < 0.5 && Math.abs(lens.parallaxY - targetParallaxY) < 0.5;
+  }
+
+  function renderFrame() {
+    if (!canvas || !ctx) {
+      running = false;
+      return;
+    }
+    const now = performance.now();
+
+    // Advance the intro wave. easeOut so it leaps out from the centre then eases
+    // into the corners; +FEATHER on the target so the soft edge fully clears them.
+    if (revealStart) {
+      const t = (now - revealStart) / REVEAL_DURATION_MS;
+      if (t >= 1) {
+        revealStart = 0;
+        revealRadius = Infinity;
+      } else {
+        revealRadius = revealEase(t) * (lens.radius + REVEAL_FEATHER);
+      }
+    }
+
+    lens.parallaxX += (targetParallaxX - lens.parallaxX) * PARALLAX_SMOOTHING;
+    lens.parallaxY += (targetParallaxY - lens.parallaxY) * PARALLAX_SMOOTHING;
+
+    ctx.clearRect(0, 0, viewportWidth, viewportHeight);
+    drawDotField();
+    drawTrails(now);
+    lightLettersAlongTrails();
+
+    // Keep animating until the intro wave finishes, the parallax has eased to
+    // rest and every trail has drained, then hold the last frame — no idle rAF burn.
+    if (revealStart || !parallaxAtRest() || trails.length > 0) {
+      animationFrameId = requestAnimationFrame(renderFrame);
+    } else {
+      running = false;
+    }
+  }
+
+  function ensureAnimating() {
+    if (!running) {
+      running = true;
+      animationFrameId = requestAnimationFrame(renderFrame);
+    }
+  }
+
+  function nearestGridNode(x: number, y: number) {
+    const nodeX = Math.round((x - gridOffset) / gridSize) * gridSize + gridOffset;
+    const nodeY = Math.round((y - gridOffset) / gridSize) * gridSize + gridOffset;
+    return { x: nodeX, y: nodeY, key: `${nodeX},${nodeY}` };
+  }
+
+  function updateFromPointer(pointerX: number, pointerY: number) {
+    targetParallaxX = (pointerX - viewportWidth / 2) * PARALLAX_DEPTH;
+    targetParallaxY = (pointerY - viewportHeight / 2) * PARALLAX_DEPTH;
+
+    // Snap in lattice space so we pick the dot the cursor is visually over on the
+    // distorted grid — snapping the raw cursor would miss wherever the lens
+    // spreads dots apart.
+    const [latticeX, latticeY] = undistort(lens, pointerX, pointerY);
+    const node = nearestGridNode(latticeX, latticeY);
+
+    if (!lastNode) {
+      lastNode = node;
+    } else if (node.key !== lastNode.key) {
+      trails.push({ startX: lastNode.x, startY: lastNode.y, endX: node.x, endY: node.y, alpha: 1, fading: false, bornAt: performance.now() });
+      if (trails.filter((trail) => !trail.fading).length > MAX_TRAILS) {
+        const oldest = trails.find((trail) => !trail.fading);
+        if (oldest) oldest.fading = true;
+      }
+      lastNode = node;
+    }
+    ensureAnimating();
+  }
+
+  function drawStaticFrame() {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, viewportWidth, viewportHeight);
+    drawDotField();
+  }
+
+  function setup() {
+    canvas = document.querySelector('.dot-lines');
+    // Re-check on every mount and on a live toggle — reduced-motion can change at
+    // runtime via the corner toggle, so it's never cached. When it's on, tear the
+    // canvas down and let the plain CSS dot grid take over.
+    if (!canvas || prefersReducedMotion()) {
+      if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx = null;
+      cancelAnimationFrame(animationFrameId);
+      running = false;
+      trails = [];
+      lastNode = null;
+      document.documentElement.style.removeProperty('--theme-grid');
+      return;
+    }
+
+    ctx = canvas.getContext('2d');
+    readThemeTokens();
+    // Take the grid over from the CSS body background so the two don't double up.
+    document.documentElement.style.setProperty('--theme-grid', 'none');
+    trails = [];
+    lastNode = null;
+    resizeCanvas();
+    lens.parallaxX = lens.parallaxY = targetParallaxX = targetParallaxY = 0;
+    // Kick off the generative intro: start from an empty field and let the wave
+    // build it outward from the centre. Runs once per mount (i.e. once on entry).
+    revealStart = performance.now();
+    revealRadius = 0;
+    ensureAnimating();
+  }
+
+  // Bound once (window persists across navigations); each handler no-ops under
+  // reduced motion, checked live so a runtime toggle takes effect immediately.
+  window.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'touch' || prefersReducedMotion()) return;
+    updateFromPointer(e.clientX, e.clientY);
+  });
+  // Cursor leaves the window: recentre the parallax (the lens stays put).
+  window.addEventListener('pointerleave', () => {
+    if (prefersReducedMotion()) return;
+    targetParallaxX = 0;
+    targetParallaxY = 0;
+    ensureAnimating();
+  });
+  window.addEventListener('resize', () => {
+    if (prefersReducedMotion()) return;
+    resizeCanvas();
+    if (running) return; // the loop will repaint
+    drawStaticFrame();
+  });
+
+  // Live dark/light toggle: the scheme flip re-cascades CSS, but our cached
+  // dotColor/accentColor were read into JS once — re-read them and repaint so the
+  // dot field tracks the theme without waiting for a navigation.
+  function refreshTheme() {
+    if (!ctx) return; // reduced motion: canvas is torn down, CSS grid handles it
+    readThemeTokens();
+    if (!running) drawStaticFrame();
+  }
+
+  // Stop the rAF loop and drop the canvas context on navigation away, so a
+  // detached canvas is never left drawing (before-swap teardown).
+  function teardown() {
+    cancelAnimationFrame(animationFrameId);
+    running = false;
+    revealStart = 0;
+    revealRadius = Infinity;
+    if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx = null;
+    trails = [];
+    lastNode = null;
+    document.documentElement.style.removeProperty('--theme-grid');
+  }
+
+  // onPageReady adds the first-SPA-entry catch-up (see src/lib/motion/lifecycle.ts)
+  // so the interactive dot field mounts whether /engineering is loaded directly or
+  // navigated into. The bound-once pointer/resize listeners above stay as they are.
+  const dotField = onPageReady('.dot-lines', () => {
+    setup();
+    return teardown;
+  });
+  // Runtime toggles rebuild the field: a motion-preference flip fully remounts
+  // (reduced tears the canvas down; full restores it); a scheme flip just repaints.
+  window.addEventListener('motionpreferencechange', () => dotField.remount());
+  window.addEventListener('colorschemechange', refreshTheme);
+</script>

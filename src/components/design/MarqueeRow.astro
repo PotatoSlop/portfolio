@@ -1,0 +1,286 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { resolveCardAction, cardNavigates, coverStyle } from '../../lib/design-links';
+import { DESIGN_WIP, STUB_COUNTS, stubList } from '../../lib/design-stub';
+
+interface Props {
+  items: CollectionEntry<'design'>[];
+  dir?: number; // -1 drifts left, 1 drifts right
+}
+const { items, dir = -1 } = Astro.props;
+
+// One corner badge per card. A gated UI/UX card (no case study yet) reads as
+// 'soon'; that takes precedence, then the 'stub' placeholder marker — flagging
+// the unfinished/gated state is the point of the badge.
+const badgeFor = (it: CollectionEntry<'design'>, gated: boolean) =>
+  gated ? 'soon' : it.data.tags?.includes('stub') ? 'stub' : null;
+---
+
+<div class="row-viewport crop-tb">
+  <div class="row-track" data-drift="x" data-dir={dir}>
+    {
+      DESIGN_WIP
+        ? stubList(STUB_COUNTS.row).map(() => (
+            <div class="d-card is-stub" aria-hidden="true">
+              <div class="d-media" />
+              <div class="d-label">
+                <span class="stub-cap">Work in Progress</span>
+              </div>
+            </div>
+          ))
+        : items.map((it) => {
+        const action = resolveCardAction(it);
+        const nav = cardNavigates(action);
+        const inert = action.kind === 'gated' || action.kind === 'dead';
+        const badge = badgeFor(it, action.kind === 'gated');
+        return (
+          <a
+            class:list={['d-card', { 'is-gated': action.kind === 'gated', 'is-inert': inert }]}
+            href={nav ? action.href : undefined}
+            data-card-action={action.kind}
+            data-glb={action.kind === 'model' ? action.glb : undefined}
+            role={action.kind === 'model' ? 'button' : undefined}
+            tabindex={action.kind === 'model' ? 0 : undefined}
+            aria-haspopup={action.kind === 'model' ? 'dialog' : undefined}
+            aria-disabled={inert ? 'true' : undefined}
+            draggable={false}
+          >
+            <div class="d-media">
+              {it.data.cover && (
+                <img src={it.data.cover} alt="" loading="lazy" decoding="async" style={coverStyle(it.data)} />
+              )}
+            </div>
+            {badge && (
+              <span class="d-tag" data-stub={badge === 'stub' ? 'true' : 'false'} data-soon={badge === 'soon' ? 'true' : 'false'}>
+                {badge === 'soon' ? 'case study soon' : badge}
+              </span>
+            )}
+            <div class="d-label">
+              <b>{it.data.title}</b>
+              <span>{it.data.category}</span>
+            </div>
+          </a>
+        );
+      })
+    }
+  </div>
+</div>
+
+<style>
+  .row-viewport {
+    overflow: hidden;
+    touch-action: pan-y;
+    padding-block: var(--dp-bleed);
+    margin-block: calc(-1 * var(--dp-bleed));
+  }
+  .row-track {
+    display: flex;
+    gap: 26px;
+    will-change: transform;
+  }
+  .d-card {
+    position: relative;
+    flex: 0 0 clamp(360px, 34vw, 520px);
+    aspect-ratio: 4 / 3;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid var(--dp-line);
+    background: var(--dp-card);
+    cursor: pointer;
+    text-decoration: none;
+    -webkit-user-drag: none;
+    user-select: none;
+    transition: box-shadow 0.5s var(--dp-ease), transform 0.4s var(--dp-ease);
+  }
+  .d-card:hover {
+    box-shadow: var(--dp-shadow);
+    transform: scale(1.05);
+    z-index: 2; /* lift the scaled card above its neighbours */
+  }
+  .d-media {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(155deg, #2a2a2e, #141416);
+    transition: transform 0.6s var(--dp-ease);
+  }
+  /* Cover image fills the media frame; the gradient shows through only when a
+     card has no cover yet (stubs). */
+  .d-media :global(img) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .d-card:hover .d-media {
+    transform: scale(1.07);
+  }
+  .d-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(0deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 42%);
+  }
+  .d-label {
+    position: absolute;
+    left: 18px;
+    bottom: 16px;
+    right: 18px;
+    z-index: 2;
+  }
+  .d-label b {
+    display: block;
+    font-family: var(--dp-font-title);
+    font-size: 20px;
+    font-weight: 400;
+    text-transform: uppercase;
+  }
+  .d-label span {
+    font-size: 12px;
+    color: var(--dp-muted);
+    text-transform: uppercase;
+  }
+  .d-tag {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 2;
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: var(--dp-ink);
+    color: var(--dp-paper);
+    padding: 4px 9px;
+    border-radius: 3px;
+  }
+  /* Stub marker — amber fill so an unfinished/placeholder card reads distinctly
+     from the neutral ink tag. */
+  .d-tag[data-stub='true'] {
+    background: var(--dp-accent);
+    color: var(--dp-ink);
+  }
+  /* "case study soon" — keeps the neutral ink pill (distinct from the amber stub),
+     but wider text, so let it size to content. */
+  .d-tag[data-soon='true'] {
+    text-transform: none;
+    letter-spacing: 0.02em;
+  }
+
+  /* Whole-page WIP stub: blank placeholder card. Just the framed gradient media +
+     a muted skeleton bar where the label would sit. No hover lift (nothing to
+     invite), default cursor. Reversible via DESIGN_WIP (src/lib/design-stub.ts). */
+  .d-card.is-stub {
+    cursor: default;
+  }
+  .d-card.is-stub:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .d-card.is-stub:hover .d-media {
+    transform: none;
+  }
+  .stub-cap {
+    font-family: var(--dp-font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--dp-muted);
+  }
+
+  /* Gated UI/UX (no case study written yet): still show the thumbnail so the work
+     reads, but dim it and drop the hover lift so the card doesn't invite a click
+     into an empty destination — the "case study soon" badge carries the message.
+     `is-inert` (dead placeholder links) just neutralises the cursor. */
+  .d-card.is-gated {
+    cursor: not-allowed;
+  }
+  .d-card.is-inert:not(.is-gated) {
+    cursor: default;
+  }
+  .d-card.is-gated .d-media {
+    filter: saturate(0.72) brightness(0.82);
+  }
+  .d-card.is-gated:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .d-card.is-gated:hover .d-media {
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .row-viewport {
+      overflow-x: auto;
+    }
+    .d-card:hover,
+    .d-card:hover .d-media {
+      transform: none;
+    }
+  }
+  :global([data-sim-reduced]) .row-viewport {
+    overflow-x: auto;
+  }
+  :global([data-sim-reduced]) .d-card:hover,
+  :global([data-sim-reduced]) .d-card:hover .d-media {
+    transform: none;
+  }
+
+  /* ===== Mobile: FIFO card queue ===== */
+  @media (max-width: 768px) {
+    .row-viewport {
+      position: relative;
+      padding-block: 0;
+      margin-block: 0;
+    }
+    .row-viewport.is-queue .row-track {
+      display: block;
+    }
+    .row-viewport.is-queue .d-card {
+      display: none;
+      width: 100%;
+    }
+    .row-viewport.is-queue .d-card:first-child {
+      display: block; /* the queue front */
+    }
+    .d-card:hover {
+      transform: none; /* touch: no scale */
+    }
+  }
+
+  /* Chevron nav buttons */
+  :global(.row-viewport .queue-nav) {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+  }
+  :global(.row-viewport .queue-nav__btn) {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--dp-accent);
+    cursor: pointer;
+    pointer-events: auto;
+    filter: drop-shadow(0 1px 2px rgba(20, 18, 12, 0.45));
+    -webkit-tap-highlight-color: transparent;
+  }
+  :global(.row-viewport .queue-nav__btn--prev) {
+    left: 2px;
+  }
+  :global(.row-viewport .queue-nav__btn--next) {
+    right: 2px;
+  }
+  :global(.row-viewport .queue-nav__btn svg) {
+    display: block;
+  }
+</style>

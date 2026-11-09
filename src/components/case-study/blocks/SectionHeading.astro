@@ -1,0 +1,12 @@
+---
+/*
+  Markdown `##` in a study body: a numbered section (CSS counter in
+  styles/components/case-study.css). `data-rail` registers it with the site
+  scroll rail (src/components/Scrollbar.astro), so on the design theme the
+  right-edge rail shows a 01–0N tick at each section, the same rail the /design
+  page uses. Props pass through untouched (the slug `id` the TOC links to).
+*/
+const props = Astro.props;
+---
+
+<h2 {...props} data-rail><slot /></h2>

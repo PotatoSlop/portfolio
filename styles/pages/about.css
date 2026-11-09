@@ -1,0 +1,711 @@
+/* ============================================================
+   About — brush-reveal drawing stage
+   The visitor draws the real photo in over a sketch portrait with a
+   pen/eraser; the caption switches state past ~50% revealed. See
+   src/lib/motion/about-reveal.ts and docs/about-brush-reveal-prototype.md.
+   ============================================================ */
+
+.about-page-main.container {
+  max-width: 1200px;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-bottom: 30vh;
+}
+
+.about-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: clamp(1.5rem, 5vw, 4rem);
+  align-items: center;
+  /* Fit the hero (portrait + text + bottom-anchored toolbar) into one screen.
+     The nav is a sticky, in-flow row above the stage, so a bare 92vh here would
+     make `nav + stage` overshoot the viewport and push the bottom-pinned toolbar
+     below the fold on standard 16:9 displays. Subtract the nav's height (and a
+     small buffer) so the toolbar always lands comfortably above the fold; still
+     hard-capped so it never grows unbounded on very tall screens. */
+  min-height: min(calc(100dvh - clamp(60px, 10vh, 80px) - 1rem), 760px);
+  padding: clamp(2rem, 6vh, 4rem) 0 9.5rem;
+  /* Interactive drawing surface. The OS cursor is hidden ONLY while the tool
+     (pencil/eraser) is actually standing in for it — see `.tool-shown`, toggled
+     from about-reveal.ts in lockstep with the tool's visibility. Every other time
+     (no tool armed, or the pointer is over the toolbar / nav) the normal cursor
+     shows — the plain default pointer, unchanged from the rest of the page. */
+  cursor: default;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.about-stage.tool-shown {
+  cursor: none; /* the pencil/eraser is visible and replaces the pointer */
+}
+
+/* ---- image column (circle) ---- */
+.about-image-stack {
+  width: 100%;
+  max-width: 320px;
+  justify-self: center;
+}
+
+.headshot {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  border: var(--border-width-thick) solid var(--theme-border, var(--color-black));
+  border-radius: 50%;
+  overflow: hidden;
+  /* Border eases so the amber toolbar-hover highlight (below) fades in/out. */
+  transition: border-color var(--duration-medium) var(--ease-default),
+    border-width var(--duration-medium) var(--ease-default);
+}
+
+/* Hovering ANYWHERE on the drawing toolbar spotlights the portrait it controls:
+   the circular border thickens and lifts to amber, isolating the drawing tool's
+   target. --color-primary is amber in BOTH light and dark (dark only remaps
+   --color-primary-muted), so the highlight reads warm either way. */
+.about-stage:has(.about-toolbar:hover) .headshot {
+  border-width: 5px;
+  border-color: var(--color-primary);
+}
+
+.about-layer {
+  position: absolute;
+  inset: 0;
+}
+/* Sketch is the base state; real sits above and is revealed by the mask.
+   Hidden until JS marks the stage ready (sketch shows through underneath),
+   so there's no real→sketch flash on load. */
+.about-layer-real {
+  opacity: 0;
+}
+.about-stage.is-ready .about-layer-real {
+  opacity: 1;
+}
+
+.about-layer img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+.doodle-image {
+  /* Pan the doodle ~10px right inside its circular mask (object-fit: cover). */
+  object-position: calc(50% + 15px) center;
+}
+.real-photo {
+  object-position: center 5%;
+}
+
+.masked {
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-mode: alpha;
+  mask-mode: alpha;
+}
+
+/* ---- caption column (state switch, not masked) ---- */
+.about-text-stack {
+  position: relative;
+  min-height: 300px;
+  /* The two captions cross-fade, so they must OVERLAP — but the stack still
+     needs to reserve their height so the persistent résumé menu can flow below
+     without colliding. Grid gives us both: both captions share cell 1/1 (row
+     height = the taller caption), and the menu auto-places into row 2. */
+  display: grid;
+  grid-template-columns: minmax(0, 600px);
+  justify-items: start;
+}
+
+.text-block {
+  /* All captions occupy the same grid cell → overlaid for the cross-fade. */
+  grid-area: 1 / 1;
+  width: 100%;
+  max-width: 600px;
+  padding-right: 2rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) ease;
+}
+.text-block.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.text-block h1 {
+  text-align: left;
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-weight: 600;
+  color: var(--theme-ink, var(--color-black));
+  margin-bottom: 1rem;
+  font-family: var(--font-secondary);
+}
+
+.block-text {
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  line-height: 1.6;
+  color: var(--theme-ink-muted, var(--color-text-light));
+  margin-bottom: 0;
+  font-family: var(--font-primary);
+  letter-spacing: 0.01em;
+}
+
+.resume-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-weight: 600;
+  font-family: var(--font-primary);
+  font-size: inherit;
+  line-height: 1.1;
+  text-align: center;
+  color: var(--theme-ink, var(--color-black));
+  background-color: transparent;
+  border: var(--border-width-medium) solid var(--theme-border, var(--color-black));
+  padding: 0.75em 1.25em;
+  border-radius: var(--radius-pill);
+  transition: transform var(--duration-medium) var(--ease-aggressive),
+    background-color var(--duration-medium) var(--ease-default);
+  cursor: pointer; /* pencil is hidden here (see onMove) — hand back a real cursor */
+}
+.resume-btn:hover,
+.resume-menu.is-open .resume-btn {
+  background-color: var(--color-primary);
+  color: var(--color-black);
+  transform: scale(1.05);
+}
+
+/* ---- Download-résumé dropdown ----
+   The trigger is a .resume-btn; the list of discovered variants (see
+   src/lib/resumes.ts) drops below it. Opens on hover OR click/keyboard via
+   src/lib/motion/resume-menu.ts (toggles .is-open). */
+.resume-menu {
+  position: relative;
+  display: inline-block;
+  margin-top: var(--gap-large);
+  flex: 0 0 auto; /* don't stretch as the lone in-flow child of the flex stack */
+}
+.resume-menu__chevron {
+  transition: transform var(--duration-medium) var(--ease-default);
+}
+.resume-menu.is-open .resume-menu__chevron {
+  transform: rotate(180deg);
+}
+
+/* Menu adopts the navbar Projects-dropdown language (see styles/components/nav.css):
+   a column of full-width pills descending from the trigger — border + surface +
+   left→right accent wipe on hover, one soft drop-shadow over the whole cluster,
+   staggered drop-in on open. */
+.resume-menu__list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%; /* each pill matches the trigger pill's width exactly */
+  margin: 0;
+  padding: 0.5rem 0 0; /* seam under the trigger; also bridges the hover gap */
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.18));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--duration-medium) var(--ease-smooth),
+    visibility var(--duration-medium) var(--ease-smooth);
+  z-index: 7;
+}
+.resume-menu.is-open .resume-menu__list {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Each variant is a full-width pill mirroring .nav-link / .nav-dropdown-menu li:
+   border + surface, accent wiping in from the left on hover/focus. */
+.resume-menu__list li {
+  position: relative;
+  overflow: hidden;
+  border: var(--border-width-medium) solid var(--theme-border, var(--color-black));
+  background-color: var(--theme-surface, var(--color-white));
+  border-radius: var(--radius-pill);
+  transition: border-color var(--duration-medium);
+  opacity: 0; /* armed hidden; drops in via the stagger below */
+}
+.resume-menu.is-open .resume-menu__list li {
+  animation: navPillDrop var(--duration-medium) var(--ease-smooth) both;
+}
+.resume-menu.is-open .resume-menu__list li:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.resume-menu.is-open .resume-menu__list li:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.resume-menu.is-open .resume-menu__list li:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.resume-menu__list li::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--theme-accent);
+  border-radius: var(--radius-pill);
+  z-index: var(--z-base);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-smooth) var(--ease-smooth);
+}
+.resume-menu__list li:hover::before,
+.resume-menu__list li:has(a:focus-visible)::before {
+  transform: scaleX(1);
+}
+
+.resume-menu__item {
+  position: relative; /* above the accent wipe */
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.6em;
+  padding: 0.3em 0.9em; /* match the trigger pill */
+  border-radius: var(--radius-pill);
+  font-family: var(--font-secondary);
+  font-weight: 500;
+  color: var(--theme-ink, var(--color-black));
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--duration-medium);
+}
+.resume-menu__list li:hover .resume-menu__item,
+.resume-menu__item:focus-visible {
+  color: var(--theme-accent-contrast, var(--color-black));
+  outline: none;
+}
+.resume-menu__meta {
+  font-weight: 400;
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resume-menu__list li {
+    opacity: 1;
+  }
+  .resume-menu.is-open .resume-menu__list li {
+    animation: none;
+  }
+  .resume-menu__chevron,
+  .resume-menu__list {
+    transition: opacity var(--duration-medium) var(--ease-default);
+  }
+}
+[data-sim-reduced] .resume-menu__list li {
+  opacity: 1;
+}
+[data-sim-reduced] .resume-menu.is-open .resume-menu__list li {
+  animation: none;
+}
+
+/* ---- controls tooltip (LMB draw/erase / RMB drop) ----
+   Bound to the active tool: only shown while a tool is held, and it "punches"
+   in (scale overshoot) each time the selection changes. Driven by .show in
+   about-reveal.ts (updateHint). */
+.about-hint {
+  position: absolute;
+  /* Centered directly above the toolbar — no container, just the two labels. */
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 7.75rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.5rem;
+  color: var(--theme-ink, var(--color-black));
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  z-index: 6;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.about-hint.show {
+  animation: about-hint-punch 0.34s var(--ease-aggressive) both;
+}
+@keyframes about-hint-punch {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.72);
+  }
+  60% {
+    opacity: 0.9;
+    transform: translateX(-50%) scale(1.08);
+  }
+  100% {
+    opacity: 0.9;
+    transform: translateX(-50%) scale(1);
+  }
+}
+.about-hint__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+/* Input glyphs ([LMB]/[RMB]) in the hint rows — amber accent. */
+.about-hint__key {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+}
+
+/* ---- brush-radius ring (follows the tip, sized to the brush) ---- */
+.brush-ring {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 35;
+  pointer-events: none;
+  border-radius: 50%;
+  transform-origin: center;
+  /* Hidden rest state = shrunk into the cursor. Matches the 3D tool: on
+     leave/cancel the ring eases down to nothing (slow shrink, this base
+     transition); on re-arm it pops back out (snappy grow, .is-shown below). */
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  border: 3px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 2px rgba(20, 20, 12, 0.7);
+  transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+}
+.brush-ring.is-shown {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  transition: transform 0.2s ease-out, opacity 0.16s ease-out;
+}
+
+/* ---- 3D tool layer + CSS fallback ---- */
+#about-tool-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+.about-css-tool {
+  position: fixed;
+  z-index: 40;
+  pointer-events: none;
+  font-size: 30px;
+  transform: translate(-6px, -26px) rotate(8deg);
+  filter: drop-shadow(2px 3px 2px rgba(0, 0, 0, 0.25));
+  display: none;
+}
+
+/* ---- toolbar ----
+   A bordered but background-less bar of icon controls that scale on hover.
+   Everything is horizontally symmetrical about the centre brush slider
+   (pen · eraser | slider | reset · show-toggle). */
+.about-toolbar {
+  position: absolute;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 7px;
+  border: var(--border-width-medium) solid var(--theme-border, var(--color-black));
+  border-radius: 14px;
+  /* The stage hides the OS cursor (the 3D pencil stands in for it), but the pencil
+     is hidden over the toolbar — so hand the real cursor back here. Buttons/slider
+     set their own `pointer`; this covers the gaps and padding between them. */
+  cursor: default;
+  /* Above the brush ring (35) and the 3D tool layer (40) so the instant tooltips
+     stay readable even when the cursor tool sits right over the toolbar. */
+  z-index: 50;
+}
+
+/* Shared icon-button treatment (pen / eraser / reset / show-toggle) — a uniform
+   square box so the selected-tool amber fill reads as a clean circle. Hover is
+   conveyed by SCALE, never a background box. */
+.tool-btn,
+.state-toggle {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--theme-ink, var(--color-black));
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-aggressive),
+    color var(--duration-fast) var(--ease-default),
+    background-color var(--duration-fast) var(--ease-default);
+}
+.tool-btn .glyph,
+.state-toggle .glyph {
+  display: block;
+  line-height: 1;
+  color: currentColor;
+}
+.tool-btn:hover,
+.state-toggle:hover {
+  transform: scale(1.18);
+}
+.tool-btn:active,
+.state-toggle:active {
+  transform: scale(1.06);
+}
+/* The selected tool (pen OR eraser): a circular amber fill with a white glyph. Both
+   tool buttons can carry it; at most one is active at a time, and neither is at rest
+   (the interaction starts with no tool selected). */
+.tool-btn.is-active {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-radius: 50%;
+}
+.tool-btn:focus-visible,
+.state-toggle:focus-visible {
+  outline: 3px solid var(--color-primary-dark);
+  outline-offset: 2px;
+}
+/* Disabled tool — the mask is fully set the way this tool would push it, so it
+   would do nothing (fully revealed → pen; fully sketch → eraser). Dimmed and
+   inert: no hover scale, no amber fill, not-allowed cursor. `disabled` is set from
+   about-reveal.ts (updateToolAvailability), which also blocks the click natively. */
+.tool-btn:disabled {
+  opacity: 0.28;
+  pointer-events: none; /* dead control: no hover scale, no tooltip, no click */
+  background: transparent;
+  color: var(--theme-ink, var(--color-black));
+  border-radius: 9px;
+  transform: none;
+}
+
+/* Show Real / Show Sketch — a preset chevron that flips 180° for the real state. */
+.state-toggle .glyph {
+  transition: transform var(--duration-medium) var(--ease-default);
+}
+.state-toggle.is-real .glyph {
+  transform: rotate(180deg);
+}
+
+/* ---- instant per-control tooltips ----
+   Directly above each control, appearing (near-)immediately on hover/focus and
+   naming what it does. Purely decorative — aria-label carries the a11y name. */
+.about-toolbar [data-tooltip] {
+  position: relative;
+}
+.about-toolbar [data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%) translateY(3px);
+  background: var(--theme-ink, var(--color-black));
+  color: var(--theme-surface, var(--color-white));
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease, transform 0.1s ease;
+}
+.about-toolbar [data-tooltip]:hover::after,
+.about-toolbar [data-tooltip]:focus-visible::after {
+  opacity: 0.95;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Brush size: slider with the % value inline to its right, no text label. */
+.about-toolbar .brush-size {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--theme-ink, var(--color-black));
+}
+.about-toolbar #about-size-pct {
+  min-width: 3.5ch;
+  text-align: left;
+}
+
+/* Slider styled as a rounded progress bar. The filled portion is drawn FROM the
+   thumb (WebKit: a clipped box-shadow; Firefox: ::-moz-range-progress) rather than
+   as a %-of-track gradient, so the rounded cap always stays anchored to the thumb
+   with no gap — a %-gradient drifts out of sync because the thumb is inset by half
+   its width. Track + thumb share --about-slider-h so the cap is exactly as tall as
+   the bar and its edges sit flush. --fill (set in about-reveal.ts) is unused here. */
+.about-toolbar input[type='range'] {
+  --about-slider-h: 8px;
+  --about-slider-fill: var(--color-primary-dark);
+  --about-slider-empty: color-mix(
+    in srgb,
+    var(--theme-ink, var(--color-black)) 20%,
+    transparent
+  );
+  -webkit-appearance: none;
+  appearance: none;
+  width: 84px;
+  height: var(--about-slider-h);
+  background: transparent;
+  cursor: pointer;
+}
+.about-toolbar input[type='range']::-webkit-slider-runnable-track {
+  height: var(--about-slider-h);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--about-slider-empty);
+  overflow: hidden; /* clip the thumb's fill box-shadow to the rounded track */
+}
+.about-toolbar input[type='range']::-moz-range-track {
+  height: var(--about-slider-h);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--about-slider-empty);
+}
+.about-toolbar input[type='range']::-moz-range-progress {
+  height: var(--about-slider-h);
+  border-radius: var(--radius-pill);
+  background: var(--about-slider-fill);
+}
+/* Rounded cap; equal track/thumb heights → margin-top:0 keeps it centred. The
+   wide box-shadow paints the filled portion, clipped by the track's overflow. */
+.about-toolbar input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--about-slider-h);
+  height: var(--about-slider-h);
+  margin-top: 0;
+  border-radius: 50%;
+  border: none;
+  background: var(--about-slider-fill);
+  box-shadow: -405px 0 0 400px var(--about-slider-fill);
+}
+.about-toolbar input[type='range']::-moz-range-thumb {
+  width: var(--about-slider-h);
+  height: var(--about-slider-h);
+  border-radius: 50%;
+  border: none;
+  background: var(--about-slider-fill);
+}
+
+/* ============================================================
+   Reduced motion / touch fallback — the toggle is the primary
+   control and the resting state is the real photo (bio + resume
+   visible). No brush, no 3D tool. Mirrored for the manual
+   [data-sim-reduced] toggle, which the media query can't see.
+   ============================================================ */
+.about-reduced-fallback {
+  cursor: auto;
+}
+.about-reduced-fallback .about-tool-draw,
+.about-reduced-fallback .brush-ring,
+.about-reduced-fallback #about-tool-layer,
+.about-reduced-fallback .about-css-tool,
+.about-reduced-fallback .about-hint {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce), (max-width: 768px) {
+  .about-stage {
+    cursor: auto;
+    touch-action: auto;
+  }
+  .about-tool-draw,
+  .brush-ring,
+  #about-tool-layer,
+  .about-css-tool,
+  .about-hint {
+    display: none !important;
+  }
+  /* No-JS escape hatch: show the real state so the bio + resume are visible.
+     JS (when present) drives the layer via inline opacity, which wins over this. */
+  .about-layer-real {
+    opacity: 1;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+html[data-sim-reduced='1'] .about-tool-draw,
+html[data-sim-reduced='1'] .brush-ring,
+html[data-sim-reduced='1'] #about-tool-layer,
+html[data-sim-reduced='1'] .about-css-tool,
+html[data-sim-reduced='1'] .about-hint {
+  display: none !important;
+}
+html[data-sim-reduced='1'] .about-stage {
+  cursor: auto;
+  touch-action: auto;
+}
+
+/* ---- responsive ---- */
+@media (max-width: 768px) {
+  .about-stage {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding: 3rem 0;
+    gap: 2.5rem;
+  }
+  .about-image-stack {
+    width: 28vh;
+    height: 28vh;
+    margin: 0 auto;
+  }
+  .about-text-stack {
+    position: static;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    min-height: 0;
+    text-align: center;
+    /* Single visible caption (sketch hidden) in row 1, résumé menu centred
+       below it. */
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+  .text-block {
+    position: static;
+    padding-right: 0;
+  }
+  /* Only the real caption in the fallback (sketch hidden). */
+  #about-cap-sketch {
+    display: none;
+  }
+  #about-cap-real {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .about-toolbar {
+    position: static;
+    transform: none;
+    margin: 0 auto;
+    width: fit-content;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-image-stack {
+    width: 25vh;
+    height: 25vh;
+  }
+  .text-block h1 {
+    font-size: 1.8rem;
+  }
+  .block-text {
+    font-size: 0.9rem;
+  }
+}
