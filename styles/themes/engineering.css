@@ -1,95 +1,97 @@
+/* ===== Engineering theme — "synth / industrial" =====
+   Cool machined steel, not paper: deliberately clear of the design page's cream
+   (#f7f4ee / #e9e2d2). Amber is a signal (LEDs, the selected trace, the knob
+   indicator), not a paint bucket. The --eng-* tokens below are the page's own
+   line/plate/screen/knob layer, used by styles/pages/engineering.css. */
 [data-theme='engineering'] {
-  --theme-bg: #ffffff;
+  --theme-bg: #f1f2f3;
   --theme-surface: #ffffff;
-  --theme-border: #1e1e14;
+  --theme-border: #121417;
 
-  --theme-ink: #1e1e14;
-  --theme-ink-muted: #6b6b63;
+  --theme-ink: #121417;
+  --theme-ink-muted: #5c6269;
 
-  --theme-accent: var(--color-primary);
-  --theme-accent-contrast: var(--color-black);
+  --theme-accent: #f5a045;
+  --theme-accent-contrast: #121417;
 
-  --theme-grid: radial-gradient(
-    circle,
-    rgba(30, 30, 20, 0.1) 1.6px,
-    transparent 2.1px
-  );
+  --theme-grid: radial-gradient(circle, rgba(18, 20, 23, 0.11) 1.6px, transparent 2.1px);
   --theme-grid-size: 22px;
 
-  --theme-font-display: 'Syne', sans-serif;
-  --theme-font-body: 'Roboto', sans-serif;
+  --theme-font-display: 'Archivo', system-ui, sans-serif;
+  --theme-font-body: 'Archivo', system-ui, sans-serif;
   --theme-radius: 0px;
-  --theme-motion-ease: var(--ease-aggressive);
+  /* Mechanical: decelerate, never overshoot. */
+  --theme-motion-ease: cubic-bezier(0.2, 0, 0, 1);
 
   --idiom-accent: var(--color-primary);
-  --idiom-rule: rgba(30, 30, 20, 0.55);
+  --idiom-rule: rgba(18, 20, 23, 0.55);
 
-  /* Intro choreography: the breadcrumb + nav rise first; the wordmark glyphs +
-     arrow ripple in (Wordmark.astro BASE 600ms → ~1.8s to finish); THEN the
-     pull-tab, SEE PROJECTS CTA, and chevron animate in. Shared so PullTabs.astro
-     and engineering.astro stay in lockstep — bump Wordmark's BASE/STEP and this
-     together. */
+  /* ---- page layer (styles/pages/engineering.css) ---- */
+  --eng-ink-3: #8b9198;
+  --eng-line: rgba(18, 20, 23, 0.12);
+  --eng-line-2: rgba(18, 20, 23, 0.3);
+  --eng-veil: rgba(241, 242, 243, 0.86);
+  --eng-plate: linear-gradient(180deg, #eef0f2 0%, #e2e5e8 100%);
+  --eng-plate-edge: rgba(18, 20, 23, 0.24);
+  --eng-plate-hi: rgba(255, 255, 255, 0.9);
+  --eng-key: #e6e8eb;
+  --eng-key-hover: #dcdfe3;
+  --eng-screen: #0c0e10;
+  --eng-screen-ink: #e8ebee;
+  --eng-mark: #121417;
+  --eng-mute-off: #b4b9bf;
+  /* The knob keeps its material in both schemes; only the plate around it flips. */
+  --eng-knob-rim: #1c1f22;
+  --eng-knob-cap: #26292d;
+  --eng-detent-ease: cubic-bezier(0.2, 0, 0, 1);
+  --eng-travel: cubic-bezier(0.45, 0, 0.15, 1);
+  /* Left edge of every section = the nav logo block's left edge (flush on desktop). */
+  --eng-edge: 0px;
+
+  /* Pull-tab entrance waits for the page intro (PullTabs.astro reads these). */
   --eng-intro-after: 1.8s;
-  /* Slight cascade between the after-title elements (CTA → chevron → pull-tab). */
   --eng-intro-step: 0.12s;
-
-  /*Logo + Nav Breadcrumb*/
+  /* Nav logo edge offset (nav.css). */
   --eng-edge-shift: 0px;
-
-  --eng-wm-x: -20px;
-
-  /* SEE PROJECTS Button */
-  --eng-cta-x: -0.08rem;
-  --eng-cta-y: clamp(-7.75rem, 2vw, -3.25rem);
 }
 
 /* ===== Engineering — DARK =====
-   Warm charcoal field (not the neutral --dark-bg — engineering's identity is
-   warm, so the dark tint carries a hint of the #1e1e14 charcoal), warm off-white
-   ink, amber toned down, and the blueprint dot grid flipped to a faint light
-   dot. Only the contract vars change; the --eng-* choreography/layout tokens
-   ride through unchanged. */
+   Cool graphite field, near-white ink, slightly softened amber. */
 [data-theme='engineering'][data-scheme='dark'] {
-  --theme-bg: #1a1813;
-  --theme-surface: #23201a;
-  --theme-border: #3a352c;
+  --theme-bg: #0e1012;
+  --theme-surface: #16191c;
+  --theme-border: #2b3035;
 
-  /* Pure white, not a warm cream — engineering reads crisp/technical in dark
-     mode. (The warm off-white cream is the DESIGN page's dark idiom: see
-     design.css #e9e2d2.) Used as text AND as the surface for ink-backed chrome
-     — the nav bars + settings-toggle block — so those flip to white here too. */
-  --theme-ink: #ffffff;
-  --theme-ink-muted: #9c968a;
+  --theme-ink: #e9ecee;
+  --theme-ink-muted: #9aa1a8;
 
-  --theme-accent: var(--color-primary-muted);
-  --theme-accent-contrast: #1a1813;
+  --theme-accent: #f2a04a;
+  --theme-accent-contrast: #0e1012;
 
-  --theme-glass: rgba(35, 32, 26, 0.72);
-
-  --theme-grid: radial-gradient(
-    circle,
-    rgba(236, 231, 221, 0.08) 1.6px,
-    transparent 2.1px
-  );
+  --theme-glass: rgba(22, 25, 28, 0.72);
+  --theme-grid: radial-gradient(circle, rgba(233, 236, 238, 0.08) 1.6px, transparent 2.1px);
 
   --idiom-accent: var(--color-primary-muted);
-  --idiom-rule: rgba(236, 231, 221, 0.5);
+  --idiom-rule: rgba(233, 236, 238, 0.5);
+
+  --eng-ink-3: #697078;
+  --eng-line: rgba(233, 236, 238, 0.1);
+  --eng-line-2: rgba(233, 236, 238, 0.24);
+  --eng-veil: rgba(14, 16, 18, 0.86);
+  --eng-plate: linear-gradient(180deg, #1c1f23 0%, #15181b 100%);
+  --eng-plate-edge: rgba(233, 236, 238, 0.14);
+  --eng-plate-hi: rgba(255, 255, 255, 0.06);
+  --eng-key: #1f2327;
+  --eng-key-hover: #272c31;
+  --eng-mark: #e9ecee;
+  --eng-mute-off: #7d838a;
+  --eng-knob-rim: #0f1113;
+  --eng-knob-cap: #1b1e21;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
+  /* nav.css mobile logo inset: .logo { left: clamp(0.5rem, 1vw, 2vw) } */
   [data-theme='engineering'] {
-    /* Remove negative wordmark offset — at small viewports the -20px left margin
-       overflows the ~8px hero padding and clips the wordmark off-screen. */
-    --eng-wm-x: 0px;
-    /* Reduce CTA overlap — the wordmark is much shorter on mobile so the full
-       -3.25rem pull-up would bury the button inside or behind the letterforms. */
-    --eng-cta-y: -1.25rem;
-    --eng-cta-x: 0rem;
-  }
-}
-
-@media (max-width: 400px) {
-  [data-theme='engineering'] {
-    --eng-cta-y: -0.5rem;
+    --eng-edge: clamp(0.5rem, 1vw, 2vw);
   }
 }

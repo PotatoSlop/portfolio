@@ -1,0 +1,118 @@
+---
+/*
+  LAB — /lab/engineering-synth (+ /lab/engineering-synth-10)
+  -----------------------------------------------------------
+  Review harness for the /engineering page. Renders the SAME EngineeringPage
+  component as production, plus lab-only tools:
+    - Data: /lab/engineering-synth-10 appends 6 software projects as labelled
+      placeholders to stress-test the dial index (rows compact 80 → 62 → 50px).
+      The 2nd GIF-bearing placeholder uses its GIF as the cover itself, so both
+      animated-cover paths can be checked.
+    - Tune sound: live sliders for the detent click (DETENT_DEFAULTS in
+      src/lib/motion/detent-params.ts); "Copy" exports the values.
+      Settings last for this visit only (no storage), shared with the in-page dialog.
+  Not linked from anywhere; safe to delete once the page is signed off.
+*/
+import Base from '../../layouts/Base.astro';
+import PullTabs from '../../components/PullTabs.astro';
+import DotLines from '../../components/DotLines.astro';
+import EngineeringPage from '../../components/engineering/EngineeringPage.astro';
+import { getCollection } from 'astro:content';
+import { DETENT_SLIDERS } from '../../lib/motion/detent-params';
+
+export function getStaticPaths() {
+  return [
+    { params: { variant: 'engineering-synth' }, props: { stress: false } },
+    { params: { variant: 'engineering-synth-10' }, props: { stress: true } },
+  ];
+}
+const { stress } = Astro.props as { stress: boolean };
+
+const projects = await getCollection('projects', ({ data }) => data.disciplines.includes('engineering'));
+const fixtures = stress
+  ? (await getCollection('projects', ({ data }) => !data.disciplines.includes('engineering')))
+      .sort((a, b) => a.data.order - b.data.order)
+      .slice(0, 6)
+  : [];
+
+const TUNE = DETENT_SLIDERS;
+---
+
+<Base title="Engineering (lab) — Dylan Chen" theme="engineering">
+  <EngineeringPage projects={projects} fixtures={fixtures} />
+
+  <div class="lab-data mono" role="group" aria-label="Lab tools">
+    <span>Data</span>
+    <a href="/lab/engineering-synth" aria-current={stress ? undefined : 'page'}>{projects.length}</a>
+    <a href="/lab/engineering-synth-10" aria-current={stress ? 'page' : undefined}>{projects.length + 6}</a>
+    <button class="lab-data__tune" type="button" data-tune-toggle aria-expanded="false" aria-controls="lab-tune">Tune sound</button>
+  </div>
+
+  <div class="lab-tune mono" id="lab-tune" hidden>
+    <div class="lab-tune__head">
+      <span>Detent sound</span>
+      <button type="button" data-tune-play>Play</button>
+      <button type="button" data-tune-reset>Reset</button>
+      <button type="button" data-tune-copy>Copy</button>
+    </div>
+    {
+      TUNE.map((g) => (
+        <fieldset>
+          <legend>{g.group}</legend>
+          {g.rows.map((r) => (
+            <label>
+              <span class="k">{r.label}</span>
+              <input type="range" data-param={r.key} data-unit={r.unit} min={r.min} max={r.max} step={r.step} />
+              <output data-out={r.key} />
+            </label>
+          ))}
+        </fieldset>
+      ))
+    }
+  </div>
+
+  <PullTabs discipline="engineering" />
+  <DotLines />
+
+  <style is:global>
+    .lab-data { position: fixed; left: 12px; bottom: 12px; z-index: 1200; display: flex; align-items: center; gap: 2px; padding: 4px; background: var(--theme-ink); color: var(--theme-bg); font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .lab-data span { padding: 0 8px; opacity: 0.6; }
+    .lab-data a { color: inherit; text-decoration: none; padding: 4px 8px; }
+    .lab-data a[aria-current] { background: var(--theme-accent); color: var(--theme-accent-contrast); }
+    .lab-data__tune { appearance: none; border: 0; margin-left: 6px; padding: 4px 8px; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; box-shadow: inset 1px 0 0 color-mix(in srgb, var(--theme-bg) 30%, transparent); }
+    .lab-data__tune[aria-expanded='true'] { background: var(--theme-accent); color: var(--theme-accent-contrast); }
+    .lab-tune { position: fixed; left: 12px; bottom: 48px; z-index: 1200; width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 120px); overflow: auto; background: var(--theme-ink); color: var(--theme-bg); padding: 10px 12px 12px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; display: grid; gap: 10px; }
+    .lab-tune[hidden] { display: none; }
+    .lab-tune__head { display: flex; align-items: center; gap: 6px; }
+    .lab-tune__head span { margin-right: auto; color: var(--theme-accent); }
+    .lab-tune button { appearance: none; border: 1px solid color-mix(in srgb, var(--theme-bg) 35%, transparent); background: none; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; padding: 4px 8px; cursor: pointer; }
+    .lab-tune button:hover { background: color-mix(in srgb, var(--theme-bg) 15%, transparent); }
+    .lab-tune fieldset { margin: 0; padding: 8px 0 0; border: 0; border-top: 1px solid color-mix(in srgb, var(--theme-bg) 22%, transparent); display: grid; gap: 4px; }
+    .lab-tune legend { padding: 0 0 4px; opacity: 0.6; }
+    .lab-tune label { display: grid; grid-template-columns: 56px 1fr 64px; align-items: center; gap: 8px; }
+    .lab-tune input[type='range'] { width: 100%; accent-color: var(--theme-accent); }
+    .lab-tune output { text-align: right; font-variant-numeric: tabular-nums; }
+  </style>
+
+  <script>
+    import { onPageReady } from '../../lib/motion/lifecycle';
+    import { mountTuner, type DetentSound } from '../../lib/motion/engineering-page';
+
+    // The page mounts its detent sound on its own lifecycle; pick it up whether it
+    // is already there or arrives a moment later.
+    onPageReady('.lab-tune', () => {
+      let teardown: (() => void) | null = null;
+      const attach = (s: DetentSound | undefined) => {
+        if (s && !teardown) teardown = mountTuner(s);
+      };
+      const page = document.querySelector('.eng-page') as (HTMLElement & { __detentSound?: DetentSound }) | null;
+      attach(page?.__detentSound);
+      const onReady = (e: Event) => attach((e as CustomEvent<DetentSound>).detail);
+      window.addEventListener('eng:detent-sound', onReady);
+      return () => {
+        window.removeEventListener('eng:detent-sound', onReady);
+        teardown?.();
+      };
+    });
+  </script>
+</Base>
