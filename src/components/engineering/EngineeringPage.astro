@@ -1,0 +1,386 @@
+---
+/*
+  EngineeringPage — the /engineering page body ("synth / industrial" direction).
+  Used by src/pages/engineering.astro and the /lab stress-test page.
+
+  Structure: LANDING (title + one CTA, no project details) → FEATURED → INDEX.
+
+  - Featured: pickFeatured() — manual `hero: true` → most recent SHIPPED project
+    → most recent project. Never "first in the list".
+  - Index: every project (featured included), in TIMELINE order (oldest first;
+    DATE_DIR = -1 flips it), numbered 01.. in that order.
+  - Index interaction: a rotary switch (knob + leader traces wired to each row)
+    paired with the list. Hover = ordinary feedback only, never a preview; covers
+    swap instantly on selection. Controls live in a bar under the cover so they
+    never move. Mobile: the knob drops out and the selected row opens a dropdown.
+  - Covers: stills zoom on hover; animated covers (GIF / boomerang video) play on
+    hover instead and never zoom.
+  - Landing intro: only the wordmark (rises out of a mask) and the View projects
+    key (blinks on) animate. No typewriter / letter-by-letter reveals.
+
+  Styles: styles/pages/engineering.css (+ tokens in styles/themes/engineering.css).
+  Behaviour: src/lib/motion/engineering-page.ts.
+*/
+import { Icon } from 'astro-icon/components';
+import type { CollectionEntry } from 'astro:content';
+import { byTimeline, pickFeatured } from '../../lib/projects/timeline';
+import { DETENT_PRESETS, DETENT_SLIDERS } from '../../lib/motion/detent-params';
+import '../../../styles/pages/engineering.css';
+
+type Project = CollectionEntry<'projects'>;
+interface Props {
+  /** The discipline's projects. */
+  projects: Project[];
+  /** Lab only: extra placeholder entries for stress-testing the index. */
+  fixtures?: Project[];
+}
+const { projects, fixtures = [] } = Astro.props;
+
+/** 1 = oldest first (timeline), -1 = newest first. */
+const DATE_DIR = 1 as const;
+const featuredEntry = pickFeatured(projects);
+
+const CURRENT = 'engineering';
+// Per-project cover framing (object-position) for the cropped frames. Nob's still
+// sits a little left of centre, so a centred crop clipped its right edge.
+const COVER_POS: Record<string, string> = {
+  nob: '46% 50%',
+};
+const KIND: Record<string, string> = {
+  nob: 'Smart dial',
+  '4-dof-arm': 'Robot arm',
+  'automated-pill-dispenser': 'Pill dispenser',
+  'macro-pad': 'Macropad',
+};
+
+const short = (s: string) => s.replace(/^(\w{3})\w* (\d{2})(\d{2})$/, '$1 $3').toUpperCase();
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const n2 = (i: number) => String(i).padStart(2, '0');
+
+// Stress variant only: the 2nd GIF-bearing fixture uses its GIF AS the cover, so
+// both paths are testable — a still + hoverGif (Color Match) and a GIF thumbnail
+// (The Greatest Sandwich).
+const gifCoverDemoId = fixtures.filter((f) => f.data.hoverGif)[1]?.id;
+const isGif = (s: string) => /\.gif$/i.test(s);
+const all = [...projects, ...fixtures].sort(byTimeline(DATE_DIR)).map((p, k) => {
+  const d = p.data;
+  const s = short(d.started);
+  const e = d.ended ? short(d.ended) : 'NOW';
+  const fixture = fixtures.includes(p);
+  const cover = p.id === gifCoverDemoId && d.hoverGif ? d.hoverGif : (d.cover ?? '');
+  const live = d.status !== 'shipped';
+  return {
+    no: n2(k + 1), // 01-based, in timeline order
+    title: d.title,
+    kind: fixture ? 'Placeholder' : (KIND[p.id.toLowerCase()] ?? 'Build'),
+    period: s === e ? s : `${s} → ${e}`,
+    status: live ? 'In progress' : 'Shipped',
+    cover,
+    pos: COVER_POS[p.id.toLowerCase()] ?? '50% 50%',
+    video: d.posterVideo ?? null,
+    gifCover: isGif(cover),
+    hoverGif: isGif(cover) ? cover : (d.hoverGif ?? null),
+    overview: fixture ? `Stress-test placeholder (borrowed from Software). ${d.overview ?? ''}` : (d.overview ?? ''),
+    tech: d.tech ?? [],
+    repo: d.links?.repo ?? 'https://github.com/PotatoSlop',
+    also: d.disciplines.filter((x) => x !== CURRENT),
+    featured: p === featuredEntry,
+  };
+});
+type Item = (typeof all)[number];
+const kindLabel = (p: Item) => (p.featured ? `${p.kind} · Featured` : p.kind);
+const feat = all.find((p) => p.featured) ?? null;
+const M = all.length;
+const total = n2(M);
+
+// ---- rotary switch geometry (px == viewBox units, so traces land on rows exactly) ----
+const ROW = M <= 5 ? 80 : M <= 8 ? 62 : 50; // rows compact as the count grows
+const density = ROW >= 80 ? 'roomy' : ROW >= 62 ? 'compact' : 'dense';
+const SW_W = 250;
+const SW_H = Math.max(M * ROW, 260);
+const CX = 106;
+const CY = SW_H / 2;
+const R_RIM = 70;
+const R_CAP = 58;
+const rowY = (i: number) => CY + (i - (M - 1) / 2) * ROW;
+const deg = (i: number) => (Math.atan2(rowY(i) - CY, SW_W - 40 - CX) * 180) / Math.PI;
+const at = (a: number, r: number) => {
+  const t = (a * Math.PI) / 180;
+  return [+(CX + Math.cos(t) * r).toFixed(2), +(CY + Math.sin(t) * r).toFixed(2)];
+};
+const positions = all.map((_, i) => {
+  const a = deg(i);
+  const [x0, y0] = at(a, 84);
+  const [x1, y1] = at(a, 96);
+  const ky = rowY(i);
+  return { i, tick: [x0, y0, x1, y1], path: `M${x1} ${y1} L${SW_W - 40} ${ky} L${SW_W} ${ky}` };
+});
+const knurl: number[][] = [];
+for (let a = 0; a < 360; a += 6) knurl.push([...at(a, R_CAP + 3), ...at(a, R_RIM - 1)]);
+const scale: number[][] = []; // thin scale ticks around the knob, across its travel
+const aMin = deg(0) - 14;
+const aMax = deg(M - 1) + 14;
+const scaleStep = (aMax - aMin) / Math.max(16, M * 3);
+for (let a = aMin; a <= aMax + 0.01; a += scaleStep) scale.push([...at(a, R_RIM + 6), ...at(a, R_RIM + 11)]);
+---
+
+
+<main class="eng-page" data-items={JSON.stringify(all)}>
+  <!-- ================================ LANDING ================================ -->
+  <section class="eng-land" aria-labelledby="eng-title">
+    <i class="eng-reg eng-reg--tl" aria-hidden="true"></i><i class="eng-reg eng-reg--br" aria-hidden="true"></i>
+    <header class="eng-land__head mono">
+      <nav aria-label="Breadcrumb"><a href="/">Sketchbook</a><span>/</span><a href="/engineering" aria-current="page">Engineering</a></nav>
+      <span>DWG ENG-001 · Rev F</span>
+    </header>
+
+    <div class="eng-land__body">
+      <div class="eng-eyebrow-crop">
+        <p class="eng-land__eyebrow mono">Product design, electronics, mechanical systems</p>
+      </div>
+      <div class="eng-word-crop">
+        <h1 class="eng-word" id="eng-title" aria-label="Engineering">
+          {'Engineering'.split('').map((c) => <span class="eng-ch" aria-hidden="true">{c}</span>)}
+        </h1>
+      </div>
+      <div class="eng-land__foot">
+        <p class="eng-lede">Physical things that think a little. Designed, wired and coded end to end.</p>
+        <a class="eng-key eng-key--ink eng-key--lg eng-land__cta" href="#eng-featured"><span class="led on" aria-hidden="true"></span>View projects<span class="arrow" aria-hidden="true">↓</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================ A · FEATURED ================================ -->
+  {
+    feat && (
+      <section class="eng-sec" id="eng-featured" aria-labelledby="eng-feat-title">
+        <header class="eng-sec__head">
+          <span class="mono no">Sec. A</span>
+          <h2 class="eng-sec__title">Featured</h2>
+          <span class="eng-sec__rule" aria-hidden="true" />
+          <span class="mono meta">No. {feat.no} / {total}</span>
+        </header>
+
+        <figure class="eng-feat">
+          {/* Crop + ride-up reveal, same as the /engineering feature card. */}
+          <div class="eng-feat__crop">
+            <a class="eng-feat__media eng-cover" href={feat.repo} target="_blank" rel="noopener" aria-label={`${feat.title} repository`} data-hover-gif={feat.hoverGif ?? undefined}>
+              <span class="eng-cover__host" data-hover-gif-host>
+                {feat.video ? (
+                  <video class="js-feat-video" src={feat.video} poster={feat.cover} muted playsinline preload="auto" aria-hidden="true" />
+                ) : (
+                  <img src={feat.cover} alt="" style={`object-position:${feat.pos}`} data-gif-still={feat.gifCover ? '' : undefined} />
+                )}
+              </span>
+              <span class="eng-hud mono"><span>No. <em>{feat.no}</em></span><span class="eng-open">Open repo ↗</span></span>
+            </a>
+          </div>
+          <figcaption class="eng-feat__cap">
+            <div class="eng-feat__lead">
+              <p class="eng-eyebrow mono"><span>No. {feat.no}</span><span class="sep" /><span>{feat.status}</span><span class="sep" /><span>{feat.kind}</span></p>
+              <h3 class="eng-feat__title" id="eng-feat-title">{feat.title}</h3>
+              <p class="eng-desc">{feat.overview}</p>
+            </div>
+            <div class="eng-feat__spec">
+              <table class="eng-spec mono">
+                <tbody>
+                  <tr><th>Built with</th><td>{feat.tech.join(' · ')}</td></tr>
+                  <tr><th>Period</th><td>{feat.period}</td></tr>
+                  <tr><th>Also in</th><td>{feat.also.length ? feat.also.map((d, k) => <>{k > 0 && ', '}<a href={`/${d}`}>{cap(d)}</a></>) : '—'}</td></tr>
+                </tbody>
+              </table>
+              <a class="eng-key eng-key--ink" href={feat.repo} target="_blank" rel="noopener"><span class="led on" aria-hidden="true" />View repo ↗</a>
+            </div>
+          </figcaption>
+        </figure>
+      </section>
+    )
+  }
+
+  <!-- ================================ B · INDEX (dial) ================================ -->
+  <section class="eng-sec" id="eng-projects" aria-labelledby="eng-proj-title">
+    <header class="eng-sec__head">
+      <span class="mono no">Sec. B</span>
+      <h2 class="eng-sec__title" id="eng-proj-title">Index</h2>
+      <span class="eng-sec__rule" aria-hidden="true" />
+      <span class="mono meta">{total} projects</span>
+    </header>
+
+    <div class={`eng-proj eng-proj--${density}`} style={`--row:${ROW}px; --rows-h:${SW_H}px`}>
+      {/* Sound config dialog (the sliders key beside mute). Waveform + presets +
+          sliders. Non-modal so the knob stays usable; nothing is saved. */}
+      <div class="eng-cfg" id="eng-cfg" role="dialog" aria-label="Detent sound settings" hidden>
+        <header class="eng-cfg__head">
+          <span class="mono">Detent sound</span>
+          <button class="eng-cfg__x" type="button" data-cfg-close aria-label="Close sound settings">×</button>
+        </header>
+        {/* The actual click, rendered offline from the current settings. */}
+        <figure class="eng-cfg__wave" aria-label="Waveform of the detent click">
+          <canvas aria-hidden="true"></canvas>
+          <figcaption class="eng-cfg__axis mono"><span>0 ms</span><span data-cfg-peak></span><span data-cfg-dur></span></figcaption>
+        </figure>
+        <div class="eng-cfg__block">
+          <span class="eng-cfg__label mono">Presets</span>
+          <div class="eng-cfg__chips">
+            {DETENT_PRESETS.map((p, i) => <button class="eng-chip" type="button" data-preset={i} aria-pressed={i === 0 ? 'true' : 'false'}>{p.name}</button>)}
+          </div>
+        </div>
+        {
+          DETENT_SLIDERS.map((g) => (
+            <fieldset class="eng-cfg__group">
+              <legend class="mono">{g.group}</legend>
+              {g.rows.map((r) => (
+                <label class="eng-cfg__row mono">
+                  <span>{r.label}</span>
+                  <input type="range" data-param={r.key} data-unit={r.unit} min={r.min} max={r.max} step={r.step} />
+                  <output data-out={r.key} />
+                </label>
+              ))}
+            </fieldset>
+          ))
+        }
+        <footer class="eng-cfg__foot">
+          <button class="eng-key" type="button" data-cfg-play>Play</button>
+          <button class="eng-key" type="button" data-cfg-reset>Reset</button>
+        </footer>
+      </div>
+      <div class="eng-proj__left">
+        <div class="eng-selector">
+          <div class="eng-switch">
+            <button class="eng-mute" type="button" aria-pressed="false" aria-label="Mute detent clicks" title="Detent sound">
+              <Icon class="eng-mute__on" name="bi:volume-up-fill" width="16" height="16" />
+              <Icon class="eng-mute__off" name="bi:volume-mute-fill" width="16" height="16" />
+            </button>
+            <button class="eng-fun" type="button" aria-expanded="false" aria-controls="eng-cfg" aria-label="Detent sound settings" title="Sound settings">
+              <Icon name="bi:sliders2-vertical" width="15" height="15" />
+            </button>
+            <svg
+              class="eng-knob"
+              width={SW_W}
+              height={SW_H}
+              viewBox={`0 0 ${SW_W} ${SW_H}`}
+              tabindex="0"
+              role="slider"
+              aria-label="Project selector"
+              aria-valuemin="1"
+              aria-valuemax={M}
+              aria-valuenow="1"
+              aria-valuetext={all[0].title}
+              aria-controls="eng-rows"
+            >
+              <defs>
+                {/* inner shadow: recessed, slightly textured indicator */}
+                <filter id="eng-inset" x="-50%" y="-50%" width="200%" height="200%">
+                  <feFlood flood-color="#000" flood-opacity="0.55" result="c" />
+                  <feComposite in="c" in2="SourceAlpha" operator="out" result="inv" />
+                  <feOffset dx="0" dy="1.1" />
+                  <feGaussianBlur stdDeviation="0.8" result="sh" />
+                  <feComposite in="sh" in2="SourceAlpha" operator="in" result="inner" />
+                  <feMerge><feMergeNode in="SourceGraphic" /><feMergeNode in="inner" /></feMerge>
+                </filter>
+              </defs>
+              {positions.map((p) => <path class="k-trace" data-i={p.i} d={p.path} />)}
+              {scale.map((s) => <line class="k-scale" x1={s[0]} y1={s[1]} x2={s[2]} y2={s[3]} />)}
+              {positions.map((p) => <line class="k-tick" data-i={p.i} x1={p.tick[0]} y1={p.tick[1]} x2={p.tick[2]} y2={p.tick[3]} />)}
+              <g class="k-rot is-snap" style={`transform-origin:${CX}px ${CY}px`}>
+                <circle class="k-rim" cx={CX} cy={CY} r={R_RIM} />
+                {knurl.map((k) => <line class="k-knurl" x1={k[0]} y1={k[1]} x2={k[2]} y2={k[3]} />)}
+                <circle class="k-cap" cx={CX} cy={CY} r={R_CAP} />
+                <rect class="k-ind" x={CX + 24} y={CY - 2.75} width="30" height="5.5" rx="2.75" filter="url(#eng-inset)" />
+              </g>
+            </svg>
+            <span class="eng-switch__tag mono" aria-hidden="true">Proj<span class="sl">/</span>Turn · Scroll · ↑↓</span>
+          </div>
+
+          <ul class="eng-rows" id="eng-rows" aria-label="Projects">
+            {
+              all.map((p, i) => (
+                <li class={i === 0 ? 'is-on' : undefined}>
+                  <button class="eng-row" type="button" data-i={i} aria-pressed={i === 0 ? 'true' : 'false'} aria-controls={`eng-drop-${i}`} tabindex={i === 0 ? 0 : -1}>
+                    <span class="mono no">{p.no}</span>
+                    <span class="txt">
+                      <span class="nm">{p.title}</span>
+                      <span class="mono kind">{kindLabel(p)}</span>
+                    </span>
+                    <span class="mono per">{p.period}</span>
+                    <span class="mark" aria-hidden="true" />
+                  </button>
+                  {/* Mobile only: the selection opens right here, under its row. */}
+                  <div class="eng-drop" id={`eng-drop-${i}`}>
+                    <a class="eng-cover eng-drop__cover" href={p.repo} target="_blank" rel="noopener" aria-label={`${p.title} repository`} data-hover-gif={p.hoverGif ?? undefined}>
+                      <span class="eng-cover__host" data-hover-gif-host>
+                        <img src={p.cover} alt="" loading="lazy" decoding="async" style={`object-position:${p.pos}`} data-gif-still={p.gifCover ? '' : undefined} />
+                      </span>
+                    </a>
+                    <p class="eng-eyebrow mono"><span>{p.status}</span><span class="sep" /><span>{p.period}</span></p>
+                    <p class="eng-desc">{p.overview}</p>
+                    <p class="eng-drop__tech mono">{p.tech.join(' · ')}</p>
+                    <a class="eng-key eng-key--ink" href={p.repo} target="_blank" rel="noopener"><span class="led on" aria-hidden="true" />View repo ↗</a>
+                  </div>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+
+        <div class="eng-cap" aria-live="polite">
+          <p class="eng-eyebrow mono"><span class="js-no">No. {all[0].no}</span><span class="sep" /><span class="js-status">{all[0].status}</span><span class="sep" /><span class="js-kind">{kindLabel(all[0])}</span></p>
+          <h3 class="eng-cap__title js-title">{all[0].title}</h3>
+          <p class="eng-desc eng-cap__desc js-desc">{all[0].overview}</p>
+          <table class="eng-spec mono">
+            <tbody>
+              <tr><th>Built with</th><td class="js-tech">{all[0].tech.join(' · ')}</td></tr>
+              <tr><th>Period</th><td class="js-period">{all[0].period}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="eng-proj__right">
+        <div class="eng-stage">
+          {
+            all.map((p, i) => (
+              <a
+                class={`eng-slide eng-cover${i === 0 ? ' is-on' : ''}`}
+                data-i={i}
+                href={p.repo}
+                target="_blank"
+                rel="noopener"
+                aria-label={`${p.title} repository`}
+                aria-hidden={i === 0 ? undefined : 'true'}
+                tabindex={i === 0 ? 0 : -1}
+                data-hover-gif={p.video ? undefined : (p.hoverGif ?? undefined)}
+                data-anim={p.video || p.hoverGif ? '' : undefined}
+              >
+                <span class="eng-cover__host" data-hover-gif-host>
+                  {p.video ? (
+                    <video class="js-slide-video" src={p.video} poster={p.cover} muted playsinline preload="metadata" aria-hidden="true" style={`object-position:${p.pos}`} />
+                  ) : (
+                    <img src={p.cover} alt="" loading={i === 0 ? 'eager' : 'lazy'} decoding="async" style={`object-position:${p.pos}`} data-gif-still={p.gifCover ? '' : undefined} />
+                  )}
+                </span>
+                <span class="eng-hud mono"><span class="eng-open">Open repo ↗</span></span>
+              </a>
+            ))
+          }
+        </div>
+
+        <div class="eng-bar">
+          <div class="eng-step">
+            <button class="eng-key eng-key--sq" type="button" data-step="-1" aria-label="Previous project">↑</button>
+            <button class="eng-key eng-key--sq" type="button" data-step="1" aria-label="Next project">↓</button>
+          </div>
+          <span class="eng-bar__pos mono"><em class="js-pos">{all[0].no}</em> / {total}</span>
+          <a class="eng-key eng-key--ink eng-key--lg js-repo" href={all[0].repo} target="_blank" rel="noopener"><span class="led on" aria-hidden="true" />View repo ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  import { onPageReady } from '../../lib/motion/lifecycle';
+  import { mountEngineeringPage } from '../../lib/motion/engineering-page';
+
+  onPageReady('.eng-page', () => mountEngineeringPage());
+</script>
